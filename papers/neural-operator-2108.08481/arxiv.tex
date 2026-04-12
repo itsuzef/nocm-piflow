@@ -1,0 +1,437 @@
+
+
+\documentclass[twoside,11pt]{article}
+% \documentclass[letterpaper]{article}
+
+% Any additional packages needed should be included after jmlr2e.
+% Note that jmlr2e.sty includes epsfig, amssymb, natbib and graphicx,
+% and defines many common macros, such as 'proof' and 'example'.
+%
+% It also sets the bibliographystyle to plainnat; for more information on
+% natbib citation styles, see the natbib documentation, a copy of which
+% is archived at http://www.jmlr.org/format/natbib.pdf
+
+\usepackage{jmlr2e}
+
+% \usepackage{lastpage}
+% \jmlrheading{23}{2022}{1-\pageref{LastPage}}{12/2021; Revised 10/2022}{12/2022}{21-0000}{Nikola Kovachki and Zongyi Li}
+
+
+\usepackage{lastpage}
+\jmlrheading{23}{2022}{1-\pageref{LastPage}}{12/21; Revised 10/22}{12/22}{21-1524}{ Nikola Kovachki, Zongyi Li, Burigede Liu, Kamyar Azizzadenesheli, Kaushik Bhattacharya, Andrew Stuart, Anima Anandkumar}
+\ShortHeadings{Neural Operator: Learning Maps Between Function Spaces With Applications to PDEs}{ Kovachki,  Li,  Liu,  Azizzadenesheli,  Bhattacharya,  Stuart,  Anandkumar}
+
+
+\firstpageno{1}
+
+% \usepackage[margin=1in]{geometry}
+\usepackage{breakcites}
+\usepackage{natbib}
+\usepackage{enumitem,kantlipsum}
+
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsmath} 
+%\usepackage{amsthm}
+\usepackage{amsfonts,pifont}       % blackboard math symbols
+\usepackage{mathtools}
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{xcolor}
+\usepackage{soul}
+\usepackage{dsfont}
+\usepackage{hyperref}
+%\usepackage{enumerate}
+\usepackage{tikz-cd}
+\usepackage{subcaption}
+
+\usepackage{graphicx}
+% Set the typeface to Times Roman
+\usepackage{times}
+\usepackage{dsfont}
+
+\usepackage{diagbox}
+
+\newcommand{\one}{\mathds{1}}
+\newcommand{\cmark}{\ding{51}}%
+\newcommand{\xmark}{\ding{55}}%
+\definecolor{darkred}{rgb}{.7,0,0}
+\definecolor{darkgreen}{rgb}{0,.7,0}
+
+\newcommand{\kamyar}[1]{\textcolor{red}{Kamyar:~#1}}
+\newcommand{\nk}[1]{{\color{black}{#1}}}
+\newcommand{\say}[1]{{\color{blue}{#1}}}
+\newcommand{\ams}[1]{{\color{darkred}{#1}}}
+%\newcommand{\as}[1]{{\color{darkred}{#1}}}
+\newcommand{\as}[1]{{\color{black}{#1}}}
+\newcommand{\zl}[1]{{\color{darkgreen}{#1}}}
+\newcommand{\todo}[1]{{\color{darkgreen}{#1}}}
+\newcommand{\done}[1]{{\iffalse \color{darkgreen}{#1} \fi}}
+\newcommand{\postponed}[1]{{\iffalse \color{darkgreen}{#1} \fi}}
+% \newcommand{\hold}[1]{{\iffalse \color{darkgreen}{#1} \fi}}
+\newcommand{\hold}[1]{#1}
+
+
+\newcommand{\A}{\mathcal{A}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\bbZ}{\mathbb{Z}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\U}{\mathcal{U}}
+
+\newcommand{\LL}{\mathsf{L}}
+\newcommand{\cR}{\mathcal{R}}
+\newcommand{\cK}{\mathcal{K}}
+\newcommand{\cP}{\mathcal{P}}
+\newcommand{\cQ}{\mathcal{Q}}
+\newcommand{\cW}{\mathcal{W}}
+
+% F for the Fourier transform
+% G for the target operator
+\newcommand{\Ftrue}{\mathcal{G}^\dagger}
+\newcommand{\G}{\mathcal{G}}
+\newcommand{\F}{\mathcal{G}}
+\newcommand{\Fd}{\mathcal{G}^{\dagger}}
+\newcommand{\cFd}{\mathcal{G}^{\dagger}}
+\newcommand{\cF}{\mathcal{G}}
+\newcommand{\cG}{\mathcal{F}}
+
+
+\newcommand{\K}{\mathbb{K}}
+\newcommand{\X}{\mathcal{X}}
+\newcommand{\Y}{\mathcal{Y}}
+\newcommand{\Prb}{\mathbb{P}}
+\newcommand{\idn}{\mathbbm{1}}
+\newcommand{\Exp}{\mathbb{E}}
+\newcommand{\NN}{\mathsf{N}}
+\newcommand{\ds}{\:\text{d}\sigma}
+\newcommand{\dx}{\:\mathsf{d}x}
+\newcommand{\dy}{\:\mathsf{d}y}
+\newcommand{\pD}{\partial \Omega}
+\newcommand{\DN}{\mathcal{F}}
+
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+\DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
+
+
+\newtheorem{assumption}[theorem]{Assumption}
+
+\newcommand{\vdown}{\check{v}}
+\newcommand{\vup}{\hat{v}}
+\newcommand{\eps}{\epsilon}
+
+% \newtheorem{definition}{Definition}
+% \newtheorem{theorem}{Theorem}
+% \newtheorem{lemma}[theorem]{Lemma}
+% \newtheorem{proposition}[theorem]{Proposition}
+% \newtheorem{remark}{Remark}
+
+
+\begin{document}
+
+\title{
+% Graph Kernel Network for Partial Differential Equations\\
+% Graph Kernel Network As Inverse of Differential Operator\\
+% Neural Operator: Neural Networks For \\
+% Maps Between Function Spaces\\
+Neural Operator: Learning Maps Between Function Spaces \\ With Applications to PDEs
+% Deep Graph Kernel Networks for Infinite Dimensional Mappings?
+}
+
+
+
+\renewcommand{\thefootnote}{\fnsymbol {footnote}}
+
+\author{\name Nikola Kovachki\thanks{Equal contribution.} \,\thanks{Majority of the work was completed while the author was at Caltech.} \email nkovachki@nvidia.com \addr Nvidia
+\AND \name Zongyi Li$^*$ \email zongyili@caltech.edu \addr Caltech
+\AND \name Burigede Liu \email bl377@cam.ac.uk \addr Cambridge University
+\AND \name Kamyar Azizzadenesheli \email kamyara@nvidia.com \addr  Nvidia
+\AND \name Kaushik Bhattacharya \email bhatta@caltech.edu \addr Caltech
+\AND \name Andrew Stuart \email astuart@caltech.edu \addr Caltech
+\AND \name Anima Anandkumar \email anima@caltech.edu \addr Caltech
+}
+
+% \author{Nikola Kovachki$^*$, Zongyi Li\footnote{equal contribution}, Burigede Liu,\\Kamyar Azizzadenesheli,
+% Kaushik Bhattacharya,  Andrew Stuart, Anima Anandkumar}
+% \date{\today}
+
+% The author names and affiliations should appear only in the accepted paper.
+%
+%\author{ {\bf Harry Q.~Bovik\thanks{Footnote for author to give an
+%alternate address.}} \\
+%Computer Science Dept. \\
+%Cranberry University\\
+%Pittsburgh, PA 15213 \\
+%\And
+%{\bf Coauthor}  \\
+%Affiliation          \\
+%Address \\
+%\And
+%{\bf Coauthor}   \\
+%Affiliation \\
+%Address    \\
+%(if needed)\\
+%}
+% \newcommand{\kamyar}[1]{\textcolor{red}{#1}}
+
+\editor{Lorenzo Rosasco}
+
+\maketitle
+
+
+\begin{abstract}
+
+\input{sections/0-abstract}
+ 
+\end{abstract}
+
+\begin{keywords}
+  Deep Learning, Operator Learning, Discretization-Invariance, Partial Differential Equations, Navier-Stokes Equation.
+\end{keywords}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  Introduction
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\input{sections/1-introduction}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  Settings: Operator Learning
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\input{sections/2-settings}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  Proposed Architecture
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\input{sections/3-architecture}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%
+%  Four variations of the Kernel Integration
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+\input{sections/4-1-Parameterization}
+
+\input{sections/5-1-GNO}
+\input{sections/5-2-LNO}
+\input{sections/5-3-MGNO}
+\input{sections/5-4-FNO}
+
+
+\subsection{Summary}
+We summarize the main computational approaches presented in this section and their complexity:
+\begin{itemize}
+
+\item \textbf{GNO}:    Subsample $J'$ points from the $J$-point discretization and compute the truncated integral
+\begin{equation}
+u(x)=   
+\int_{B(x,r)} \kappa (x,y) v(y) \: \text{d}y 
+\end{equation}
+at a \(\mathcal{O}(J J')\) complexity.
+
+\item \textbf{LNO}:   Decompose the kernel function tensor product form and compute
+\begin{equation}
+u(x) =   \sum_{j=1}^r \langle \psi^{(j)}, v \rangle \varphi^{(j)}(x)
+\end{equation}
+at a \(\mathcal{O}(J)\) complexity.
+
+\item \textbf{MGNO}: Compute a multi-scale decomposition of the kernel 
+\begin{align}
+\begin{split}
+K &= K_{1,1} + K_{1,2}K_{2,2}K_{2,1} + K_{1,2}K_{2,3}K_{3,3}K_{3,2}K_{2,1} + \cdots \\
+u(x) &= (Kv)(x)
+\end{split}
+\end{align}
+at a \(\mathcal{O}(J)\) complexity.
+
+\item \textbf{FNO}: Parameterize the kernel in the Fourier domain and compute the using the FFT 
+\begin{equation}
+%\label{eq:fourier}
+u(x) = \cG^{-1} \bigl( R_\phi \cdot \cG(v) \bigr )(x)
+\end{equation}
+at a \(\mathcal{O}(J \log J)\) complexity.
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  Translation to Graphs
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%\input{sections/6-graphs}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  Test Problems
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\input{sections/3-1-othermethod}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\input{sections/7-problems}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  Numerical Results
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Numerical Results}
+\label{sec:numerics}
+
+
+In this section, we compare the proposed  neural operator with
+other supervised learning approaches, using the four test problems outlined in Section~\ref{sec:problems}. 
+In Subsection~\ref{ssec:result_green} we study the Poisson
+equation, and learning a Greens function; Subsection~\ref{ssec:darcyburgers} considers the coefficient to
+solution map for steady Darcy flow, and the initial condition
+to solution at positive time map for Burgers equation.
+In subsection~\ref{ssec:result_nse} we study the Navier-Stokes
+equation.
+
+We compare with a variety of
+architectures found by discretizing the data and applying finite-dimensional approaches, as well as with other operator-based approximation methods; \nk{further detailed
+comparison of other operator-based approximation methods may be found in \cite{de2022cost},
+where the issue of error versus cost (with cost defined in various ways such as
+evaluation time of the network, amount of data required) is studied.}
+We do not compare against traditional solvers (FEM/FDM/Spectral),
+although our methods, once trained, enable evaluation of the
+input to output map orders of magnitude more quickly than by
+use of such traditional solvers on complex problems.
+We demonstrate the benefits of this speed-up in
+a prototypical application, Bayesian inversion, in Subsubection \ref{sec:bayesian}.
+
+All the computations are carried on a single Nvidia V100 GPU with 16GB memory.
+The code is available at \url{https://github.com/zongyi-li/graph-pde} and \url{https://github.com/zongyi-li/fourier_neural_operator}.
+
+
+% The data generation processes are discussed in Appendices \ref{app:burgers},  \ref{app:darcy}, and \ref{app:ns} respectively. 
+
+
+\paragraph{Setup of the Four Methods:}
+We construct the neural operator by stacking four integral operator layers as specified in \eqref{eq:F} with the ReLU activation. No batch normalization is needed. Unless otherwise specified, we use $N=1000$ training instances and $200$ testing instances. We use the
+Adam optimizer to train for $500$ epochs with an initial learning rate of $0.001$ that is halved every $100$ epochs. We set the channel dimensions $d_{v_0} = \dots = d_{v_3} = 64$ for all one-dimensional problems and $d_{v_0} = \dots = d_{v_3} = 32$ for all two-dimensional problems. The kernel networks $\kappa^{(0)},\dots,\kappa^{(3)}$ are standard feed-forward neural networks with three layers and widths of $256$ units. We use the following abbreviations to denote the methods introduced in Section~\ref{sec:four_schemes}.
+\begin{itemize}
+    \item {\bf GNO:} The method introduced in subsection~\ref{sec:graphneuraloperator}, truncating the integral to a ball with radius \(r=0.25\) and using the Nystr\"om approximation with \(J' = 300\) sub-sampled nodes.
+    \item {\bf LNO:} The low-rank method introduced in subsection~\ref{sec:lowrank} with rank $r=4$.
+    \item {\bf MGNO:} The multipole method introduced in subsection~\ref{sec:multipole}. On  the Darcy flow problem, we use the random construction with three graph levels, each sampling $J_1 = 400, J_2 = 100, J_3 =25$ nodes nodes respectively. On the Burgers' equation problem, we use the orthogonal construction without sampling.
+    \item {\bf FNO:} The Fourier method introduced in subsection~\ref{sec:fourier}. We set $k_{\text{max},j} = 16$ for all one-dimensional problems and $k_{\text{max},j} = 12$ for all two-dimensional problems.
+\end{itemize}
+
+\paragraph{Remark on the Resolution.}
+Traditional PDE solvers such as FEM and FDM approximate a single function and therefore their error to the continuum decreases as the resolution is increased. The figures we show here exhibit
+something different: the error is independent of resolution,
+once enough resolution is used, but is not zero.
+This reflects the fact that there
+is a residual approximation error, in the infinite dimensional
+limit, from the use of a finite-parametrized neural
+operator, trained on a finite amount of data. Invariance of the error with respect to
+(sufficiently fine) resolution is a desirable property that
+demonstrates that an intrinsic approximation of the
+operator has been learned, independent of any specific
+discretization; see Figure \ref{fig:error}. Furthermore, resolution-invariant operators can do zero-shot super-resolution, as shown in Subsubection \ref{sec:superresolution}.
+
+
+
+
+
+
+
+\input{sections/8-1-greens}
+\input{sections/8-2-darcyburgers}
+\input{sections/8-3-nse}
+\input{sections/8-4-inverse}
+\input{sections/8-5-discussion}
+
+
+\input{sections/4-theory}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  Discussion and Conclusion
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\input{sections/9-0-RelatedWorks}
+
+%%%%%%%%%%%%%%%%%%
+%
+%  Approximation boundary
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\input{sections/9-conclusion}
+
+
+
+\newpage
+
+\subsection*{Acknowledgements}
+Z. Li gratefully acknowledges the financial support from the Kortschak Scholars, PIMCO Fellows, and Amazon AI4Science Fellows programs.
+A. Anandkumar is supported in part by Bren endowed chair. 
+K. Bhattacharya, N. B. Kovachki, B. Liu and A. M. Stuart gratefully acknowledge the financial support of the Army Research Laboratory through the Cooperative Agreement Number W911NF-12-0022. Research was sponsored by the Army Research Laboratory and was accomplished under Cooperative Agreement Number W911NF-12-2-0022. 
+AMS is also supported by NSF (award DMS-1818977). 
+Part of this research is developed when K. Azizzadenesheli was with the Purdue University. The authors are grateful to Siddhartha Mishra for his valuable feedback on this work.
+
+
+The views and conclusions contained in this document are those of the authors and should not be interpreted as representing the official policies, either expressed or implied, of the Army Research Laboratory or the U.S. Government. The U.S. Government is authorized to reproduce and distribute reprints for Government purposes notwithstanding any copyright notation herein. 
+
+The computations presented here were conducted on the Resnick High Performance Cluster at the California Institute of Technology.
+
+
+% \bibliographystyle{apalike}
+\bibliography{ref}
+\newpage
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\newpage
+\onecolumn
+% \onecolumn
+\appendix
+
+\input{sections/appendix}
+
+
+\end{document}
+
+

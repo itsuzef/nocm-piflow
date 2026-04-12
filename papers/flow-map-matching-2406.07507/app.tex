@@ -1,0 +1,697 @@
+\section{Probability flow ODEs from stochastic interpolants and score-based diffusion models}
+\label{app:si_diff}
+For the reader's convenience, we now recall how to construct probability flow ODEs using either flow matching with stochastic interpolants or score-based diffusion models. We also recall the connection between these two formalisms.
+
+
+\subsection{Transport equation}
+\label{app:transp:meas}
+
+Generative models based on probability flow ODEs leverage the property that solutions to~\eqref{eqn:ode} push forward their initial conditions onto samples from the target:
+\begin{restatable}[Transport equation]{lemma}{transp}
+	Let $\rho_t = \Law(x_t)$ be the PDF of the solution to~\eqref{eqn:ode} assuming that $x_0\sim \rho_0$. Then $\rho_t$ satisfies\begin{equation}
+		\label{eq:transport}
+		\partial_t \rho_t(x) + \nabla \cdot (b_t(x) \rho_t(x)) = 0, \qquad \rho_{t=0}(x)=\rho_0(x)
+	\end{equation}
+	where $\nabla$ denotes a gradient with respect to $x$.
+\end{restatable}
+%
+The interest of this result is that it can be used in reverse: if we show that a PDF $\rho_t$ satisfies the transport equation~\eqref{eq:transport}, then in practice we can use the probability flow ODE~\eqref{eqn:ode} to sample $\rho_t$ at any time $t>0$, so long as we can sample initial conditions from $\rho_0$.
+
+\begin{proof}
+	The proof proceeds via the weak formulation of~\cref{eq:transport}.
+	%
+	Let $\phi\in C^1_b(\R^d) $ denote an arbitrary test function.
+	%
+	By definition,
+	\begin{equation}
+		\label{def:exp:2}
+		\forall t \in [0,1]\quad : \quad \int_{\R^d} \phi(x) \rho_t(x) dx =  \E[ \phi(x_t)]
+	\end{equation}
+	where $x_t$ is given by~\eqref{eq:stoch:interp} and where the expectation on the right hand-side is taken over the law of the initial conditions $x_{t=0}=x_0\sim\rho_0$.
+	%
+	Taking the time derivative of this equality, we deduce that
+	\begin{equation}
+		\label{def:exp:diff2}
+		\begin{aligned}
+			\int_{\R^d} \phi(x) \partial_t \rho_t(x) dx & =  \E[\dot x_t \cdot \nabla \phi(x_t) ]                &  & \text{by the chain rule}             \\
+			                                            & = \E[b_t(x_t) \cdot \nabla \phi(x_t) ]                 &  & \text{using the ODE~\eqref{eqn:ode}}
+			\\
+			                                            & = \int_{\R^d} b_t(x) \cdot \nabla \phi(x) \rho_t(x) dx &  & \text{by definition of $\rho_t(x)$}
+		\end{aligned}
+	\end{equation}
+	%
+	This is the weak form of the transport equation~\eqref{eq:transport}.
+	%
+	It can be written as~\eqref{eq:transport}, since it admits strong solutions by our assumptions on $b_t(x)$.
+\end{proof}
+
+
+\subsection{Stochastic interpolants and probability flows}
+\label{secsi}
+The stochastic interpolant framework offers a simple and versatile paradigm to construct generative models.
+
+\sidef*
+
+\pflow*
+
+\begin{proof}
+	%
+	Let $\phi\in C^1_b(\R^d) $ denote an arbitrary test function.
+	%
+	By definition,
+	%
+	\begin{equation}
+		\label{def:exp:I}
+		\forall t \in [0,1]\quad : \quad \int_{\R^d} \phi(x) \rho_t(x) dx =  \E[ \phi(I_t)]
+	\end{equation}
+	where $I_t$ is given by~\eqref{eq:stoch:interp} and where the expectation on the right-hand side is taken over the coupling $(x_0, x_1) \sim \rho(x_0, x_1)$ and $z \sim \mathsf N(0, I)$.
+	%
+	Taking the time derivative of this equality, we deduce that
+	%
+	\begin{equation}
+		\label{def:exp:diffI}
+		\begin{aligned}
+			\int_{\R^d} \phi(x) \partial_t \rho_t(x) dx & =  \E[\dot I_t \cdot \nabla \phi(I_t) ]                &  & \text{by the chain rule}                                    \\
+			                                            & = \E[\E[\dot I_t|I_t] \cdot \nabla \phi(I_t) ]         &  & \text{by the tower property of the conditional expectation} \\
+			                                            & = \E[b_t(I_t) \cdot \nabla \phi(I_t) ]                 &  & \text{by definition of $b_t(x)$ in \eqref{eqn:b:def}}
+			\\
+			                                            & = \int_{\R^d} b_t(x) \cdot \nabla \phi(x) \rho_t(x) dx &  & \text{by definition of $\rho_t(x)$}
+		\end{aligned}
+	\end{equation}
+	This is the weak form of the transport equation~\eqref{eq:transport}.
+\end{proof}
+
+
+This result implies that the PDF $\rho_t$ of the stochastic interpolant $I_t$  is also the PDF of the solution $x_t$ of the probability flow ODE~\eqref{eqn:ode} with the velocity field $b_t(x)$ defined in~\eqref{eqn:b:def}.
+%
+Algorithmically, this means that we can use the associated flow map as a generative model.
+
+\subsection{Score-based diffusion models}
+\label{sec:sbdm}
+
+For simplicity, we focus on variance-preserving diffusions; extensions to more general classes of diffusions are straightforward.
+%
+These models are based on variants of the Ornstein-Uhlenbeck process, defined as the solution to the stochastic differential equation (SDE):
+\begin{equation}
+	dX_t = -X_t dt +\sqrt{2}\,dW_t, \qquad X_{t=0} = a\sim \rho_*,
+	\label{sde1}
+\end{equation}
+where $W_t$ is a Wiener process.
+%
+The solution to \eqref{sde1} for the initial condition $X_{t=0}=a$ is:
+\begin{equation}
+	X_t = a\,e^{-t}+\sqrt{2}\int_0^t  e^{-t+t'}dW_{t'}.
+	\label{sde2}
+\end{equation}
+%
+By the It\^o Isometry, the second term on the right-hand side is a Gaussian process with mean zero and covariance given by
+%
+\begin{equation}
+	\E\left[\left(\sqrt{2}\int_0^te^{-t+t'}dW_{t'}\right)^2\right]= 2\Id \int_0^te^{-2t+2t'}dt' = (1-e^{-2t})\Id.
+\end{equation}
+%
+Therefore, at any time $t$, the law of~\eqref{sde2} is that of a Gaussian random variable with mean $x e^{-t}$ and covariance $(1-e^{-2t})\Id$.
+%
+That is, it can be represented as
+\begin{equation}
+	X_t \stackrel{d}{=} a\,e^{-t}+\sqrt{1-e^{-2t}} z,
+	\label{sde3}
+\end{equation}
+%
+where $a\sim \rho_*$, $z\sim  N(0,\Id)$, and $a\perp z$.
+%
+\eqref{sde3} shows that the law of $X_t$ converges exponentially fast to that of the standard normal variable as $t\to\infty$ for all initial conditions~$a$.
+
+
+The key insight of score-based diffusion models is to time-reverse the SDE \eqref{sde1} to obtain a process that turns Gaussian samples into samples from the target.
+%
+Alternatively, this time-reversal can be performed using the associated probability flow ODE.
+To do so, we can start from the evolution equation for the PDF of the solution to the SDE~\eqref{sde1}. Denoting this PDF by $\tilde \rho_t$,  it satisfies the Fokker-Planck equation (FPE)
+\begin{equation}
+	\label{eqn:vp_diff_fpe}
+	\partial_t \tilde\rho_t = \nabla\cdot(x\tilde\rho_t) +\Delta\tilde\rho_t, \qquad \tilde \rho_0 = \rho_*.
+\end{equation}
+%
+To time-reverse the solution to~\eqref{eqn:vp_diff_fpe} we define $\rho_t = \tilde \rho_{T-t}$ for some large $T>0$, and derive an equation for $\rho_t$ from~\eqref{eqn:vp_diff_fpe}:
+\begin{equation}
+	\begin{aligned}
+		\partial_t \tilde\rho_t & = -\partial_t \tilde \rho_{T-t}                                       \\
+		                        & = - \nabla\cdot(x \tilde\rho_{T-t}) - \Delta \tilde \rho_{T-t}        \\
+		                        & = - \nabla\cdot([x + \nabla \log \tilde \rho_{T-t} ]\tilde\rho_{T-t}) \\
+		                        & = - \nabla\cdot([x + \nabla \log \rho_{t} ]\rho_{t})
+		\label{eq:fp:rev}
+	\end{aligned}
+\end{equation}
+where we used the identity $\Delta  \tilde \rho_{T-t} = \nabla \cdot( \tilde \rho_{T-t} \nabla \log \tilde \rho_{T-t})$. Equation~\eqref{eq:fp:rev} can be written as
+\begin{equation}
+	\partial_t \tilde\rho_t + \nabla\cdot([x + s_t(x)] \rho_t) =0, \qquad \rho_{t=0} = \tilde \rho_{t=T} \approx N(0,\Id)
+	\label{eq:fp:transp}
+\end{equation}
+where $s_t(x) = \nabla \log \rho_t(x) = \nabla \log \tilde \rho_{T-t}(x)$ is the score.
+%
+This quantity can be estimated by regression using the solutions to~\eqref{sde1}, which are explicitly available via~\eqref{sde3}.
+%
+Equation~\eqref{eq:fp:transp} is in the form of~\eqref{eq:transport} with a velocity field $b_t(x)$ given by
+\begin{equation}
+	\label{eq:pflow:sb}
+	b_t(x) = x + s_t(x).
+\end{equation}
+%
+Flow map matching can therefore be used to distill score-based diffusion models using this velocity field.
+
+\subsection{Connections}
+\label{app:connect}
+
+Here we show how score-based diffusion models can be related to stochastic interpolants.
+%
+Recall that the law of the solution to the SDE~\eqref{sde1} is given by~\eqref{sde3}.
+%
+If we change time according to $t \mapsto - \log t$, we map $[0,\infty)$ onto $[1,0)$ and we arrive at
+\begin{equation}
+	X_{-\log t} \stackrel{d}{=} I_t =  a t+\sqrt{1-t^2} \, z, \qquad  a\sim \rho_*, \ \  z\sim  N(0,\Id), \ \text{ and } \ a\perp z.
+	\label{sde4}
+\end{equation}
+This is a valid stochastic interpolant if we set $a=x_1$, $\beta_t=t$, $\alpha_t = 0$, and $\gamma_t = \sqrt{1-t^2} $ in~\eqref{eq:stoch:interp}\footnote{Note that $\gamma_0 =1$ here, consistent with the fact that the base PDF is Gaussian, so that $x_0$ and $z$ can be lumped into a single Gaussian variable}.
+%
+Hence, we have shown that the probability flow of the score-based diffusion model with velocity field~\eqref{eq:pflow:sb} can also be studied by using the stochastic interpolant~\eqref{sde4}.
+%
+Note that this reformulation has the advantage that it eliminates the small bias incurred by the finite value of $T$ in score-based diffusion models, since the stochastic interpolant~\eqref{sde4} transports the Gaussian random variable $z$ at  time $t=0$ onto the data point $a$ at time $t=1$ exactly.
+
+
+\section{Proofs for Section \ref{sec:theory}}
+\label{app:theory}
+
+
+
+
+\flowmap*
+\begin{proof}
+	Taking the derivative with respect to $t$ of $X_{s,t}(x_s) = x_t$, we deduce
+	\begin{equation}
+		\label{eq:Lag:1}
+		\partial_t X_{s,t}(x_s) = \dot x_t = b_t(x_t) = b_t(X_{s,t}(x_s))
+	\end{equation}
+	where we used the ODE~\eqref{eqn:ode} to obtain the second equality.
+	%
+	Conversely, since the solutions to~\eqref{eqn:ode} and~\eqref{eqn:flow_map_dyn:L} from a given initial condition are unique, if we solve~\cref{eqn:flow_map_dyn:L} on $[s,t]$ with the condition $X_{s,s}(x_s)=x_s$ we must have $X_{s,t}(x_s) = x_t$ for all $(s,t)\in[0,1]^2$. Evaluating this expression at $x_s=x$ gives~\eqref{eqn:flow_map_dyn:L}. Also, for all $(s,t,t)\in [0,T]^3$, we have
+	\begin{equation}
+		\label{eq:Lag:2}
+		X_{t,t}(X_{s,t}(x_s)) =X_{t,t}(x_t) = x_t = X_{s,t}(x_s).
+	\end{equation}
+	Evaluating this expression at $x_s=x$ gives~\eqref{eq:semigroup}.
+\end{proof}
+
+\lagdistill*
+\begin{proof}
+	Equation~\eqref{eqn:distillation_loss} is a physics-informed neural network (PINN)~\citep{raissi_physics-informed_2019} loss that is minimized only when the integrand is zero, i.e., when~\eqref{eqn:flow_map_dyn:L} holds.
+\end{proof}
+
+\euleq*
+\begin{proof}
+	Taking the derivative with respect to $s$ of  $X_{s,t}(X_{t,s}(x)) = x$ and using the chain rule, we deduce that
+	\begin{equation}
+		\label{eq:Eul:1}
+		\begin{aligned}
+			0 = \frac{d}{ds} X_{s,t}(X_{t,s}(x)) & =\partial_s X_{s,t}(X_{t,s}(x)) + \partial_s X_{t,s}(x) \cdot \nabla X_{s,t}(X_{t,s}(x)) \\
+			                                     & =\partial_s X_{s,t}(X_{t,s}(x)) + b_s( X_{t,s}(x)) \cdot \nabla X_{s,t}(X_{t,s}(x))
+		\end{aligned}
+	\end{equation}
+	where we used~\cref{eqn:flow_map_dyn:L} to get the last equality. Evaluating this expression at $X_{t,s}(x) = y$, then changing $y$ into $x$, gives~\cref{eqn:backward}.
+\end{proof}
+
+\euldistill*
+\begin{proof}
+	Equation~\eqref{eqn:L_backward} is a PINN loss that is minimized only when the integrand is zero, i.e, when~\eqref{eqn:backward} holds.
+\end{proof}
+
+\lagrangianerr*
+\begin{proof}
+	%
+	First observe that, by the one-sided Lipschitz condition~\eqref{eq:one:sided:lip},
+	\begin{equation}
+		\label{eq:no:spread}
+		\begin{aligned}
+			\partial_t |X_{s,t}(x) - X_{s,t}(y)|^2 & = 2 (X_{s,t}(x)-X_{s,t}(y))\cdot (b_t(X_{s,t}(x))-b_t(X_{s,t}(y))), \\
+			%
+			                                       & \le 2C_t |X_{s,t}(x) - X_{s,t}(y)|^2.
+		\end{aligned}
+	\end{equation}
+	Equation~\eqref{eq:no:spread} highlights that~\eqref{eq:one:sided:lip} gives a bound on the spread of trajectories.
+	%
+	We note that we allow for $C_t<0$, which corresponds to globally contracting maps.
+	%
+	Given~\eqref{eq:no:spread}, we now define
+	\begin{equation}
+		\label{eq:error:diag}
+		E_{s,t} = \E\big[\big|X_{s, t}(I_s) - \hat{X}_{s, t}(I_s)\big|^2\big],
+	\end{equation}
+	where we recall that $X_{s,t}(x)$ satisfies $\partial_t X_{s,t}(x) = b_t(X_{s,t}(x))$ and $X_{s,s}(x) = x$.
+	%
+	Taking the derivative with respect to $t$ of~\eqref{eq:error:diag}, we deduce
+	\begin{equation}
+		\label{eq:bound:err:1}
+		\begin{aligned}
+			\partial_t E_{s,t} & = 2\E\big[\big(X_{s, t}(I_s) - \hat{X}_{s, t}(I_s)\big)\cdot\big(b_t(X_{s, t}(I_s)) - \partial_t \hat{X}_{s, t}(I_s)\big)\big],                               \\
+			%
+			                   & = 2 \E\big[\big(X_{s, t}(I_s) - \hat{X}_{s, t}(I_s)\big)\cdot\big(b_t(\hat X_{s, t}(I_s)) - \partial_t \hat{X}_{s, t}(I_s)\big)\big]                          \\
+			                   & \quad + 2\E\big[\big(X_{s, t}(I_s) - \hat{X}_{s, t}(I_s)\big)\cdot\big(b_t(X_{s, t}(I_s))-b_t(\hat X_{s, t}(I_s)) \big)\big],                                 \\
+			%
+			                   & \leq  \E\big[\big|X_{s, t}(I_s) - \hat{X}_{s, t}(I_s)\big|^2\big] +  \E\big[\big|b_t(\hat X_{s, t}(I_s)) - \partial_t \hat{X}_{s, t}(I_s)\big|^2\big]         \\
+			                   & \quad +  2\E\big[\big(X_{s, t}(I_s) - \hat{X}_{s, t}(I_s)\big)\cdot\big(b_t(X_{s, t}(I_s))-b_t(\hat X_{s, t}(I_s)) \big)\big],                                \\
+			%
+			                   & \equiv E_{s,t} + \delta^{\lmd}_{s,t} +  2\E\big[\big(X_{s, t}(I_s) - \hat{X}_{s, t}(I_s)\big)\cdot\big(b_t(X_{s, t}(I_s))-b_t(\hat X_{s, t}(I_s)) \big)\big].
+		\end{aligned}
+	\end{equation}
+	Above, we defined the two-time Lagrangian distillation error,
+	\begin{equation}
+		\delta^{\lmd}_{s,t} = \E\big[\big|b_t(\hat X_{s, t}(I_s)) - \partial_t \hat{X}_{s, t}(I_s)\big|^2\big].
+	\end{equation}
+	By definition, the LMD loss can be expressed as  $L_{\lmd}(\hat X) = \int_{[0,T]^2} w_{s,t} \delta^{\lmd}_{s,t} ds dt$.
+	%
+	Using \eqref{eq:one:sided:lip} in \eqref{eq:bound:err:1}, we obtain the relation
+	\begin{equation}
+		\begin{aligned}
+			 & \partial_t E_{s,t} \le  (1+2C_t)E_{s,t} + \delta_{s,t}^{\lmd},
+		\end{aligned}
+	\end{equation}
+	which implies that
+	\begin{equation}
+		\begin{aligned}
+			\partial_t \big( e^{-t-2\int_s^t C_u du}E_{s,t} \big) \le  e^{-t-2\int_s^t C_u du} \delta_{s,t}^{\lmd}.
+		\end{aligned}
+	\end{equation}
+	Since $E_{s,s} = 0$ this implies that
+	\begin{equation}
+		E_{s,t} \le \int_s^t e^{(t-u)+2\int_u^t C_t dt} \delta^{\lmd}_{s,u} du \le e^{t+2\int_s^t |C_t| dt} \int_s^t \delta^{\lmd}_{s,u} du.
+	\end{equation}
+	Above, we used that $(t, u) \in [0, t]^2$ so that $(t - u) \leq t$.
+	%
+	This bound shows that $E_{0,1} \le e^{1+2\int_0^1 |C_t| dt} \int_0^1 \delta^{\lmd}_{0,u} du$, which can be written explicitly as (using $t$ instead of $u$ as dummy integration variable)
+	\begin{equation}
+		\E\big[\big|X_{0, 1}(x_0) - \hat{X}_{0, 1}(x_0)\big|^2\big] \le e^{1+2\int_0^1 |C_t| dt} \int_0^1 \E\big[\big|b_t(\hat X_{0, t}(x_0)) - \partial_t \hat{X}_{0, t}(x_0)\big|^2\big]dt,
+	\end{equation}
+	%
+	Now, observe that by definition,
+	\begin{equation}
+		\label{eqn:wasserstein_bound}
+		W_2^2(\rho_1, \hat{\rho}_1) \leq \E\big[\big|X_{0, 1}(x_0) - \hat{X}_{0, 1}(x_0)\big|^2\big],
+	\end{equation}
+	because the left-hand side is the infimum over all couplings and the right-hand side corresponds to a specific coupling that pairs points from the same initial condition. This completes the proof.
+\end{proof}
+
+\eulerianerr*
+\begin{proof}
+	We first define the error metric
+	\begin{equation}
+		E_{s, t} = \E\left[\big|X_{s, t}(I_s) - \hat{X}_{s, t}(I_s)\big|^2\right].
+	\end{equation}
+	%
+	It then follows by direct differentiation that
+	\begin{equation}
+		\begin{aligned}
+			\partial_s E_{s, t} & = \E\left[2\left(X_{s, t}(I_s) - \hat{X}_{s, t}(I_s)\right)\cdot\left(\partial_s X_{s, t}(I_s) + \dot{I}_s\cdot\nabla X_{s, t}(I_s) - \left(\partial_s \hat{X}_{s, t}(I_s) + \dot{I}_s \cdot \nabla \hat{X}_{s, t}(I_s)\right)\right)\right], \\
+			%
+			                    & = \E\left[2\left(X_{s, t}(I_s) - \hat{X}_{s, t}(I_s)\right)\cdot\left(\partial_s X_{s, t}(I_s) + b_s(I_s)\cdot\nabla X_{s, t}(I_s) - \left(\partial_s \hat{X}_{s, t}(I_s) + b_s(I_s) \cdot \nabla \hat{X}_{s, t}(I_s)\right)\right)\right],   \\
+			%
+			                    & \geq -E_{s, t} - \E\left[\left|\partial_s X_{s, t}(I_s) + b_s(I_s)\cdot\nabla X_{s, t}(I_s) - \left(\partial_s \hat{X}_{s, t}(I_s) + b_s(I_s) \cdot \nabla \hat{X}_{s, t}(I_s)\right)\right|^2\right],                                        \\
+			%
+			                    & = -E_{s, t} - \delta_{s, t}^{\emd}.
+			\nonumber
+		\end{aligned}
+	\end{equation}
+	Above, we used the tower property of the conditional expectation, the Eulerian equation $\partial_s X_{s, t}(I_s) + b_s(I_s)\cdot\nabla X_{s, t}(I_s) = 0$, and defined the two-time Eulerian distillation error,
+	\begin{equation}
+		\delta_{s, t}^{\emd} = \E\left[\left|\partial_s \hat{X}_{s, t}(I_s) + b_s(I_s) \cdot \nabla \hat{X}_{s, t}(I_s)\right|^2\right].
+	\end{equation}
+	This implies that
+	\begin{equation}
+		\partial_s \left(-e^{s}E_{s, t}\right) \leq e^{s}\delta_{s t}^{\emd}.
+	\end{equation}
+	Using that $E_{t, t} = 0$ for any $t \in [0, T]$ and integrating with respect to $s$ from $s$ to $t$,
+	\begin{equation}
+		-e^{t}E_{t, t} + e^sE_{s, t} \leq \int_s^t e^{u}\delta_{u, t}^{\emd}du.
+	\end{equation}
+	It then follows that
+	\begin{equation}
+		E_{s, t} \leq \int_s^t e^{u-s}\delta_{u, t}^{\emd}du,
+	\end{equation}
+	and hence, using that $u-s \in [0, t]$ and that $\delta_{u, t}^{\emd} \geq 0$,
+	\begin{equation}
+		\E\big[\big|X_{0, 1}(x_0) - \hat{X}_{0, 1}(x_0)\big|^2\big] \le e^1\int_0^1 \E\left[\left|\partial_s \hat{X}_{s, 1}(I_s) + b_s(I_s) \cdot \nabla \hat{X}_{s, 1}(I_s)\right|^2\right]ds.
+	\end{equation}
+	The proof is completed upon noting that
+	\begin{equation}
+		W_2^2(\rho_1, \hat{\rho}_1) \leq \E\big[\big|X_{0, 1}(x_0) - \hat{X}_{0, 1}(x_0)\big|^2\big],
+	\end{equation}
+	because the left-hand side is the infimum over all couplings and the right-hand side corresponds to a particular coupling.
+\end{proof}
+
+
+
+\fmm*
+\begin{proof} We start by noticing that
+	\begin{equation}
+		\label{eq:step1}
+		\begin{aligned}
+			 & \E \big [| \partial_t \hat X_{s,t} (\hat X_{t,s}(I_t)) - \dot{I}_t|^2,                                                                           \\
+			%
+			 & = \E \big [| \partial_t \hat X_{s,t} (\hat X_{t,s}(I_t))|^2 - 2 \dot{I}_t \cdot \partial_t \hat X_{s,t} (\hat X_{t,s}(I_t)) + |\dot I_t|^2\big], \\
+			%
+			 & = \E \big [| \partial_t \hat X_{s,t} (\hat X_{t,s}(I_t))|^2 - 2 \E[ \dot I_t|I_t]\cdot
+			\partial_t \hat X_{s,t} (\hat X_{t,s}(I_t)) + |\dot I_t|^2\big],                                                                                    \\
+			%
+			 & = \E \big [| \partial_t \hat X_{s,t} (\hat X_{t,s}(I_t))|^2 - 2 b_t(I_t)\cdot
+				\partial_t \hat X_{s,t} (\hat X_{t,s}(I_t)) + |\dot I_t|^2\big],
+		\end{aligned}
+	\end{equation}
+	where we used the tower property of the conditional expectation to get the third equality and the definition of $b_t(x)$ in~\eqref{eqn:b:def} to get the last. This means that the loss~\eqref{eq:obj:match} can be written as
+	\begin{equation}
+		\label{eq:obj:match:2}
+		\begin{aligned}
+			 & \calL_{\fmmlab}(\hat X)                                                                                                                                               \\
+			 & = \int_{[0,1]^2} \int_{\R^d} w_{s,t} \big [| \partial_t \hat X_{s,t} (\hat X_{t,s}(x)) - b_t(x)|^2 + | \hat X_{s,t} (\hat X_{t,s}(x)) - x|^2 \big] \rho_t(x) dx ds dt \\
+			 & \qquad + \int_{[0,1]^2} w_{s,t} \E\big[ |\dot I_t|^2 - |b_t(I_t)|^2\big] ds dt,
+		\end{aligned}
+	\end{equation}
+	where $\rho_t = \Law(I_t)$. The second integral does not depend on $\hat X$, so it does not affect the minimization of $\calL_{\fmmlab}(\hat X)$. Assuming that $w_{s,t}>0$, the first integral is minimized if and only if we have
+	\begin{equation}
+		\label{eq:obj:match:3}
+		\begin{aligned}
+			\forall \:\: (s,t,x) \in [0,1]^2\times \R^d \ : \quad  \partial_t \hat X_{s,t} (\hat X_{t,s}(x)) = b_t(x) \quad \text{and} \quad \hat X_{s,t} (\hat X_{t,s}(x)) = x.
+		\end{aligned}
+	\end{equation}
+	From the second of these equations it follows that: (i)  $\hat X_{s,s}(x) =x$, and (ii) if we evaluate the first equation at $y= \hat X_{t,s}(x)$, this equation reduces to
+	\begin{equation}
+		\label{eq:obj:mmm:sol}
+		\forall \:\: (s,t,y) \in [0,1]^2\times \R^d \ : \quad\partial_t \hat X_{s,t}(y) = b_t(\hat X_{s,t}(y))
+	\end{equation}
+	which recovers~\eqref{eqn:flow_map_dyn:L}.
+\end{proof}
+
+\emm*
+
+\begin{proof}
+	The functional gradient of~\eqref{eq:obj:eul:match} with respect to $\hat{X}_{s, t}$ is given by
+	%
+	\begin{equation}
+		\begin{aligned}
+			 & -\partial_s\big( w_{s,t} \big[ \partial_s \hat{X}_{s, t}(x) + \E\big[\dot{I}_s\cdot\nabla \hat{X}_{s, t}(I_s) \mid I_s = x\big] \big]\rho_s(x)\big) \\
+			 & =  -\partial_s\big( w_{s,t} \big[\partial_s \hat{X}_{s, t}(x) + b_s(x) \cdot\nabla \hat{X}_{s, t}(x) \big]\rho_s(x)\big).
+		\end{aligned}
+	\end{equation}
+	%
+	The flow map zeroes this quantity since it solves the Eulerian equation~\eqref{eqn:backward} that appears in it, and hence is a critical point of the objective.
+\end{proof}
+
+\fmmd*
+
+\begin{proof}
+	Equation~\eqref{eq:obj:match:D} is a PINN loss whose unique minimizer satisfies
+	\begin{align}
+		\label{eq:obj:match:D:s}
+		\forall \:\: (s,t,x) \in [0,1]^2\times \R^d  \ :  \quad  \check X_{s,t} (x) = \big(\hat{X}_{t_{K-1}, t_K}\circ \cdots \circ \hat{X}_{t_1, t_2}\big)(x),
+	\end{align}
+	which establishes the claim.
+\end{proof}
+
+
+% \section{Additional theoretical results}
+% \label{app:additional:theo}
+
+
+
+
+\section{Relation to existing consistency and distillation techniques}
+\label{sec:app:relation}
+In this section, we recast consistency models and several distillation techniques in the language of our two-time flow map $X_{s, t}$ to clarify their relation with our work.
+
+\subsection{Flow maps and denoisers}
+\label{se:fm:denoi}
+
+Since $\Law(X_{t,s}(I_t)) = \Law(I_s)$, it is tempting to replace $X_{t,s}(I_t)$ by $I_s$ in the loss~\eqref{eq:obj:match} and use instead
+\begin{equation}
+	\label{eq:obj:match:denoise}
+	\calL_{\text{denoise}}[\hat X] = \int_{[0,1]^2} w_{s,t} \E\big [| \partial_t \hat X_{s,t} (I_s) - \dot I_t|^2 \Big]  ds dt,
+\end{equation}
+minimized over all $\hat X$ such that $\hat X_{s,s}(x)=x$.
+%
+However, the minimizer of this objective is \textit{not} the flow map $X_{s,t}$, but rather the denoiser
+\begin{equation}
+	\label{eq:denoise}
+	X^{\text{denoise}}_{s,t}(x) = \E [ I_t| I_s = x].
+\end{equation}
+This can be seen by noticing  that  the minimizer of~\eqref{eq:obj:match:denoise} is the same as the minimizer of
+\begin{equation}
+	\label{eq:obj:match:denoise:2}
+	\begin{aligned}
+		\calL'_{\text{denoise}}[\hat X] & = \int_{[0,1]^2} w_{s,t} \E\big [\big| \partial_t \hat X_{s,t} (I_s) - \E[\dot I_t|I_s]\big|^2 \Big]  ds dt,                      \\
+		%
+		                                & = \int_{[0,1]^2} \int_{\R^d}w_{s,t} \Big [\big| \partial_t \hat X_{s,t} (x) - \E[\dot I_t|I_s=x]\big|^2 \Big] \rho_s(x) dx ds dt,
+	\end{aligned}
+\end{equation}
+which follows from an argument similar to the one used in the proof of \Cref{prop:fmm}. The minimizer of~\eqref{eq:obj:match:denoise:2} satifies
+\begin{equation}
+	\label{eq:denoise:diff}
+	\partial_t \hat X_{s,t}(x) = \E [ \dot I_t| I_s = x] = \partial_t \E [ I_t| I_s = x],
+\end{equation}
+which implies~\eqref{eq:denoise} by the boundary condition $\hat X_{s,s}(x) = x$.
+%
+The denoiser~\eqref{eq:denoise} may be useful, but it is not a consistent generative model.
+%
+For instance, if $x_0\sim\rho_0$ and $x_1\sim \rho_1$ are independent in the definition of $I_t$, since $I_0=x_0$ and $I_1=x_1$ by construction, for $s=0$ and $t=1$ we have
+\begin{equation}
+	\label{eq:denoise:onestep}
+	X^{\text{denoise}}_{0,1}(x) = \E [x_1]
+\end{equation}
+i.e. the one-step denoiser only recovers the mean of the target density~$\rho_1$.
+
+\subsection{Relation to consistency models}
+\paragraph{Noising process.}
+Following the recommendations in~\citet{karras_elucidating_2022} (which are followed by both~\citet{song_consistency_2023} and~\citet{song_improved_2023}), we consider the variance-exploding process\footnote{Oftentimes $t=0$ is set to $t=t_{\min}>0$ for numerical stability, choosing e.g. $t_{\min} = 2 \times 10^{-3}$. }
+\begin{equation}
+	\label{eqn:ve}
+	\tilde x_t = a + t z, \:\:\: t \in [0, t_{\max}],
+\end{equation}
+where $a \sim \rho_1$ (data from the target density) and $z \sim \mathsf N(0, I)$.
+%
+In practice, practitioners often set $t_{\max} = 80$.
+%
+In this section, because we follow the score-based diffusion convention, we set time so that $t = 0$ recovers $\rho_1$ and so that a Gaussian is recovered as $t \to\infty$.
+%
+The corresponding probability flow ODE is given by
+\begin{equation}
+	\label{eqn:ve_pflow}
+	\dot{\tilde x}_t = -t\nabla\log\rho_t(\tilde x_t), \qquad \tilde x_{t=0} = a \sim \rho_1
+\end{equation}
+where $\rho_t(x) = \Law(\tilde x_t)$.
+%
+In practice,~\eqref{eqn:ve_pflow} is solved backwards in time from some terminal condition $\tilde x_{t_{\max}}$.
+%
+To make contact with our formulation where time goes forward, we define ${x}_t = \tilde x_{\tmax-t}$, leading to
+\begin{equation}
+	\label{eqn:ve_fwd}
+	\dot{x}_t = (\tmax-t)\nabla\log\rho_{\tmax-t}(x_t), \qquad x_{t=0} \sim \mathsf N(x_0,t_{\max}^2 I).
+\end{equation}
+To make touch with our flow map notation, we then define
+\begin{equation}
+	\label{eqn:ve_fwd_flow}
+	\partial_t{X}_{s, t}(x) = (\tmax -t)\nabla\log\rho_{\tmax - t}(X_{s, t}(x)), \qquad X_{s,s}(x) = x.
+\end{equation}
+
+
+\paragraph{Consistency function.}
+By definition~\citep{song_consistency_2023}, the consistency function $f_t: \R^d \to \R^d $ is such that
+\begin{equation}
+	\label{eqn:consistency_def}
+	f_t(\tilde x_t) = a,
+\end{equation}
+where $\tilde x_t$ denotes the solution of~\eqref{eqn:ve_pflow} and $a\sim\rho_1$.
+%
+To make a connection with our flow map formulation, let us consider~\eqref{eqn:consistency_def} from the perspective of $x_t$,
+\begin{equation}
+	\label{eqn:consistency_def_tilde}
+	f_t(x_{\tmax-t})= x_{\tmax},
+\end{equation}
+which is to say that
+\begin{equation}
+	\label{eqn:consistency_flow_map}
+	f_t(x) = X_{\tmax-t, \tmax}(x).
+\end{equation}
+Note that only one time is varied here, i.e. $f_t(x)$, cannot be iterated upon: by its definition~\eqref{eqn:consistency_def}, it always maps the observation~$\tilde x_t$ onto a sample $a\sim\rho_1$.
+
+\paragraph{Discrete-time loss function for distillation.}
+In practice, consistency models are typically trained in discrete-time, by discretizing $[\tmin, \tmax]$ into a set of $N$ points $\tmin = t_1 < t_2 < \hdots < t_N = \tmax$.
+%
+According to~\citet{karras_elucidating_2022}, these points are chosen as
+\begin{equation}
+	\label{eqn:t_disc}
+	t_i = \left(\tmin^{1/\eta} + \frac{i-1}{N-1}\left(\tmax^{1/\eta} - \tmin^{1/\eta}\right)\right)^\eta,
+\end{equation}
+with $\eta = 7$. Assuming that we have at our disposal a pre-trained estimate $s_t(x)$ of the score $\nabla \log \rho_t(x)$, the \textit{distillation loss} for the consistency function $f_t(x)$ is then given by
+\begin{equation}
+	\label{eqn:loss_consistency}
+	\begin{aligned}
+		\calL_{\mathsf{CD}}^N(\hat f) & = \sum_{i=1}^{N-1} \E\Big[\big|\hat f_{t_{i+1}}(\tilde x_{t_{i+1}}) - \hat f_{t_i}(\hat{x}_{t_i})\big|^2\Big], \\
+		%
+		\tilde x_{t_{i+1}}            & = a + t_{i+1}z                                                                                                 \\
+		\hat{x}_{t_i}                 & = \tilde x_{t_{i+1}} - \left(t_{i} - t_{i+1}\right)t_{i+1}s_{t_{i+1}} (x_{t_{i+1}}),
+	\end{aligned}
+\end{equation}
+where  $\E$ is taken over the data $a \sim \rho_1$ and $z \sim \mathsf N(0, I)$.
+The term $\hat{x}_{t_i}$ is an approximation of $\tilde x_{t_i}$ computed by taking a single step of~\eqref{eqn:ve_pflow} with the approximate score model~$s_t(x)$. In practice, the square loss in~\eqref{eqn:loss_consistency} can be replaced by an arbitrary metric $d:\R^d\rightarrow\R^d\rightarrow\R_{\geq 0}$, such as a learned metric like LPIPS or the Huber loss.
+
+
+
+\paragraph{Continuous-time limit.}
+In continuous-time, it is easy to see via Taylor expansion that the consistency loss reduces to
+\begin{equation}
+	\label{eqn:CD_continuous}
+	\calL^\infty_{\mathsf{CD}}(\hat f) = \lim_{N\to\infty} N \calL_{\mathsf{CD}}^N(\hat f) =\int_{\tmin}^{\tmax}\int_{\R^d} w^2_t \big|\partial_t f_t(x) - t s_t(x)\cdot \nabla f_t(x)\big|^2\rho_t(x)dxdt,
+\end{equation}
+where $w_t = \eta (\tmax^{1/\eta}-\tmin^{1/\eta}) t^{1-1/\eta}$ is a weight factor arising from the nonuniform time-grid.
+%
+This is a particular case of our Eulerian distillation loss~\eqref{eqn:L_backward} applied to the variance-exploding setting~\eqref{eqn:ve} with the identification~\eqref{eqn:consistency_flow_map}.
+
+
+
+\paragraph{Estimation vs distillation of the consistency model.}
+If we approximate the exact
+\begin{equation}
+	\label{eqn:score_exact_ve}
+	\nabla\log\rho_t(x) = -\E\left[\frac{\tilde x_t - a}{t^2} \Big| \tilde x_{t} = x\right],
+\end{equation}
+by a single-point estimator
+\begin{equation}
+	\label{eqn:score_approx_ve}
+	\nabla\log\rho_t(x) \approx \frac{a - \tilde x_t}{t^2},
+\end{equation}
+we may use the expression
+\begin{equation}
+	\label{eqn:approx_xhat}
+	\hat{x}_{t_i} \approx a + t_{i}z,
+\end{equation}
+in~\eqref{eqn:loss_consistency} to obtain the \textit{estimation} loss,
+\begin{equation}
+	\label{eqn:loss_consistency_training}
+	\begin{aligned}
+		\calL_{\mathsf{CT}}^N(\hat f) & = \sum_{i=1}^{N-1}\E\Big[\big|\hat f_{t_{i+1}}(\tilde x_{t_{i+1}}) - \hat f^{-}_{t_i}(\tilde x_{t_i})\big|^2\Big], \\
+		%
+		\tilde x_{t_i}                & = a + t_i z.
+	\end{aligned}
+\end{equation}
+This expression does not require a previously-trained score model.
+%
+Notice, however, that \eqref{eqn:loss_consistency_training} must be used with a $\mathsf{stopgrad}$ on $f^-_{t_i}(\tilde x_{t_i})$ so that the gradient is taken over only the first $\hat f_{t_{i+1}}(\tilde x_{t_{i+1}})$.
+%
+This is because~\eqref{eqn:loss_consistency} and \eqref{eqn:loss_consistency_training} are different objectives with different minimizers, even at leading order after expansion in $1/N$, for the same reason that~\eqref{eqn:L_backward} differs from \eqref{eqn:L_backward:2}.
+%
+To see this, observe that to leading order,
+\begin{equation}
+	\label{eq:expand:fstop}
+	\hat f^{-}_{t_i}(\tilde x_{t_i}) = \hat f^{-}_{t_{i+1}}(\tilde x_{t_{i+1}}) + \big( \partial_t \hat f^{-}_{t_{i+1}}(\tilde x_{t_{i+1}}) + z \cdot \nabla f^{-}_{t_{i+1}}(\tilde x_{t_{i+1}})\big) (t_{i}-t_{i+1}) + O\big((t_{i}-t_{i+1})^2\big),
+\end{equation}
+which gives the continuous-time limit
+\begin{equation}
+	\label{eqn:CT_continuous}
+	\calL^\infty_{\mathsf{CT}}(\hat f) = \lim_{N\to\infty} \calL_{\mathsf{CD}}^N(\hat f) =\int_{\tmin}^{\tmax}\int_{\R^d} w_t \big|\partial_t f_t(x) + z \cdot \nabla f^-_t(x)\big|^2\rho_t(x)dxdt.
+\end{equation}
+Observing that $z = \partial_t \tilde{x}_t$ shows that~\eqref{eqn:CT_continuous} recovers the Eulerian estimator described in~\cref{sec:eul:est}, which does not lead to a gradient descent iteration.
+
+\subsection{Relation to neural operators}
+In our notation, neural operator approaches for fast sampling of diffusion models~\citep{zheng_fast_2023} also estimate the flow map $X_{0,t}$ via the loss
+\begin{equation}
+	\label{eqn:fno_loss}
+	\calL_{\mathsf{FNO}}(\hat X) = \int_0^1\int_{\R^d} \big|\hat X_{0, t}(x) - X_{0, t}(x)\big|^2 \rho_0(x) dx dt,
+\end{equation}
+where $\hat X_{0, t}$ is parameterized by a Fourier Neural Operator and where $X_{0, t}$ is the flow map \textit{obtained by simulating the probability flow ODE associated with a pre-trained (or given)} $b_t(x)$.
+%
+To avoid simulation at learning time, they pre-generate a dataset of trajectories, giving access to $X_{0, t}(x)$ for many initial conditions $x\sim \rho_0$.
+%
+Much of the work focuses on the architecture of the FNO itself, which is combined with a U-Net.
+
+\subsection{Relation to progressive distillation}
+Progressive distillation~\citep{salimans_progressive_2022} takes a DDIM sampler~\citep{song_denoising_2022} and trains a new model to approximate two steps of the old sampler with one step of the new model.
+%
+This process is iterated repeatedly to successively halve the number of steps required.
+%
+In our notation, this corresponds to minimizing
+\begin{equation}
+	\label{eqn:prog_dist}
+	\calL_{\mathsf{PD}}^{\Delta t}(\hat X) = \int_0^{1-2\Delta t}\int_{\R^d}\big|\hat X_{t, t+2\Delta t}(x) - \big(X_{t + \Delta t, t+2\Delta t}\circ X_{t, t+\Delta t}\big)(x)\big|^2\rho_t(x) dx dt
+\end{equation}
+where $X$ is a pre-trained map from the previous iteration.
+%
+This is then iterated upon, and $\Delta t$ is increased, until what is left is a few-step model.
+
+\begin{table}[t]
+	\centering
+	\begin{tabular}{lcccc}
+		\toprule
+		            & $\mathsf{KL}(\rho_1 || \hat \rho_1)$ & $W_2^2(\rho_1, \hat \rho_1)$ & $W_2^2(\hat{\rho}_1^b, \hat \rho_1)$ & $L_2$ error \\
+		\midrule
+		SI          & 0.020                                & 0.026                        & 0.0                                  & 0.000       \\
+		LMD         & 0.043                                & 0.059                        & 0.032                                & 0.085       \\
+		EMD         & 0.079                                & 0.029                        & 0.010                                & 0.011       \\
+		FMM,  $N=1$ & 0.104                                & 0.021                        & --                                   & 0.026       \\
+		FMM,  $N=4$ & 0.045                                & 0.014                        & --                                   & 0.024       \\
+		PFMM, $N=1$ & 0.043                                & 0.014                        & --                                   & 0.023       \\
+		\bottomrule
+	\end{tabular}
+	\captionof{table}{Comparison of $\mathsf{KL}(\rho || \hat \rho)$ and $W_2^2(\rho, \hat \rho)$, where  $\hat\rho$ is the pushforward density from the maps $\hat X_{0,1}(x_0)$ for the methods listed above. Additionally included is a comparison of  $L_2$ expected error of the distillation methods against their teacher $\hat X_{0,1}^{\si}$ given as $\mathbb E[ | \hat X_{0,1}^{\si}(x) - \hat X_{0,1}(x)|^2] $. Intriguingly, LMD performs better in being distributionally correct, as measured by the KL-divergence, but worse in preserving the coupling of the teacher model. The roles are flipped for EMD. This may highlight KL as a more informative metric in our case, as our aims are to sample correctly in distribution. See Figure \ref{fig:mislabel} for a visualization.}
+	\label{tab:comparison:checker}
+\end{table}%
+
+
+
+\section{Additional Experimental Details}
+\label{app:exp:checker}
+
+
+\subsection{2D checkerboard}
+Here, we provide further discussion and analysis of our results for generative modeling on the 2D checkerboard distribution (\cref{fig:checker}).
+%
+Our KL-divergence estimates clearly highlight that there is a hierarchy of performance.
+%
+Of particular interest is the large discrepancy in performance between the Eulerian and Lagrangian distillation techniques.
+
+As noted in Figure \ref{fig:checker} and Table \ref{tab:comparison:checker}, LMD substantially outperforms its Eulerian counterpart in terms of minimizing the KL-divergence between the target checkerboard density $\rho_1$ and model density $\hat \rho_1 = \hat{X}_{0, 1}\sharp\rho_0$.
+%
+Interestingly, while LMD is more correct in distribution, EMD better preserves the original coupling $(x_0, \hat X_{0,1}^{\si}(x_0) )$ of the teacher model $\hat{X}_{0,1}^{\si}$, as measured by the $W_2^2$ distance and the expected $L_2$ reconstruction error, defined as $\mathbb E[ | \hat X_{0,1}^{\si}(x) - \hat X_{0,1}(x)|^2] $. Where this coupling is significantly \textit{not} preserved is visualized in Figure \ref{fig:mislabel}. For each model, we color code points for which $| \hat X_{0,1}^{\si}(x) - \hat X_{0,1}(x)|^2 > 1.0$, highlighting where the student map differed from the teacher. We notice that the LMD map pushes initial conditions to an opposing checker edge (purple) than where those initial conditions are pushed by the interpolant (blue). This is much less common for the EMD map, but its performance is overall worse in matching the target distribution.
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=\textwidth]{figs/checker_comp_mislabel.pdf}
+	\caption{Visualization of the difference in assignment of the maps $\hat X_{0,1}(x_0)$ for the various models as compared to the teacher/ground truth model $\hat X^{\si}_{0,1}(x_0)$ for the same initial conditions from the base distribution $x_0$.  Points that lie in the region $|\hat X^{\si}_{0,1}(x_0) - \hat X_{0,1}(x_0) |^2 > 1.0$ are colored as compared to the blue points, which represent where the stochastic interpolant teacher mapped the same red initial conditions. This gives us an intuition for how well each method precisely maintains the coupling $(x_0, \hat X_{0,1}^{\si}(x_0) ) $ from the teacher. Note that we are treating $X_{0,1}^{\si}$ as the ground truth map here, as it is close to the exact map. The models based on FMM either don't have a teacher or have $\fmmlab, N=4$ as a teacher, but all should have the same coupling at the minimizer. }
+	\label{fig:mislabel}
+\end{figure}
+
+
+
+\subsection{Image experiments}
+
+Here we include more experimental details for reproducing the results provided in Section \ref{sec:exp}. We use the U-Net from the diffusion OpenAI paper \citep{dhariwal_diffusion_2021} with code given at \href{https://github.com/openai/guided-diffusion}{https://github.com/openai/guided-diffusion}. We use the same architecture for both CIFAR10 and ImageNet-$32\times32$ experiments. The architecture is also the same for training a velocity field and for training a flow map, barring the augmentation of the time-step embedding in the U-Net to handle two times ($s,t$) instead of one. Details of the training conditions are presented in Table \ref{tab:archs:img}.
+
+
+\begin{table}[ht]
+	\centering
+	\begin{tabular}{lcc}
+		\toprule                                       & CIFAR-10          & ImageNet 32$\times$32 \\
+		\midrule Dimension                             & 32$\times$32      & 32$\times$32          \\
+		\# Training point                              & $5\times 10^4$    & 1,281,167             \\
+		\midrule Batch Size                            & 256               & 256                   \\
+		Training Steps (Lagrangian distillation)       & 1.5$\times$10$^5$ & 2.5$\times$10$^5$     \\
+		Training Steps (Eulerian distillation)         & 1.2$\times$10$^5$ & 2.5$\times$10$^5$     \\
+		Training Steps (Flow map matching)             & N/A               & 1$\times$10$^5$       \\
+		Training Steps (Progressive flow map matching) & 1.3$\times 10^5$  & N/A                   \\
+		U-Net channel dims                             & 256               & 256                   \\
+		Learning Rate (LR)                             & $0.0001$          & $0.0001$              \\
+		LR decay (every 1k epochs)                     & 0.992             & 0.992                 \\
+		U-Net dim mult                                 & [1,2,2,2]         & [1,2,2,2]             \\
+		Learned time  embedding                        & Yes               & Yes                   \\
+		$\#$ GPUs                                      & 4                 & 4                     \\
+		\bottomrule
+	\end{tabular}
+	\vspace{2.5mm}
+	\caption{Hyperparameters and architecture for image datasets.}
+	\label{tab:archs:img}
+\end{table}

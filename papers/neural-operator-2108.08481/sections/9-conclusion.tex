@@ -1,0 +1,56 @@
+\section{Conclusions}
+\label{sec:conclusion}
+
+We have introduced the concept of Neural Operator, the goal being
+to construct a neural network architecture adapted to the problem
+of mapping elements of one function space into elements of
+another function space. The network is comprised of four steps
+which, in turn,  (i) extract  features from the input
+functions, (ii) iterate a recurrent neural network on feature space, defined through composition of a sigmoid function
+and a nonlocal operator, and (iii) a final mapping from feature space into the output function.
+
+We have studied four nonlocal operators in step (iii), one based
+on graph kernel networks, one based on the low-rank decomposition, one based on the multi-level graph structure, and the last one based on convolution in Fourier space.  The designed network architectures are constructed to be mesh-free and our numerical experiments demonstrate that they have the desired property of being able to train and generalize on different meshes. This is because the networks learn the mapping between infinite-dimensional function spaces, which can then be shared with approximations at different levels of discretization. A further advantage  of the integral operator approach is that data may be incorporated
+on unstructured grids, using the Nystr\"om approximation; these
+methods, however, are quadratic in the number of discretization points; we describe variants on this methodology, using low rank
+and multiscale ideas, to reduce this complexity. On the other hand the Fourier approach leads directly  to fast methods, linear-log linear in the number of discretization points, provided structured grids are used.
+We demonstrate that our methods can achieve competitive performance with other mesh-free approaches developed in the numerical analysis community. 
+Specifically, the Fourier neural operator achieves the best numerical performance among our experiments, potentially due to the smoothness of the solution function and the underlying uniform grids.
+The methods developed in the numerical analysis community are less flexible than the approach we introduce here, relying heavily on the structure of an underlying PDE mapping input to output; our method is entirely data-driven. 
+
+\subsection{Future Directions}   
+We foresee three main directions in which this work will develop: firstly as a method to speed-up scientific computing tasks which involve repeated evaluation of a mapping between spaces of functions, following the example of the Bayesian inverse problem \ref{sec:bayesian}, or when the underlying model is unknown as in computer vision or robotics; 
+and secondly the development of more advanced methodologies beyond the four approximation schemes presented in Section \ref{sec:four_schemes} that are more efficient or better in specific situations; thirdly, the development of 
+an underpinning theory which captures the expressive power,  and approximation error properties, of the proposed neural network, following Section \ref{sec:approximation}, and
+quantifies the computational complexity required to achieve given error.
+
+\done{The preceding three points need to be linked to subsubsections
+which follow. As it is things appear disjoint. Also an important
+potential application is problems for which there is no model:
+purely data driven. I think Robotics will provide such examples.}
+
+\subsubsection{New Applications}
+The proposed neural operator is a blackbox surrogate model for function-to-function mappings. It naturally fits into solving PDEs for physics and engineering problems. In the paper we mainly studied three partial differential equations: Darcy Flow, Burgers' equation, and Navier-Stokes equation, which cover a broad range of scenarios. Due to its blackbox structure, the neural operator is easily applied on other problems. We foresee applications on more challenging turbulent flows, such as those arising in subgrid models with in climate GCMs, 
+high contrast media in geological models generalizing the Darcy model, and general physics simulation for games and visual effects. The operator setting leads to an efficient and accurate representation, and the resolution-invariant properties make it possible to training and a smaller resolution dataset, and be evaluated on arbitrarily large resolution.
+
+The operator learning setting is not restricted to scientific computing. For example, in computer vision, images can naturally be viewed as real-valued functions on 2D domains and videos simply add a temporal structure. Our approach is therefore a natural choice for problems in computer vision where invariance to discretization is crucial. We leave this as an interesting future direction. 
+\done{I think computer vision IS part of science or engineering so I suggest to reword the preceding.}
+
+
+\subsubsection{New Methodologies}
+Despite their excellent performance, there is still room for improvement upon the current methodologies. For example, the full $O(J^2)$ integration method still outperforms the FNO by about $40\%$,
+albeit at greater cost. It is of potential interest to develop more advanced integration techniques or approximation schemes that follows the neural operator framework. For example, one can use adaptive graph or probability estimation in the Nystr\"om approximation. It is also possible to use other basis than the Fourier basis such as the PCA basis and the Chebyshev basis. 
+
+Another direction for new methodologies is to combine the neural operator in other settings. The current problem is set as a supervised learning problem. Instead, one can combine the neural operator with solvers \citep{pathak2020using, um2020solverintheloop}, augmenting and correcting the solvers to get faster and more accurate approximation. Similarly, one can combine operator learning with physics constraints \citep{wang2021learning,li2021physics}.
+
+\subsubsection{Theory}
+In this work, we develop a universal approximation theory (Section \ref{sec:approximation})
+for neural operators. As in the work of \cite{lu2019deeponet} studying universal
+approximation for DeepONet, we use linear approximation techniques. The power of 
+non-linear approximation \citep{devore1998nonlinear}, which is likely intrinsic 
+to the success of neural operators in some settings, is still less studied, as discussed in Section \ref{sec:deeponets}; we note that DeepOnet is intrinsically limited by linear
+approximation properties. 
+For functions between Euclidean spaces, we clearly know, by combining two layers of linear functions with one layer of non-linear activation function, the neural network can approximate arbitrary continuous functions, and that deep neural networks can be exponentially more expressive compared to shallow networks \citep{poole2016exponential}. However issues are less clear when it comes to the choice of architecture and the scaling of the number of parameters within neural operators between Banach spaces.
+The approximation theory of operators is much more complex and challenging compared to that of functions over Euclidean spaces. It is important to study the class of neural operators with respect to their architecture -- what spaces the true solution operators lie in, and which classes of PDEs the neural operator approximate efficiently. We leave these as exciting, but
+open, research directions. 
+

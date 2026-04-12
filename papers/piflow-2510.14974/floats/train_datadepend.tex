@@ -1,0 +1,25 @@
+\begin{algorithm}[t]
+\small
+\DontPrintSemicolon
+\KwIn{$\mathit{NFE}$, teacher $G_\vtheta$, data--condition distribution $p(\vx_0, \vc)$, shift $m$}
+\KwOut{Student $G_\vphi$}
+Initialize student params $\vphi$ \\
+$S \gets \Set{\frac{1}{\mathit{NFE}},\frac{2}{\mathit{NFE}},\cdots,1}$  \tcp*{can be adjusted to reduce final step size}
+\For{finite samples $\vx_0, \vc \sim p(\vx_0, \vc)$, $\bm{\epsilon} \sim \mathcal{N}(\bm{0}, \mI)$, $\tau^\prime \sim U(0, 1)$}{
+    $\tau_\text{src} \gets \min \Set{\tau_\text{src} | \tau_\text{src} \in S\ \text{and}\ \tau_\text{src}\ge \tau^\prime}$ \\
+    $\tau_\text{dst} \gets \max \Set{\tau_\text{dst} | \tau_\text{dst} \in S \cup \Set{0}\ \text{and}\ \tau_\text{dst} < \tau_\text{src}}$ \\
+    $t_\text{src} \gets \frac{m \tau_\text{src}}{1 + (m - 1) \tau_\text{src}}$ \tcp*{time shifting~\citep{sd3}}
+    $\vx_{t_\text{src}} \gets \alpha_{t_\text{src}} \vx_0 + \sigma_{t_\text{src}} \bm{\epsilon} $ \\
+    $\pi \gets G_\vphi(\vx_{t_\text{src}}, t_\text{src},\vc)$ \\
+    $\pi_\text{D} \gets \operatorname{stopgrad}(\pi)$~~or~~$\pi_\text{D} \gets \operatorname{dropout}(\operatorname{stopgrad}(\pi))$ \\
+    $\mathcal{L}_\vphi \gets 0$ \\
+    \For{finite samples $\tau \sim U(\tau_\textnormal{dst}, \tau_\textnormal{src})$}{
+        $t \gets \frac{m \tau}{1 + (m - 1) \tau}$ \\
+        $\vx_t \gets \vx_{t_\text{src}} + \int_{t_\text{src}}^t \pi_\text{D}(\vx_t,t) \diff t$ \\
+        $\mathcal{L}_\vphi \gets \mathcal{L}_\vphi + \frac{1}{2} \left\|G_\vtheta(\vx_t, t, \vc) -\pi(\vx_t, t)\right\|^2$ \tcp*{can be replaced with Eq.~(\ref{eq:microwindow})}
+    }
+    $\vphi \gets \operatorname{Adam}\left(\vphi, \nabla_\vphi \mathcal{L}_\vphi \right)$ \tcp*{optimizer step}
+}
+\caption{Data-dependent on-policy $\pi$-ID training loop with time shifting.}
+\label{alg:train_datadepend}
+\end{algorithm}

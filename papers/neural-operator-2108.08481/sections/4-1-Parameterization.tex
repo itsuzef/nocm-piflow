@@ -1,0 +1,116 @@
+\section{Parameterization and Computation}
+\label{sec:four_schemes}
+In this section, we discuss various ways of parameterizing the infinite dimensional architecture \eqref{eq:F}, Figure~\ref{fig:NO_architecture}. The goal is to find
+an intrinsic infinite dimensional parameterization that achieves
+small error (say $\eps$), and then rely on numerical approximation to ensure that this parameterization  delivers an error of the same
+magnitude (say $2\eps$), for all
+data discretizations fine enough. In this way the number of parameters used to achieve ${\mathcal O}(\eps)$ error is independent of the data discretization. In many applications we have in mind the data
+discretization is something we can control, for example when
+generating input/output pairs from solution of partial
+differential equations via numerical simulation. The proposed
+approach allows us to train a neural operator approximation
+using data from different discretizations, and to predict with
+discretizations different from those used in the data, all by
+relating everything to the underlying infinite dimensional
+problem.
+
+
+We also discuss the computational complexity of the proposed parameterizations and suggest algorithms which yield efficient numerical methods for approximation. Subsections~\ref{sec:graphneuraloperator}-\ref{sec:fourier} delineate each of the proposed methods.
+
+To simplify notation, we will only consider a single layer of \eqref{eq:F} i.e. \eqref{eq:onelayer} and choose the input and output domains to be the same. Furthermore, we will drop the layer index \(t\) and write the single layer update as
+\begin{equation}
+    \label{eq:onelayercompute}
+    u(x) = \sigma \left ( W v(x) + \int_D \kappa (x,y) v(y) \: \text{d}\nu(y) + b(x) \right ) \qquad \forall x \in D
+\end{equation}
+where \(D \subset \R^d\) is a bounded domain, \(v: D \to \R^n\) is the input function and \(u: D \to \R^m\) is the output function. 
+\done{Should we comment that little changes if domains of $v$ and $u$
+are different?} 
+When the domain domains $D$ of $v$ and $u$ are different, we will usually extend them to be on a larger domain.  
+We will consider \(\sigma\) to be fixed, and, for the time being, take \(\text{d} \nu(y) = \text{d} y\) to be the Lebesgue measure on \(\R^d\). Equation \eqref{eq:onelayercompute} then leaves three objects which can be parameterized: \(W\), \(\kappa\), and \(b\). Since \(W\) is linear and acts only locally on \(v\), we will always parametrize it by the values of its associated \(m \times n\) matrix; hence \(W \in \R^{m \times n}\) yielding \(mn\) parameters. 
+We have found empirically that letting \(b: D \to \R^m\) be a constant function over any domain \(D\) works at least as well as allowing it to be an arbitrary neural network. Perusal of the proof of Theorem~\ref{thm:main_compact} shows that we do not lose any approximation power by doing this, and we reduce the total number of parameters in the architecutre. Therefore we will always parametrize \(b\) by the entries of a fixed \(m\)-dimensional vector; in particular, \(b \in \R^m\) yielding \(m\) parameters. Notice that both parameterizations are independent of any discretization of \(v\). 
+
+%Perusal of the proof of Theorem~\ref{thm:functional_chen}, shows that we do not loose any approximation power by letting \(b : D \to \R^m\) be a constant function \ams{over domain $D$.} Therefore we will always parametrize \(b\) by the entries of a fixed \(m\)-dimensional vector; in particular, \(b \in \R^m\) yielding \(m\) parameters. Notice that both parameterizations are independent of any discretization of \(v\). 
+
+The rest of this section will be dedicated to choosing the kernel function \(\kappa : D \times D \to \R^{m \times n}\) and the computation of the associated integral kernel operator. For clarity of exposition, we consider only the simplest proposed version of this operator \eqref{eq:kernelop1} but note that similar ideas may also be applied to \eqref{eq:kernelop2} and \eqref{eq:kernelop3}. Furthermore, in order to focus on learning the kernel $\kappa$, here we drop \(\sigma\), \(W\), and \(b\) from \eqref{eq:onelayercompute} and simply consider the linear update
+\begin{equation}
+    \label{eq:onelayerlinear}
+    u(x) = \int_D \kappa(x,y) v(y) \: \text{d} \nu(y) \qquad \forall x \in D.
+\end{equation}
+To demonstrate the computational challenges associated with \eqref{eq:onelayerlinear}, let \(\{x_1,\dots,x_J\} \subset D\) be a uniformly-sampled \(J\)-point discretization of \(D\). Recall that we assumed \(\text{d} \nu(y) = \text{d} y\) and, for simplicity, suppose that \(\nu(D)=1\), then the Monte Carlo approximation of \eqref{eq:onelayerlinear} is
+%
+\begin{equation}
+    \label{eq:onelayerlinear_MC}
+    u(x_j) = \frac{1}{J} \sum_{l=1}^J \kappa(x_j, x_l) v(x_l), \qquad j=1,\dots,J
+\end{equation}
+% Riemann sum
+The integral in \eqref{eq:onelayerlinear} can be approximated using any other integral approximation methods, including the celebrated Riemann sum for which $u(x_j) = \sum_{l=1}^J \kappa(x_j, x_l) v(x_l)\Delta x_l$ and $\Delta x_l$ is the Riemann sum coefficient associated with $\nu$ at $x_l$. For the approximation methods, to compute \(u\) on the entire grid requires \(\mathcal{O}(J^2)\) matrix-vector multiplications. Each of these matrix-vector multiplications requires \(\mathcal{O}(mn)\) operations; for the rest of the discussion, we treat \(mn = \mathcal{O}(1)\) as constant and consider only the cost with respect to \(J\) the discretization parameter since $m$ and $n$ are fixed by
+the architecture choice whereas $J$ varies depending on
+required discretization accuracy and hence may be arbitrarily
+large. This cost is not specific to the Monte Carlo approximation but is generic for quadrature rules which use the entirety of the data. Therefore, when \(J\) is large, computing \eqref{eq:onelayerlinear} becomes intractable and new ideas are needed in order to alleviate this. Subsections~\ref{sec:graphneuraloperator}-\ref{sec:fourier} propose different approaches to the solution to this problem,
+inspired by classical methods in numerical analysis.  We finally remark that, in contrast, computations with \(W\), \(b\), and \(\sigma\) only require \(\mathcal{O}(J)\) operations which justifies our focus on computation with the kernel integral operator.
+
+\paragraph{Kernel Matrix.} It will often times be useful to consider the kernel matrix associated to \(\kappa\) for the discrete points \(\{x_1,\dots,x_J\} \subset D\). We define the kernel matrix \(K \in \R^{mJ \times nJ}\) to be the \(J \times J\) block matrix with each block given by the value of the kernel i.e. 
+\[K_{jl} = \kappa(x_j, x_l) \in \R^{m \times n}, \qquad j,l=1,\dots,J\]
+where we use \((j,l)\) to index an individual block rather than a matrix element. Various numerical algorithms for the efficient computation of \eqref{eq:onelayerlinear} can be derived based on assumptions made about the structure of this matrix, for example, bounds on its rank or sparsity.
+
+\subsection{Graph Neural Operator (GNO)}
+\label{sec:graphneuraloperator}
+
+We first outline the Graph Neural Operator (GNO) which approximates \eqref{eq:onelayerlinear} by combining a Nystr\"om approximation with domain truncation and is implemented with the standard framework of graph neural networks. This construction was originally proposed in \cite{li2020neural}.
+
+\paragraph{Nystr\"om Approximation. }
+A simple yet effective method to alleviate the cost of computing \eqref{eq:onelayerlinear} is employing a Nystr\"om approximation. This amounts to sampling uniformly at random the points over which we compute the output function \(u\). In particular, let \(x_{k_1},\dots,x_{k_{J'}} \subset \{x_1,\dots,x_J\}\) be \(J' \ll J\) randomly selected points and, assuming \(\nu(D) = 1\), approximate \eqref{eq:onelayerlinear} by
+\[u(x_{k_j}) \approx \frac{1}{J'} \sum_{l=1}^{J'} \kappa(x_{k_j}, x_{k_l}) v(x_{k_l}), \qquad j=1,\dots,J'.\]
+We can view this as a low-rank approximation to the kernel matrix \(K\), in particular,
+\begin{equation}
+    \label{eq:nystrom_matrix}
+    K \approx K_{J J'} K_{J' J'} K_{J' J}
+\end{equation}
+where \(K_{J' J'}\) is a \(J' \times J'\) block matrix and \(K_{J J'}\), \(K_{J' J}\) are interpolation matrices, for example, linearly extending the function to the whole domain from the random nodal points. 
+\postponed{This last sentence is unclear for me: aren't all the
+items in above identity matrices? How can two of them
+extend to the whole domain?} 
+\postponed{Response: sorry which are identity matrices?}
+The complexity of this computation is \(\mathcal{O}(J'^2)\) hence it remains quadratic but only in the number of subsampled points \(J'\) which we assume is much less than the number of points \(J\) in the original  discretization. 
+
+
+\paragraph{Truncation. }
+Another simple method to alleviate the cost of computing \eqref{eq:onelayerlinear} is to truncate the integral to a sub-domain of \(D\) which depends on the point of evaluation \(x \in D\). Let \(s : D \to \mathcal{B}(D)\) be a mapping of the points of \(D\) to the Lebesgue measurable subsets of \(D\) denoted \(\mathcal{B}(D)\). Define \(\text{d} \nu (x,y) = \mathds{1}_{s(x)} \text{d}y\) then \eqref{eq:onelayerlinear} becomes
+\begin{equation}
+    \label{eq:onelayertruncation}
+    u(x) = \int_{s(x)} \kappa(x,y) v(y) \: \text{d} y \qquad \forall x \in D.
+\end{equation}
+If the size of each set \(s(x)\) is smaller than \(D\) then the cost of computing \eqref{eq:onelayertruncation} is \(\mathcal{O}(c_sJ^2)\) where \(c_s  < 1\) is a constant depending on \(s\). While the cost remains quadratic in \(J\), the constant \(c_s\) can have a significant effect in practical computations, as we demonstrate in Section~\ref{sec:numerics}. For simplicity and ease of implementation, we only consider \(s(x) = B(x,r) \cap D\) where \(B(x,r) = \{y \in \R^d : \|y - x\|_{\R^d} < r\}\) for some fixed \(r > 0\). With this choice of \(s\) and assuming that \(D = [0,1]^d\), we can explicitly calculate that \(c_s \approx r^d\).
+
+Furthermore notice that we do not lose any expressive power when we make this approximation so long as we combine it with composition. To see this, consider the example of the previous paragraph where, if we let \(r=\sqrt{2}\), \done{Isn't $r\geq\sqrt{2}$ critical in Euclidean norm when
+$D=2$ etc.?} then \eqref{eq:onelayertruncation} reverts to \eqref{eq:onelayerlinear}. Pick 
+\(r < 1\) and let \(L \in \N\) with \(L \geq 2\) be the smallest integer such that \(2^{L-1}r \geq 1\). Suppose that \(u(x)\) is computed by composing the right hand side of \eqref{eq:onelayertruncation} \(L\) times with a different kernel every time. The domain of influence of \(u(x)\) is then \(B(x,2^{L-1}r) \cap D = D\) hence it is easy to see that there exist \(L\) kernels such that computing this composition is equivalent to computing \eqref{eq:onelayerlinear} for any given kernel with appropriate regularity. Furthermore the cost of this computation is \(\mathcal{O}(Lr^d J^2)\) and therefore the truncation is beneficial if \(r^d (\log_2 1/r + 1) < 1\)
+which holds for any \(r < 1/2\) when \(d = 1\) and any \(r < 1\) when \(d \geq 2\). Therefore we have shown that we can always reduce the cost of computing \eqref{eq:onelayerlinear} by truncation and composition. From the perspective of the kernel matrix, truncation enforces a sparse, block diagonally-dominant structure at each layer. We further explore the hierarchical nature of this computation using the multipole method in subsection~\ref{sec:multipole}.
+
+Besides being a useful computational tool, truncation can also be interpreted as explicitly building local structure into the kernel \(\kappa\). For problems where such structure exists, explicitly enforcing it makes learning more efficient, usually requiring less data to achieve the same generalization error. Many physical systems such as interacting particles in an electric potential exhibit strong local behavior that quickly decays, making truncation a natural approximation technique. 
+
+\paragraph{Graph Neural Networks. }
+We utilize the standard architecture of message passing graph networks employing edge features as introduced in \cite{gilmer2017neural} to efficiently implement \eqref{eq:onelayerlinear} on arbitrary discretizations of the domain \(D\). To do so, we treat a discretization \(\{x_1,\dots,x_J\} \subset D\) as the nodes of a weighted, directed graph and assign edges to each node using the function \(s : D \to \mathcal{B}(D)\) which, recall from the section on truncation, assigns to each point a domain of integration. In particular, for \(j=1,\dots,J\), we assign the node \(x_j\) the value \(v(x_j)\) and emanate from it edges to the nodes \(s(x_j) \cap \{x_1,\dots,x_J\} = \mathcal{N}(x_j)\) which we call the neighborhood of \(x_j\). If \(s(x) = D\) then the graph is fully-connected. Generally, the sparsity structure of the graph determines the sparsity of the kernel matrix \(K\), indeed, the adjacency matrix of the graph and the block kernel matrix have the same zero entries. The weights of each edge are assigned as the arguments of the kernel. In particular, for the case of \eqref{eq:onelayerlinear}, the weight of the edge between nodes \(x_j\) and \(x_k\) is simply the concatenation \((x_j,x_k) \in \R^{2d}\).  More complicated weighting functions are considered for the implementation of the integral kernel operators \eqref{eq:kernelop2} or \eqref{eq:kernelop3}.
+
+With the above definition the message passing algorithm of \cite{gilmer2017neural}, with averaging aggregation, updates the value \(v(x_j)\) of the node \(x_j\) to the value \(u(x_j)\) as 
+\[u(x_j) = \frac{1}{|\mathcal{N}(x_j)|}\sum_{y \in \mathcal{N}(x_j)} \kappa(x_j, y) v(y), \qquad j=1,\dots,J\]
+which corresponds to the Monte-Carlo approximation of the integral \eqref{eq:onelayertruncation}. More sophisticated quadrature rules and adaptive meshes can also be implemented using the general framework of message passing on graphs, see, for example, \cite{pfaff2020learning}. We further utilize this framework in subsection~\ref{sec:multipole}.
+
+
+\paragraph{Convolutional Neural Networks. } Lastly, we compare and contrast the GNO framework to standard convolutional neural networks (CNNs). 
+In computer vision, the success of CNNs has largely been attributed to their ability to capture local features such as edges that can be used to distinguish different objects in a natural image. This property is obtained by enforcing the convolution kernel to have local support, an idea similar to our truncation approximation. Furthermore by directly using a translation invariant kernel, a CNN architecture becomes translation equivariant; this is a desirable feature for many vision models e.g. ones that perform segmentation. We will show that similar ideas can be applied to the neural operator framework to obtain an architecture with built-in local properties and translational symmetries that, unlike CNNs, remain consistent in function space.
+
+To that end, let \(\kappa(x,y) = \kappa(x - y)\) and suppose that \(\kappa : \R^d \to \R^{m \times n}\) is supported on \(B(0,r)\). Let \(r^* > 0\) be the smallest radius such that \(D \subseteq B(x^*, r^*)\) where \(x^* \in \R^d\) denotes the center of mass of \(D\) and suppose \(r \ll r^*\). Then \eqref{eq:onelayerlinear} becomes the convolution
+\begin{equation}
+    \label{eq:onelayercnn}
+    u(x) = (\kappa * v)(x) = \int_{B(x,r) \cap D} \kappa(x-y) v(y) \: \text{d} y \qquad \forall x \in D.
+\end{equation}
+Notice that \eqref{eq:onelayercnn} is precisely \eqref{eq:onelayertruncation} when \(s(x) = B(x,r) \cap D\) and \(\kappa(x,y) = \kappa(x - y)\). When the kernel is parameterized by e.g. a standard neural network and the radius \(r\) is chosen independently of the data discretization, \eqref{eq:onelayercnn} becomes a layer of a convolution neural network that is consistent in function space. Indeed the parameters of \eqref{eq:onelayercnn} do not depend on any discretization of \(v\). The choice \(\kappa(x,y) = \kappa(x - y)\) enforces translational equivariance in the output while picking \(r\) small enforces locality in the kernel; 
+hence we obtain the distinguishing features of a CNN model.
+
+We will now show that, by picking a parameterization that is \textit{inconsistent} 
+in function space and applying a Monte Carlo approximation to the integral, \eqref{eq:onelayercnn}  becomes a standard CNN. This is most easily demonstrated when \(D = [0,1]\) and the discretization \(\{x_1,\dots,x_J\}\) is equispaced i.e. \(|x_{j+1} - x_j| = h\) for any \(j=1,\dots,J-1\). Let \(k \in \N\) be an odd filter size 
+and let \(z_1,\dots,z_k \in \R\) be the points \(z_j = (j-1-(k-1)/2)h\) for \(j=1,\dots,k\). It is easy to see that \(\{z_1,\dots,z_k\} \subset \bar{B}(0,(k-1)h/2)\) which we choose as the support of \(\kappa\). Furthermore, we parameterize \(\kappa\) directly by its pointwise values which are \(m \times n\) matrices at the locations \(z_1,\dots,z_k\) thus yielding \(kmn\) parameters. Then \eqref{eq:onelayercnn} becomes
+\[u(x_j)_p \approx \frac{1}{k} \sum_{l=1}^k \sum_{q=1}^n \kappa(z_l)_{pq} v(x_j - z_l)_q, \qquad j=1,\dots,J, \:\: p=1,\dots,m\]
+where we define \(v(x) = 0\) if \(x \not \in \{x_1,\dots,x_J\}\). Up to the constant factor \(1/k\) which can be re-absorbed into the parameterization of \(\kappa\), this is precisely the update of a stride 1 CNN with \(n\) input channels, \(m\) output channels, and zero-padding so that the input and output signals have the same length. This example can easily be generalized to higher dimensions and different CNN structures, we made the current choices for simplicity of exposition. Notice that if we double the amount of discretization points for \(v\) i.e. \(J \mapsto 2J\) and \(h \mapsto h/2\), the support of \(\kappa\) becomes \(\bar{B}(0,(k-1)h/4)\) hence the model changes due to the discretization of the data. Indeed, if we take the limit to the continuum \(J \to \infty\), we find \(\bar{B}(0,(k-1)h/2) \to \{0\}\) hence the model becomes completely local. To fix this, we may try to increase the filter size \(k\) (or equivalently add more layers) simultaneously with \(J\), but then the number of parameters in the model goes to infinity as \(J \to \infty\) since, as we previously noted, there are \(kmn\) parameters in this layer. Therefore standard CNNs are not consistent models in function space. We demonstrate their inability to generalize to different resolutions in Section~\ref{sec:numerics}.
+

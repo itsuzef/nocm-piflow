@@ -1,0 +1,101 @@
+\documentclass{article} %
+\usepackage{iclr2025_conference,times}
+
+\input{math_commands.tex}
+
+\usepackage[utf8]{inputenc} %
+\usepackage[T1]{fontenc}    %
+\usepackage{hyperref}       %
+\hypersetup{
+  colorlinks,
+  linkcolor={red!50!black},
+  citecolor={blue!50!black},
+  urlcolor={blue!80!black}
+  }
+  \definecolor{orange}{HTML}{ff7f0e}
+  \definecolor{blue}{HTML}{1f77b4}
+
+\usepackage{url}            %
+\usepackage{booktabs}       %
+\usepackage{amsfonts}       %
+\usepackage{nicefrac}       %
+\usepackage{microtype}      %
+\usepackage{xcolor}         %
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{mathtools}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{amsthm}
+\usepackage{booktabs} 
+\usepackage{arydshln}
+\usepackage{multirow}
+\usepackage{cleveref}
+\usepackage{wrapfig}
+\usepackage{caption}
+
+
+\newtheorem{lem}{Lemma}
+\newtheorem{pro}{Proposition}
+\newtheorem{thm}{Theorem}
+\newtheorem{corollary}{Corollary}
+\newtheorem{definition}{Definition}
+\newtheorem{assumption}{Assumption}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+
+\newcommand{\clu}[1]{{\color{blue}{[[\textbf{clu: }#1]]}}}
+\newcommand{\ys}[1]{{\color{magenta}{[\textbf{YS: }#1]}}}
+
+\renewcommand{\arraystretch}{1.1}
+
+\newcommand{\cd}{{sCD}}
+\newcommand{\ct}{{sCT}}
+
+\title{Simplifying, Stabilizing \& Scaling Continuous-Time Consistency Models}
+
+
+\author{Cheng Lu \& Yang Song \\
+OpenAI\\
+}
+
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\iclrfinalcopy %
+\begin{document}
+
+
+\maketitle
+
+\begin{abstract}
+
+
+
+Consistency models (CMs) are a powerful class of diffusion-based generative models optimized for fast sampling. Most existing CMs are trained using discretized timesteps, which introduce additional hyperparameters and are prone to discretization errors. While continuous-time formulations can mitigate these issues, their success has been limited by training instability. To address this, we propose a simplified theoretical framework that unifies previous parameterizations of diffusion models and CMs, identifying the root causes of instability. Based on this analysis, we introduce key improvements in diffusion process parameterization, network architecture, and training objectives. These changes enable us to train continuous-time CMs at an unprecedented scale, reaching 1.5B parameters on ImageNet 512×512. Our proposed training algorithm, using only two sampling steps, achieves FID scores of 2.06 on CIFAR-10, 1.48 on ImageNet 64×64, and 1.88 on ImageNet 512×512, narrowing the gap in FID scores with the best existing diffusion models to within 10\%.
+
+
+
+
+
+\end{abstract}
+
+
+
+
+\input{1-intro}
+\input{2-background}
+\input{3-stabilizing}
+\input{4-scaling}
+\input{5-conclusion}
+
+
+\bibliography{iclr2025_conference}
+\bibliographystyle{iclr2025_conference}
+
+\clearpage
+\appendix
+\input{appendix/appendix}
+
+\end{document}

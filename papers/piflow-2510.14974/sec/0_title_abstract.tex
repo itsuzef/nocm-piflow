@@ -1,0 +1,39 @@
+\title{pi-Flow: Policy-Based Few-Step Generation via Imitation Distillation}
+
+\author{%
+  \vspace{1ex}
+  \textbf{Hansheng Chen}$^{1}$ \ \ 
+  \textbf{Kai Zhang}$^{2}$ \ \ 
+  \textbf{Hao Tan}$^{2}$ \ \ 
+  \textbf{Leonidas Guibas}$^{1}$ \ \ 
+  \textbf{Gordon Wetzstein}$^{1}$ \ \ 
+  \textbf{Sai Bi}$^{2}$ \\
+  \vspace{1ex}
+  $^{1}$Stanford University \ \ 
+  $^{2}$Adobe Research \\
+  \vspace{-1ex}
+  \url{https://github.com/Lakonik/piFlow}
+}
+
+\maketitle
+
+\begin{figure}[H]
+\vspace{-2ex}
+\centering
+\includegraphics[width=0.96\textwidth]{resources/teaser.pdf}
+\caption{High quality 4-NFE text-to-image generations by \methodname, distilled from FLUX.1-12B (top-right three images) and Qwen-Image-20B (all remaining images). \methodname{} preserves the teacher’s coherent structures, fine details (e.g., skin and hair), and accurate text rendering, while avoiding diversity collapse (see Fig.~\ref{fig:compare_teacher_vsd} for sample diversity).}
+\label{fig:teaser}
+\end{figure}
+
+\begin{abstract}
+Few-step diffusion or flow-based generative models typically distill a velocity-predicting teacher into a student that predicts a shortcut towards denoised data. This format mismatch has led to complex distillation procedures that often suffer from a quality--diversity trade-off. To address this, we propose \emph{policy-based flow models} (\methodname). 
+\methodname{} modifies the output layer of a student flow model to predict a network-free policy at one timestep. The policy then produces dynamic flow velocities at future substeps with negligible overhead, enabling fast and accurate ODE integration on these substeps without extra network evaluations.
+To match the policy's ODE trajectory to the teacher's,
+we introduce a novel imitation distillation approach, which matches the policy's velocity to the teacher's along the policy's trajectory using a standard $\ell_2$ flow matching loss. 
+By simply mimicking the teacher's behavior, \methodname{} enables stable and scalable training and avoids the quality--diversity trade-off.
+On ImageNet 256\textsuperscript{2}, it attains a 1-NFE FID of 2.85, outperforming previous 1-NFE models of the same DiT architecture. 
+On FLUX.1-12B and Qwen-Image-20B at 4 NFEs, \methodname{} achieves substantially better diversity than state-of-the-art DMD models, while maintaining teacher-level quality.
+\ificlrfinal\else
+Code and models will be released publicly.
+\fi
+\end{abstract}

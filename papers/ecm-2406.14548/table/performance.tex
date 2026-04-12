@@ -1,0 +1,105 @@
+
+
+\begin{table}[t!]
+% \vspace{10pt}
+\caption{Generative performance on unconditional CIFAR-10 and class-conditional \imgnet. We use a budget of $12.8\mathrm{M}$ training images (batch size 128 and 100k iterations) for ECMs. $^\star$ stands for a budget of $102.4\mathrm{M}$ training images (batch size 1024 and 100k iterations) on \imgnet.}
+\vspace{5pt}
+\centering
+\small
+\begin{minipage}[t]{0.49\linewidth}
+\centering
+\setlength{\tabcolsep}{5pt} 
+\renewcommand{\arraystretch}{1.00} % 
+\begin{adjustbox}{max width=\textwidth}
+    \begin{tabular}{@{}lccc@{}}
+    \toprule
+    \multicolumn{3}{c}{CIFAR-10} \\ 
+    \midrule
+    Method & FID$\downarrow$ & NFE$\downarrow$ \\ 
+    \midrule
+    {\color{gray} Diffusion Models} & ~ & ~ \\ 
+    \midrule
+    Score SDE \citep{song2020score} & 2.38 & 2000 \\ 
+    Score SDE-deep \citep{song2020score} & 2.20 & 2000 \\ 
+    EDM \citep{Karras2022edm} & 2.01 & 35 \\ 
+    EDM (DPM-Solver-v3) \citep{zheng2024dpm} & 2.51 & 10 \\ 
+    \midrule
+    {\color{gray} Diffusion Distillation} & ~ & ~ \\ 
+    \midrule
+    PD \citep{salimans2022progressive} & 8.34 & 1 \\ 
+    GET~\citep{geng2024one}  & 5.49 & 1 \\
+    Diff-Instruct~\citep{di}  & 4.53 & 1 \\
+    TRACT \citep{berthelot2023tract} & 3.32 & 2 \\
+    CD (LPIPS) \citep{cm} & 3.55 & 1 \\ 
+    CD (LPIPS) \citep{cm} & 2.93 & 2 \\ 
+    \midrule
+    {\color{gray} Consistency Models} & ~ & ~ \\ 
+    \midrule
+    iCT~\citep{ict}      & 2.83 & 1 \\ 
+                         & 2.46 & 2 \\
+    iCT-deep~\citep{ict} & 2.51 & 1 \\ 
+                         & 2.24 & 2 \\ 
+    \midrule
+    {\color{gray} ECT} & ~ & ~ \\ 
+    \midrule
+    ECM (100k iters) & 4.54 & 1 \\ 
+    ECM (200k iters) & 3.86 & 1 \\ 
+    ECM (400k iters) & 3.60 & 1 \\ 
+    ECM (100k iters) & 2.20 & 2 \\ 
+    ECM (200k iters) & 2.15 & 2 \\
+    ECM (400k iters) & 2.11 & 2 \\ 
+    \bottomrule
+    \end{tabular}
+\end{adjustbox}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\centering
+\setlength{\tabcolsep}{10pt} 
+\renewcommand{\arraystretch}{0.97} 
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\multicolumn{3}{c}{\imgnet} \\ 
+\midrule
+Method & FID$\downarrow$ & NFE$\downarrow$ \\ 
+\midrule
+{\color{gray} Diffusion Models} & ~ & ~ \\ 
+\midrule
+ADM~\citep{Karras2022edm} & 2.07 & 250  \\
+EDM~\citep{Karras2022edm} & 2.22 & 79  \\
+EDM2-XL~\citep{karras2023analyzing} & 1.33 & 63 \\ 
+\midrule
+{\color{gray} Diffusion Distillation} & ~ & ~ \\ 
+\midrule
+BOOT~\citep{gu2023boot} & 16.3 & 1 \\
+DFNO (LPIPS)~\citep{dfno} & 7.83 & 1 \\ 
+Diff-Instruct~\citep{di} & 5.57 & 1 \\
+TRACT \citep{berthelot2023tract} & 4.97 & 2  \\  
+PD (LPIPS) \citep{salimans2022progressive} & 5.74 & 2 \\ 
+CD (LPIPS) \citep{cm} & 4.70 & 2 \\ 
+\midrule
+{\color{gray} Consistency Models} & ~ & ~ \\ 
+\midrule
+iCT~\citep{ict}      & 3.20 & 2 \\ 
+iCT-deep~\citep{ict} & 2.77 & 2 \\
+\midrule
+{\color{gray} ECT} & ~ & ~ \\ 
+\midrule
+ECM-S (100k iters) & 3.18 & 2 \\
+ECM-M (100k iters) & 2.35 & 2 \\
+ECM-L (100k iters) & 2.14 & 2 \\
+ECM-XL (100k iters) & 1.96 & 2 \\
+\midrule
+ECM-S$^\star$  & 4.05  & 1 \\
+ECM-S$^\star$  & 2.79  & 2 \\
+ECM-XL$^\star$ & 2.49  & 1 \\
+ECM-XL$^\star$ & 1.67  & 2 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{minipage}
+
+\label{table:ect-cifar10-imagenet64}
+\vspace{-10pt}
+\end{table}

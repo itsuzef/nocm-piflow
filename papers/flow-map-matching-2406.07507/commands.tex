@@ -1,0 +1,174 @@
+\renewcommand{\ge}{\geqslant}
+\renewcommand{\geq}{\geqslant}
+\renewcommand{\le}{\leqslant}
+\renewcommand{\leq}{\leqslant}
+\renewcommand{\preceq}{\preccurlyeq}
+\renewcommand{\succeq}{\succcurlyeq}
+
+
+\declaretheoremstyle[
+  bodyfont=\itshape,
+  headfont=\bfseries,
+  spaceabove=6pt,
+  spacebelow=6pt
+]{spaced}
+\declaretheorem[numberwithin=section,style=spaced]{theorem}
+\declaretheorem[numberlike=theorem,style=spaced]{definition}
+\declaretheorem[numberlike=theorem,style=spaced]{corollary}
+\declaretheorem[numberlike=theorem,style=spaced]{proposition}
+\declaretheorem[numberlike=theorem,style=spaced]{assumption}
+\declaretheorem[numberlike=theorem,style=spaced]{lemma}
+\declaretheorem[numberlike=theorem,style=spaced]{remark}
+
+\DeclareMathOperator*{\esssup}{ess\,sup}
+\DeclareMathOperator*{\argmin}{arg\!\min}
+\DeclareMathOperator*{\argmax}{arg\!\max}
+\DeclareMathOperator*{\sgn}{sgn}
+\DeclareMathOperator*{\supp}{supp}
+\DeclareMathOperator*{\rank}{rank}
+\DeclareMathOperator*{\diag}{diag}
+\DeclareMathOperator*{\Tr}{\mathbf{Tr}}
+\DeclareMathOperator*{\image}{Im}
+\DeclareMathOperator*{\nullspace}{Kern}
+\DeclareMathOperator*{\rowspace}{RS}
+\DeclareMathOperator*{\colspace}{CS}
+\DeclareMathOperator*{\dom}{dom}
+\DeclareMathOperator*{\closure}{cl}
+\DeclareMathOperator*{\vol}{vol}
+\DeclareMathOperator*{\Span}{span}
+\DeclareMathOperator*{\polylog}{polylog}
+\DeclareMathOperator*{\Band}{Band}
+\DeclareMathOperator{\Law}{Law}
+
+\newcommand{\grad}{\mathrm{grad}}
+\newcommand{\kernel}{\mathsf{K}}
+\newcommand{\TU}{\mathcal{TU}}
+\newcommand{\calU}{\mathcal{U}}
+\newcommand{\calV}{\mathcal{V}}
+\newcommand{\bias}{\mathrm{Bias}}
+\newcommand{\var}{\mathrm{Var}}
+\newcommand{\calM}{\mathcal{M}}
+\newcommand{\calP}{\mathcal{P}}
+\newcommand{\blam}{\boldsymbol\lambda}
+\newcommand{\A}{\ensuremath{\mathcal{A}}}
+\newcommand{\Cset}{\ensuremath{\mathcal{C}}}
+\newcommand{\calL}{\mathcal{L}}
+\newcommand{\X}{\ensuremath{\mathcal{X}}}
+\newcommand{\Y}{\ensuremath{\mathcal{Y}}}
+\newcommand{\Z}{\ensuremath{\mathcal{Z}}}
+\newcommand{\R}{\ensuremath{\mathbb{R}}}
+\newcommand{\B}{\ensuremath{\mathcal{B}}}
+\newcommand{\Q}{\ensuremath{\mathbb{Q}}}
+\newcommand{\N}{\ensuremath{\mathbb{N}}}
+\newcommand{\F}{\ensuremath{\mathcal{F}}}
+\newcommand{\I}{\ensuremath{\mathcal{I}}}
+\newcommand{\bA}{\mathbf{A}}
+\newcommand{\Unif}{\mathrm{Unif}}
+\newcommand{\Set}{\ensuremath{\mathcal{S}}}
+\newcommand{\Hyp}{\ensuremath{\mathcal{H}}}
+\newcommand{\Loss}{\ensuremath{\mathcal{L}}}
+\newcommand{\Lagrange}{\ensuremath{\mathcal{L}}}
+\newcommand{\norm}[1]{\lVert #1 \rVert}
+\newcommand{\bignorm}[1]{\left\lVert #1 \right\rVert}
+\newcommand{\twonorm}[1]{\lVert #1 \rVert_{2}}
+\newcommand{\maxnorm}[1]{\lVert #1 \rVert_{\infty}}
+\newcommand{\onenorm}[1]{\left\lVert #1 \right\rVert_{1}}
+\newcommand{\mb}[1]{\mathbf{#1}}
+\newcommand{\bigip}[2]{\ensuremath{\left\langle #1, #2 \right\rangle}}
+\newcommand{\ip}[2]{\ensuremath{\langle #1, #2 \rangle}}
+\newcommand{\PD}[2]{\ensuremath{\frac{\partial #1}{\partial #2}}}
+\newcommand{\Var}{\mathrm{Var}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\abs}[1]{\ensuremath{| #1 |}}
+\newcommand{\bigabs}[1]{\ensuremath{\left| #1 \right|}}
+\newcommand{\floor}[1]{\lfloor #1 \rfloor}
+\newcommand{\ceil}[1]{\lceil #1 \rceil}
+\newcommand{\Normal}{\mathcal{N}}
+\newcommand{\rdraw}{\xleftarrow{\$}}
+\newcommand{\ind}{\mathbf{1}}
+\renewcommand{\vec}{\mathrm{vec}}
+\newcommand{\Sym}{\mathbf{S}}
+\renewcommand{\Re}{\mathrm{Re}}
+\renewcommand{\Im}{\mathrm{Im}}
+\newcommand{\TxM}{\mathcal{T}_x\mathcal{M}}
+\newcommand{\TxtM}{\mathcal{T}_{x(t)}\mathcal{M}}
+\newcommand{\leb}{\mu}
+\renewcommand{\Pr}{\mathbb{P}}
+\newcommand{\T}{\mathsf{T}}
+\newcommand{\TM}{\mathcal{TM}}
+\newcommand{\TTM}{\mathcal{TTM}}
+\newcommand{\smin}{\sigma_{\mathrm{min}}}
+\newcommand{\Event}{\mathcal{E}}
+\newcommand{\calA}{\mathcal{A}}
+\newcommand{\calC}{\mathcal{C}}
+\newcommand{\calD}{\mathcal{D}}
+\newcommand{\calN}{\mathcal{N}}
+\newcommand{\calE}{\mathcal{E}}
+\newcommand{\calX}{\mathcal{X}}
+\newcommand{\calT}{\mathcal{T}}
+\newcommand{\calF}{\mathcal{F}}
+\newcommand{\calQ}{\mathcal{Q}}
+\newcommand{\calR}{\mathcal{R}}
+\newcommand{\calH}{\mathcal{H}}
+\newcommand{\calW}{\mathcal{W}}
+\newcommand{\calO}{\mathcal{O}}
+\newcommand{\dlyap}{\mathsf{dlyap}}
+\newcommand{\sbardelt}{\overline{\sigma}_\Delta}
+\newcommand{\ahatmodel}{\hat{\alpha}_m}
+\newcommand{\ahatphys}{\hat{\alpha}_p}
+\renewcommand{\vec}{\mathbf}
+
+\newcommand{\Id}{\text{\it Id}}
+
+\newcommand{\bmattwo}[4]{\begin{bmatrix} #1 & #2 \\ #3 & #4 \end{bmatrix}}
+
+\newcommand{\cvectwo}[2]{\begin{bmatrix} #1 \\ #2 \end{bmatrix}}
+\newcommand{\rvectwo}[2]{\begin{bmatrix} #1 & #2 \end{bmatrix}}
+
+\newcommand{\nb}[1]{{\textcolor{blue}{nb: #1}}}
+\newcommand{\msa}[1]{{\color{brown} msa: #1}}
+%\newcommand{\new}[1]{{\color{purple} #1}}
+\newcommand{\new}[1]{{#1}}
+\newcommand{\renew}[1]{{\color{teal} #1}}
+
+\newcommand{\xbar}{\overline{x}}
+
+\numberwithin{equation}{section}
+\newcommand{\calK}{\mathcal{K}}
+\newcommand{\Ah}{\widehat{A}}
+\newcommand{\Bh}{\widehat{B}}
+\newcommand{\uh}{\widehat{u}}
+\newcommand{\xh}{\widehat{x}}
+\newcommand{\Ph}{\widehat{P}}
+\newcommand{\Reg}{\mathsf{Regret}}
+\newcommand{\ha}{\hat{\alpha}}
+\newcommand{\gh}{\widehat{g}}
+\newcommand{\fh}{\widehat{f}}
+\newcommand{\Vh}{\widehat{V}}
+\newcommand{\bx}{\mathbf{x}}
+\newcommand{\bM}{\mathbf{M}}
+\newcommand{\p}{\partial}
+\newcommand{\bff}{\mathbf{f}}
+\newcommand{\bThet}{\boldsymbol{\Theta}}
+\newcommand{\bJ}{\mathbf{J}}
+\newcommand{\bI}{\mathbf{I}}
+\newcommand{\tildea}{\tilde{\alpha}}
+\newcommand{\Symm}{\mathsf{Sym}}
+\newcommand{\tmin}{t_{\min}}
+\newcommand{\tmax}{t_{\max}}
+\newcommand{\stopgrad}[1]{\mathsf{stopgrad}(#1)}
+\newcommand{\opnorm}[1]{\norm{#1}_{\mathrm{op}}}
+\newcommand{\citeme}{[X]}
+\newcommand{\bigemph}[1]{\textit{\textbf{#1}}}
+
+
+%% fmm commands
+\newcommand{\lmd}{\mathsf{LMD}}
+\newcommand{\emd}{\mathsf{EMD}}
+\newcommand{\pfmm}{\mathsf{PFMM}}
+\newcommand{\fmmlab}{\mathsf{FMM}}
+\newcommand{\ee}{\mathsf{EE}}
+\newcommand{\si}{\mathsf{SI}}
+
+% less spacing paragraph
+\newcommand{\myparagraph}[1]{\textbf{#1}\;}

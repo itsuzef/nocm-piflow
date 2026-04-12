@@ -1,0 +1,109 @@
+\section{Adaptive Variational Score Distillation in TrigFlow Framework}
+\label{appendix:vsd}
+In this section, we propose the detailed derivation for variational score distillation (VSD) in TrigFlow framework and an improved objective with adaptive weighting.
+
+\subsection{Derivations}
+Assume we have samples $\x_0\in\R^D$ from data distribution $p_d$ with standard deviation $\sigma_d$, and define a corresponding forward diffusion process $\{p_t\}_{t=0}^T$ starting at $p_0 = p_d$ and ending at $p_T \approx \gN(\vzero, \hat\sigma^2\mI)$, with $p_{t0}(\x_t|\x_0) = \gN(\x_t|\alpha_t\x_0, \sigma_t^2\mI)$. Variational score distillation (VSD)~\citep{wang2024prolificdreamer,yin2024dmd,yin2024dmd2} trains a generator $\vg_\theta: \R^D\rightarrow \R^D$ aiming to map noise samples $\z\sim \gN(\vzero, \hat\sigma^2\mI)$ to the data distribution, by minimizing
+\begin{equation*}
+    \min_\theta \E_{t}\left[w(t) \kl{q_t^\theta}{p_t}\right] = \E_{t,\z,\vepsilon}\left[
+        w(t) \left(\log q_t^{\theta}(\alpha_t\vg_\theta(\z) + \sigma_t \vepsilon) - \log p_t(\alpha_t\vg_\theta(\z) + \sigma_t\vepsilon)\right)
+    \right],
+\end{equation*}
+where $\vepsilon\sim \gN(\vzero,\mI)$, $q_t^\theta$ is the diffused distribution at time $t$ with the same forward diffusion process as $p_t$ while starting at $q^\theta_0$ as the distribution of $\vg_\theta(\z)$, $w(t)$ is an ad-hoc training weighting~\citep{poole2022dreamfusion,wang2024prolificdreamer,yin2024dmd}, and $t$ follows a proposal distribution such as uniform distribution. It is proved that the optimum of $q_t^\theta$ satisfies $q_0 = p_d$~\citep{wang2024prolificdreamer} and thus the distribution of the generator matches the data distribution. 
+
+Moreover, by denoting $\x_t^\theta \coloneqq \alpha_t\vg_\theta(\z) + \sigma_t \vepsilon$ and taking the gradient w.r.t. $\theta$, we have
+\begin{equation*}
+\begin{aligned}
+    &\phantom{{}={}}\nabla_{\theta}\E_{t}\left[w(t) \kl{q_t^\theta}{p_t}\right]  \\
+    &= \E_{t,\z,\vepsilon}\left[
+        w(t) \nabla_\theta \left(\log q_t^{\theta}(\x_t^\theta) - \log p_t(\x_t^\theta)\right)
+    \right] \\
+    &= \E_{t,\z,\vepsilon}\left[
+        w(t)\left( \partial_{\theta} \log q_t^{\theta}(\x_t)
+        + \left(\nabla_{\x_t}\log q_t^{\theta}(\x_t) - \nabla_{\x_t}\log p_t(\x_t)\right)\frac{\partial \x_t^\theta}{\partial \theta}
+    \right)
+    \right] \\
+    &= \underbrace{\mathbb{E}_{t,\x_t}\left[w(t) \partial_\theta \log q_t^\theta (\x_t)\right]}_{=0}
+    + \E_{t,\z,\vepsilon}\left[w(t)
+        \left(\nabla_{\x_t}\log q_t^{\theta}(\x_t) - \nabla_{\x_t}\log p_t(\x_t)\right)\frac{\alpha_t \partial \vg_\theta(\z)}{\partial \theta}
+    \right] \\
+    &= \E_{t,\z,\vepsilon}\left[\alpha_t w(t)
+        \left(\nabla_{\x_t}\log q_t^{\theta}(\x_t) - \nabla_{\x_t}\log p_t(\x_t)\right)\frac{\partial \vg_\theta(\z)}{\partial \theta}
+    \right].
+\end{aligned}
+\end{equation*}
+Therefore, we need to approximate the score functions $\nabla_{\x_t}\log q_t^{\theta}(\x_t)$ for the generator and $\nabla_{\x_t}\log p_t(\x_t)$ for the data distribution. VSD trains a diffusion model for samples from $\vg_\theta(\z)$ to approximate $\nabla_{\x_t}\log q_t^{\theta}(\x_t)$ and uses a pretrained diffusion model to approximate $\nabla_{\x_t}\log p_t(\x_t)$.
+
+In this work, we train the diffusion model in TrigFlow framework, with $\alpha_t=\cos(t)$, $\sigma_t=\sigma_d\sin(t)$, $\hat\sigma=\sigma_d$, $T=\frac{\pi}{2}$. Specifically, assume we have a pretrained diffusion model $\F_{\text{pretrain}}$ parameterized by TrigFlow, and we train another diffusion model $\F_{\phi}$ to approximate the diffused generator distribution, by
+\begin{equation*}
+    \min_\phi \E_{\z,\z',t}\left[
+    w(t)\left\|
+        \sigma_d \F_{\phi}\left(\frac{\x_t}{\sigma_d}, t\right) - \vv_t    
+    \right\|_2^2
+    \right],
+\end{equation*}
+where $\x_t = \cos(t)\x_0 + \sin(t)\z$, $\vv_t = \cos(t)\z - \sin(t) \x_0$, $\z \sim \gN(\vzero, \sigma_d^2\mI)$, $\x_0 = \vg_\theta(\z')$ with $\z' \sim \gN(\vzero, \sigma_d^2\mI)$. Moreover, the relationship between the ground truth diffusion model $\Fdiff(\x_t,t)$ and the score function $\nabla_{\x_t}\log p_t(\x_t)$ is
+\begin{equation*}
+\begin{aligned}
+    \sigma_d \Fdiff(\x_t,t) &= \mathbb{E}[\vv_t | \x_t] = \frac{1}{\tan(t)}\x_t - \frac{1}{\sin(t)}\mathbb{E}_{\x_0|\x_t}\left[
+        \x_0 
+    \right], \\
+    \nabla_{\x_t} \log p_t(\x_t)
+    &= \mathbb{E}_{\x_0|\x_t}\left[
+        -\frac{\x_t - \cos(t)\x_0}{\sigma_d^2\sin^2(t)}     
+    \right]
+    = -\frac{\cos(t)\sigma_d\Fdiff + \sin(t)\x_t}{\sigma_d^2 \sin(t)}.
+\end{aligned}
+\end{equation*}
+
+Thus, we train the generator $\vg_\theta$ by the following gradient w.r.t. $\theta$:
+\begin{equation*}
+    \E_{t,\z,\z'}\left[\frac{\cos^2(t)}{\sigma_d\sin(t)} w(t)
+        \left(\F_{\text{pretrain}}\left(\frac{\x_t}{\sigma_d},t\right) - \F_\phi\left(\frac{\x_t}{\sigma_d},t\right)\right)\frac{\partial \vg_\theta(\z')}{\partial \theta}
+    \right],
+\end{equation*}
+which is equivalent to the gradient of the following objective:
+\begin{equation*}
+    \E_{t,\z,\z'}\left[\frac{\cos^2(t)}{\sigma_d\sin(t)} w(t)
+    \left\|
+         \vg_\theta(\z') - \vg_{\theta^-}(\z') + \F_{\text{pretrain}}\left(\frac{\x_t}{\sigma_d},t\right) - \F_\phi\left(\frac{\x_t}{\sigma_d},t\right)
+    \right\|_2^2
+    \right],
+\end{equation*}
+where $\vg_{\theta^-}(\z')$ is the same as $\vg_\theta(\z')$ but stops the gradient for $\theta$. Note that the weighting functions used in previous works~\citep{wang2024prolificdreamer,yin2024dmd} is proportional to $\frac{\sin^2(t)}{\cos(t)}$, thus the prior weighting is proportional to $\sin(t)\cos(t)$, which has a U-shape similar to the log-normal distribution used in \citet{karras2022edm}. Thus, we can instead use a log-normal proposal distribution and apply the adaptive weighting by training another weighting network $w_\psi(t)$. We refer to Appendix~\ref{appendix:adaptive_weighting} for detailed discussions about the learnable adaptive weighting. Thus we can obtain the training objective, as listed below.
+
+\subsection{Training Objective}
+
+\textbf{Training Objective of Adaptive Variational Score Distillation (aVSD). }
+\begin{equation*}
+\begin{aligned}
+    \min_\phi\mathcal{L}_{\text{Diff}}(\phi)&\coloneqq \E_{\z,\z',t}\left[
+    w(t)\left\|
+        \sigma_d \F_{\phi}\left(\frac{\x_t}{\sigma_d}, t\right) - \vv_t    
+    \right\|_2^2
+    \right], \\
+   \min_{\theta, \psi}\mathcal{L}_{\text{VSD}}(\theta,\psi) &\coloneqq \E_{t,\z,\z'}\left[\!\frac{e^{w_{\psi}(t)}}{D}
+    \left\|
+         \vg_\theta(\z') - \vg_{\theta^-}(\z') + \F_{\text{pretrain}}\left(\frac{\x_t}{\sigma_d},t\right) \!-\! \F_\phi\left(\frac{\x_t}{\sigma_d},t\right)
+    \right\|_2^2 \!\!- \!w_\psi(t)
+    \!\right].
+\end{aligned}
+\end{equation*}
+And we also choose a proportional distribution of $t$ for estimating $\gL_{\text{VSD}}(\theta,\psi)$ by $\log(\tan(t)\sigma_d)\sim \gN(P_{\text{mean}}, P_{\text{std}}^2)$ and tune these two hyperparameters (note that they may be different from the proposal distribution for training $\gL_{\text{Diff}}(\phi)$, as detailed in Appendix~\ref{appendix:exp}.
+
+
+
+In addition, for consistency models $\f_\theta(\x_t,t)$, we choose $\z' \sim \gN(\vzero, \sigma_d^2\mI)$ and $\vg_\theta(\z') \coloneqq \f_\theta(\z',\frac{\pi}{2}) = -\sigma_d \F_\theta(\frac{\z'}{\sigma_d}, \frac{\pi}{2})$, and thus the corresponding objective is
+\begin{equation*}
+    \min_{\theta, \psi} \E_{t,\z,\z'} \! \left[\frac{e^{w_{\psi}(t)}}{D}
+    \!\left\|
+         \sigma_d \F_\theta \! \left(\frac{\z'}{\sigma_d}, \frac{\pi}{2} \! \right)
+         \!-\! \sigma_d \F_{\theta^-} \! \left(\frac{\z'}{\sigma_d}, \frac{\pi}{2} \! \right)
+         \!-\! \F_{\text{pretrain}} \! \left(\frac{\x_t}{\sigma_d},t \! \right)
+         \!+\! \F_\phi\! \left(\frac{\x_t}{\sigma_d},t \! \right)
+    \right\|_2^2 - w_\psi(t)
+    \right].
+\end{equation*}
+
+
+

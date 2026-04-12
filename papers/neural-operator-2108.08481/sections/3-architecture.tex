@@ -1,0 +1,100 @@
+\section{Neural Operators}
+\label{sec:neuraloperators}
+% {\bf State the proposed architecture in a general form.
+% No reference to any specific PDE.}
+
+% \subsection{Neural Networks}
+
+In this section, we outline the neural operator framework.
+We assume that the input functions \(a \in \A\) are \(\R^{d_a}\)-valued and defined on the bounded domain \(D \subset \R^d\) while the output functions \(u \in \U\) are \(\R^{d_u}\)-valued and defined on the bounded domain \(D' \subset \R^{d'}\).
+The proposed architecture $\F_{\theta} : \A \to \U$ has the following overall structure:
+\begin{enumerate}
+    
+    \item \textbf{Lifting}: Using a pointwise function \(\R^{d_a} \to \R^{d_{v_0}}\), map the input $\{a: D \to \R^{d_a}\} \mapsto \{v_0: D \to \R^{d_{v_0}}\}$ to its first hidden representation. Usually, we choose \(d_{v_0} > d_a\) and hence this is a lifting operation performed by a fully local operator.
+    
+    \item \textbf{Iterative Kernel Integration}: For \(t=0,\dots,T-1\), map each hidden representation to the next $\{v_t: D_t \to \R^{d_{v_t}}\} \mapsto \{v_{t+1}: D_{t+1} \to \R^{d_{v_{t+1}}}\}$ via the action of the sum of a local linear operator, a non-local integral kernel operator, and a bias function, composing the
+    sum with a fixed, pointwise nonlinearity. Here we set \(D_0 = D\) and \(D_T = D'\) and impose that \(D_t \subset \R^{d_t}\) is a bounded domain.\footnote{\nk{The indexing of sets $D_{\bullet}$ here differs from the two previous indexings used in Subsection \ref{sec:discretization}. The index $t$ is not the physical time, but the iteration (layer) in the model architecture.}}
+    
+    \item \textbf{Projection}: Using a pointwise function \(\R^{d_{v_T}} \to \R^{d_u}\), map the last hidden representation $\{v_T: D' \to \R^{d_{v_T}}\} \mapsto \{u: D' \to \R^{d_u}\}$ to the output function. Analogously to the first step, we usually pick \(d_{v_T} > d_u\) and hence this is a projection step performed by a fully local operator.
+\end{enumerate}
+
+The outlined structure mimics that of a finite dimensional neural network where hidden representations are successively mapped to produce the final output. In particular, we have
+\begin{equation}
+\label{eq:F}
+    \cF_{\theta} \coloneqq \cQ \circ \sigma_T(W_{T-1} + \cK_{T-1} + b_{T-1}) \circ \cdots \circ \sigma_1(W_0 + \cK_0 + b_0) \circ \cP
+\end{equation}
+where \(\cP: \R^{d_a} \to \R^{d_{v_0}}\), \(\cQ: \R^{d_{v_T}} \to \R^{d_u}\) are the local lifting and projection mappings respectively, \(W_t \in \R^{d_{v_{t+1}} \times d_{v_t}}\) are local linear operators (matrices), \(\cK_t: \{v_t: D_t \to \R^{d_{v_t}}\} \to \{v_{t+1}: D_{t+1} \to \R^{d_{v_{t+1}}}\}\) are integral kernel operators, \(b_t : D_{t+1} \to \R^{d_{v_{t+1}}}\) are bias functions, and \(\sigma_t\) are fixed activation functions acting locally as maps \(\R^{v_{t+1}} \to \R^{v_{t+1}}\) in each layer. The output dimensions \(d_{v_0},\dots,d_{v_T}\) as well as the input dimensions \(d_1,\dots,d_{T-1}\) and domains of definition \(D_1,\dots,D_{T-1}\) are hyperparameters of the architecture. By local maps, we mean that the action is pointwise, in particular, for the lifting and projection maps, we have \((\cP(a))(x) = \cP(a(x))\) for any \(x \in D\) and  \((\cQ(v_T))(x) = \cQ(v_T(x))\) for any \(x \in D'\) and similarly, for the activation,
+\((\sigma(v_{t+1}))(x) = \sigma(v_{t+1}(x))\) for any \(x \in D_{t+1}\).
+The maps, \(\cP\), \(\cQ\), and \(\sigma_t\) can thus be thought of as defining Nemitskiy operators \citep[Chapters 6,7]{dudley2011concrete} when each of their components are assumed to be Borel measurable. This interpretation allows us to define the general neural operator architecture when pointwise evaluation is not well-defined in the spaces \(\A\) or \(\U\) e.g. when they are Lebesgue, Sobolev, or Besov spaces. 
+
+The crucial difference between the proposed architecture \eqref{eq:F} and a standard feed-forward neural network is that all operations are directly defined in function space (\nk{noting that the activation funtions, $\cP$ and $\cQ$ are all interpreted} through their extension to Nemitskiy operators) and therefore do not depend on any discretization of the data. Intuitively, the lifting step locally maps the data to a space where the non-local part of \(\G^\dagger\) is easier to capture. \nk{We confirm this intuition numerically in Section~\ref{sec:numerics}; however, we note that for the theory presented in Section~\ref{sec:approximation} it suffices that $\cP$ is the identity map.} \nk{The non-local part of \(\G^\dagger\)} is then learned by successively approximating using integral kernel operators composed with a local nonlinearity. Each 
+integral kernel operator is the function space analog of the weight matrix in a standard feed-forward network since they are infinite-dimensional linear operators mapping one function space to another. We turn the biases, which are normally vectors, to functions and, using intuition from the ResNet architecture \citep{he2016deep}, we further add a local linear operator acting on the output of the previous layer before applying the nonlinearity. The final projection step simply gets us back to the space of our output function. We concatenate in \(\theta \in \R^p\) the parameters of \(\cP\), \(\cQ\), \(\{b_t\}\) which are usually themselves shallow neural networks, the parameters of the kernels representing \(\{\cK_t\}\) which are again usually shallow neural networks, and the matrices \(\{W_t\}\). We note, however, that our framework is general and other parameterizations such as polynomials may also be employed. 
+
+\paragraph{Integral Kernel Operators} We define three version of the integral kernel operator \(\cK_t\) used in \eqref{eq:F}. For the first, let \(\kappa^{(t)} \in C(D_{t+1} \times D_t; \R^{d_{v_{t+1}} \times d_{v_t}})\) and let \(\nu_t\) be a Borel measure on \(D_t\). Then we define \(\cK_t\) by
+\begin{equation}
+    \label{eq:kernelop1}
+    (\cK_t(v_t))(x) = \int_{D_t} \kappa^{(t)} (x,y) v_t(y) \: \text{d}\nu_t(y)
+    \qquad \forall x \in D_{t+1}.
+\end{equation}
+%where \(\nu_t\) is Borel measure on \(D_t\). 
+Normally, we take \(\nu_t\) to simply be the Lebesgue measure on \(\R^{d_t}\) but, as discussed in Section~\ref{sec:four_schemes}, other choices can be used to speed up computation or aid the learning process by building in \textit{a priori} information. The choice of integral kernel operator in \eqref{eq:kernelop1} defines the basic form of the neural operator and is the one we analyze in Section~\ref{sec:approximation} and study most in the numerical experiments of Section~\ref{sec:numerics}.
+
+For the second, let \(\kappa^{(t)} \in C(D_{t+1} \times D_t \times \R^{d_a} \times \R^{d_a}; \R^{d_{v_{t+1}} \times d_{v_t}})\). Then we define \(\cK_t\) by
+\begin{equation}
+    \label{eq:kernelop2}
+    (\cK_t(v_t))(x) = \int_{D_t} \kappa^{(t)} (x,y,a(\Pi_{t+1}^D(x)),a(\Pi_t^D(y))) v_t(y) \: \text{d}\nu_t(y)
+    \qquad \forall x \in D_{t+1}.
+\end{equation}
+where \(\Pi_t^{D} : D_t \to D\) are fixed mappings. We have found numerically that, for certain PDE problems, the form \eqref{eq:kernelop2} outperforms \eqref{eq:kernelop1} due to the strong dependence of the solution \(u\) on the parameters \(a\), \nk{for example, the Darcy flow problem considered in subsection \ref{ssec:DF}}. Indeed, if we think of \eqref{eq:F} as a discrete time dynamical system, then the input \(a \in \A\) only enters through the initial condition hence its influence diminishes with more layers. By directly building in \(a\)-dependence into the kernel, we ensure that it influences the entire architecture.
+
+Lastly, let \(\kappa^{(t)} \in C(D_{t+1} \times D_t \times \R^{d_{v_t}} \times \R^{d_{v_t}}; \R^{d_{v_{t+1}} \times d_{v_t}})\). Then we define \(\cK_t\) by
+\begin{equation}
+    \label{eq:kernelop3}
+    (\cK_t(v_t))(x) = \int_{D_t} \kappa^{(t)} (x,y,v_t(\Pi_t(x)),v_t(y)) v_t(y) \: \text{d}\nu_t(y)
+    \qquad \forall x \in D_{t+1}.
+\end{equation}
+where \(\Pi_t : D_{t+1} \to D_t\) are fixed mappings. Note that, in contrast to \eqref{eq:kernelop1} and \eqref{eq:kernelop2}, the integral operator \eqref{eq:kernelop3} is nonlinear since the kernel can depend on the input function \(v_t\). With this definition and a particular choice of kernel \(\kappa_t\) and measure \(\nu_t\), we show in Section \ref{sec:transformers} that neural operators are a continuous input/output space generalization of the popular transformer architecture \citep{vaswani2017attention}. 
+
+\paragraph{Single Hidden Layer Construction} Having defined possible choices for the integral kernel operator, we are now in a position to explicitly write down a full layer of the architecture defined by \eqref{eq:F}. For simplicity, we choose the integral kernel operator given by \eqref{eq:kernelop1}, but note that the other definitions 
+\eqref{eq:kernelop2}, \eqref{eq:kernelop3} work analogously. We then have that a single hidden layer update is given by
+\begin{equation}
+    \label{eq:onelayer}
+    v_{t+1}(x) = \sigma_{t+1} \left ( W_t v_t( \Pi_{t} (x)) + \int_{D_t} \kappa^{(t)} (x,y) v_t(y) \: \text{d}\nu_t(y) + b_t(x) \right ) \qquad \forall x \in D_{t+1}
+\end{equation}
+where \(\Pi_t : D_{t+1} \to D_t\) are fixed mappings. We remark that, since we often consider functions on the same domain, we usually take \(\Pi_t\) to be the identity. 
+
+We will now give an example of a full single hidden layer architecture i.e. when \(T=2\). We choose \(D_1 = D\), take \(\sigma_2\) as the identity,
+and denote \(\sigma_1\) by \(\sigma\), assuming it is any activation function. Furthermore, for simplicity, we set \(W_1 = 0\), \(b_1 = 0\), and assume that \(\nu_0 = \nu_1\) is the Lebesgue measure on \(\R^d\). Then  \eqref{eq:F} becomes
+\begin{equation}
+    \label{eq:singlehiddenlayer}
+    (\G_\theta(a))(x) = \cQ \left (\int_D \kappa^{(1)}(x,y) \sigma \left ( W_0 \cP(a(y)) + \int_D \kappa^{(0)}(y,z) \cP (a(z)) \: \text{d}z + b_0(y) \right ) \: \text{d}y \right)
+\end{equation}
+for any \(x \in D'\). In this example, \(\cP \in C(\R^{d_a}; \R^{d_{v_0}})\),  \(\kappa^{(0)} \in C(D \times D; \R^{d_{v_1} \times d_{v_0}})\), \(b_0 \in C(D; \R^{d_{v_1}})\), \(W_0 \in \R^{d_{v_1} \times d_{v_0}}\), \(\kappa^{(1)} \in C(D' \times D; \R^{d_{v_2} \times d_{v_1}})\), and \(\cQ \in C(\R^{d_{v_2}}; \R^{d_u})\). One can then parametrize the continuous functions \(\cP,\cQ,\kappa^{(0)},\kappa^{(1)},b_0\) by standard feed-forward neural networks (or by any other means) and the matrix \(W_0\) simply by its entries. The parameter vector \(\theta \in \R^p\) then becomes the concatenation of the parameters of \(\cP,\cQ,\kappa^{(0)},\kappa^{(1)},b_0\) along with the entries of \(W_0\). One can then optimize these parameters by minimizing with respect to \(\theta\) using standard gradient based minimization techniques. To implement this minimization, the functions
+entering the loss need to be discretized; but the learned parameters may then be used with other discretizations. In Section~\ref{sec:four_schemes}, we discuss various choices for parametrizing the kernels, picking the integration measure,  
+and how those choices affect the computational complexity of the architecture.
+
+\paragraph{Preprocessing} It is often beneficial to manually include features into the input functions \(a\) to help facilitate the learning process. For example, instead of considering the \(\R^{d_a}\)-valued vector field \(a\) as input, we use the \(\R^{d+ d_a}\)-valued vector field \((x,a(x))\). By including the identity element, information about the geometry of the spatial domain \(D\) is directly incorporated into the architecture. This allows the neural networks direct access to information that is already known in the problem and therefore eases learning. We use this idea in all of our numerical experiments in Section~\ref{sec:numerics}. Similarly, when learning a smoothing operator, it may be beneficial to include a smoothed version of the inputs \(a_\epsilon\) using, for example, Gaussian convolution. Derivative information may also be of interest and thus, as input, one may consider, for example, the \(\R^{d + 2d_a + dd_a}\)-valued vector field \((x,a(x),a_\epsilon(x),\nabla_x a_\epsilon (x))\). Many other possibilities may be considered on a problem-specific basis. 
+
+
+
+\nk{
+\paragraph{Discretization Invariance and Approximation}
+
+In light of discretization invariance Theorem~\ref{thm:discretizational_invariance} and universal approximation Theorems~\ref{thm:main_compact}~\ref{thm:cm_compact},~\ref{thm:measurable_approx},~\ref{thm:cm_measurable_approx} whose formal statements are given in Section~\ref{sec:approximation}, we may obtain a decomposition of the total error made by a neural operator as a sum of the discretization error and the approximation error. In particular, given a finite dimensional instantiation of a neural operator \(\hat{\G}_\theta : \R^{Ld} \times \R^{L d_a} \to \U\), for some \(L\)-point discretization of the input, we have 
+\[\|\hat{\G}_\theta (D_L, a|_{D_L}) - \G^\dagger (a)\|_\U \leq \underbrace{\|\hat{\G}_\theta (D_L, a|_{D_L}) - \G_\theta (a) \|_\U}_{\text{discretization error}} + \underbrace{\|\G_\theta (a) - \G^\dagger (a) \|_\U}_{\text{approximation error}}.\]
+Our approximation theoretic Theorems imply that we can find parameters \(\theta\) so that the approximation error is arbitrarily small while the discretization invariance Theorem states that we can find a fine enough discretization (large enough \(L\)) so that the discretization error is arbitrarily small. Therefore, with a fixed set of parameters independent of the input discretization, a neural operator that is able to be implemented on a computer can approximate operators to arbitrary accuracy.
+
+}
+% \label{sec:discritizational_invariance}
+
+
+%Given the construction above and the definition of discretization invariance, in the following we prove that neural operators are discretization invariant deep learning models.
+
+%\begin{theorem}[Discretization Invariance and Neural Operators]
+%\label{thm:discretizational_invariance_informal}
+%Neural operators defined with continuous activation functions and viewed as maps \(\A \to \U\) are discretization-invariant deep learning models. 
+%\end{theorem}
+
+%The formal statement of the Theorem~\ref{thm:discretizational_invariance_informal} is provided in Subsection~\ref{sec:discritizational_invariance}. This theorem states that as the discretization of the domain becomes finer and finer, the behavior of the neural operator applied to the discretized domain becomes closer and closer to that of the continuum operator. The proof is given in Appendix \ref{proof:discretizational_invariance}.
+
+%To prove this theorem, we use the compactness of the input space to argue that there is a dictionary of finitely many functions that can approximate any function in the space. Then, we show that given a discretization, the summation approximation to the integral operator on any function in the constructed dictionary has an error depending on the fineness of the discretization. Therefore, when summation is used to approximate the integral on any function since that function is close to the dictionary, the approximation error shrinks as the discretization becomes finer.

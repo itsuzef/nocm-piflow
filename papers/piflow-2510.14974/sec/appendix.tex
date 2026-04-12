@@ -1,0 +1,470 @@
+\appendix
+
+\input{floats/train_datadepend}
+\input{floats/train_datafree}
+
+\section{Use of Large Language Models}
+
+In preparing this manuscript, we used large language models (LLMs) as general-purpose writing assistants for grammar corrections, rephrasing, and clarity/concision edits. All LLM-suggested edits were reviewed and verified by the authors, who take full responsibility for the final manuscript.
+
+\section{Additional Technical Details}
+
+\subsection{GM Temperature}
+\label{sec:gm_temp}
+Inspired by the temperature parameter in language models, we introduce a similar temperature parameter for the GMFlow policy during inference. Let $T>0$ be the temperature parameter. Given a $C$-dimensional GM velocity distribution $q(\vu | \vx_{t_\text{src}}) = \sum_{k=1}^K A_{k} \mathcal{N}\left(\vu; \vmu_{k}, s^2\mI\right)$, the new GM probability with temperature $T$ is defined as:
+\begin{align}
+    q_T(\vu | \vx_{t_\text{src}}) \coloneqq \frac{q^\frac{1}{T}(\vu | \vx_{t_\text{src}})}{\int_{\R^C} q^\frac{1}{T}(\vu | \vx_{t_\text{src}}) \diff \vu}.
+\end{align}
+Although $q_T(\vu | \vx_{t_\text{src}})$ does not have a general closed-form expression, it can be approximated by the following expression, which works very well as a practical implementation:
+\begin{align}
+    q_T(\vu | \vx_{t_\text{src}}) \approx \sum_{k=1}^K \frac{A_{k}^\frac{1}{T}}{\sum_{z=1}^{K} A_{z}^\frac{1}{T}} \mathcal{N}\left(\vu; \vmu_{k}, s^2 T \mI\right).
+\end{align}
+
+For the distilled FLUX and Qwen-Image models, we set $T=0.3$ for 4-NFE generation and $T=0.7$ for 8-NFE generation. An exception is that we do not apply temperature scaling to the final step, as we found this can impair texture details. As shown in Table~\ref{tab:fluxabl}, ablating GM temperature from the 4-NFE GM-FLUX leads to degraded teacher alignment.
+
+\subsection{Scheduled Trajectory Mixing For Guidance-Distilled Teachers}
+\label{sec:scheduled}
+
+To reduce out-of-distribution exposure in imitation learning, scheduled sampling~\citep{scheduledsampling} stochastically alternates between expert (teacher) and learner policy during trajectory integration, decaying the expert probability from 1 to 0. However, naively applying it to $\pi$-ID is impractical because the teacher flow model $G_\vtheta$ is much slower than the network-free policy $\pi_{\text{D}}$.
+
+To maintain constant compute throughout training, we introduce a scheduled trajectory mixing strategy. Since the teacher is slow, we fix the total number of teacher queries, allow each query to cover a coarse, longer step initially, and gradually shrink the teacher step size while filling the gaps with the fast policy $\pi_{\text{D}}$. As shown in Fig.~\ref{fig:scheduledmix}~(a), training initially adopts a fully off-policy teacher trajectory (behavior cloning). At the beginning time $t_a$ of each teacher step, we roll in the learner policy $\pi$, integrate it over the same interval from $t_a$ to $t_b$, and match its average velocity to the teacher velocity with the $\ell_2$ loss:
+\begin{align}
+    \mathcal{L}_\vphi = \E\left[\frac{1}{2}\left\| 
+        G_\vtheta(\vx_{t_a},t_a) - \frac{1}{t_b - t_a}\int_{t_a}^{t_b}\pi(\vx_t,t) \diff t
+    \right\|^2\right].
+\end{align}
+As training progresses (Fig.~\ref{fig:scheduledmix}~(b)), we then mix teacher and detached-policy segments while using the same loss, and linearly decay the teacher ratio---the sum of teacher step lengths divided by the total interval length $t_\text{src} - t_\text{dst}$. 
+Finally, when the teacher ratio reaches 0, training reduces to on-policy $\pi$-ID. All teacher step boundaries (starts and ends) are randomly sampled within the interval $[t_\text{dst}, t_\text{src}]$ under the teacher ratio constraint, so that step sizes and locations vary while the total teacher-covered length follows the current ratio schedule.
+
+We apply scheduled trajectory mixing exclusively when distilling the FLUX.1 dev model, as it lacks real CFG. Since omitting CFG doubles the teacher's speed, we increase the number of intermediate samples (teacher steps) to 4 accordingly.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1.0\linewidth]{resources/scheduled_imitation.pdf}
+    \caption{Three stages of scheduled trajectory mixing. (a) Off-policy behavior cloning with a teacher ratio of 1. (b) Mixed teacher and detached-policy segments with a decaying teacher ratio. (c) On-policy imitation learning with a teacher ratio of 0 (Fig.~\ref{fig:imitation}).}
+    \label{fig:scheduledmix}
+\end{figure}
+
+\subsection{Micro-Window Velocity Matching}
+
+For on-policy $\pi$-ID, in practice we found that replacing the instantaneous velocity matching loss in Algorithm~\ref{alg:train_simple} with a modified average velocity loss over a micro time window generally benefits training. The modified loss is defined as:
+\begin{align}
+    \negthickspace \mathcal{L}_\vphi = \E\left[
+        \frac{1}{2} \left\|
+            G_\vtheta(\vx_t, t) - \frac{1}{-\Delta t} \int_t^{t-\Delta t} \pi(\vx_t,t) \diff t 
+        \right\|^2
+    \right],
+    \label{eq:microwindow}
+\end{align}
+where $\Delta t$ is the window size. We set $\Delta t = 3/128$ (three policy integration steps) for all FLUX.1 and Qwen-Image experiments. 
+
+
+\begin{table}[t]
+    \caption{Ablation study on 4-NFE \methodname{} (GM-FLUX), evaluated on the HPSv2 prompt set using teacher-referenced FID metrics (reflecting teacher alignment).}
+    % \vspace{0.8ex}
+    \label{tab:fluxabl}
+    \centering
+    \scalebox{0.9}{%
+        \setlength{\tabcolsep}{0.3em}
+        \begin{tabular}{cccc}
+        \toprule
+        \makecell{\footnotesize\textbf{GM} \\ \footnotesize\textbf{temperature}} & \makecell{\textbf{Micro} \\ \textbf{window}} & \textbf{FID\textdownarrow} & \textbf{pFID\textdownarrow}
+        \\
+        \midrule
+        \checkmark & \checkmark & \textbf{14.3} & \textbf{19.2} \\
+        & \checkmark & 14.9 & 20.1 \\
+        \checkmark & & 14.6 & 20.3 \\ 
+        \bottomrule
+        \end{tabular}
+    }
+\end{table}
+
+\begin{figure}[t]
+\vspace{0.6ex}
+    \centering
+    \includegraphics[width=0.99\linewidth]{resources/viz_dev.pdf}
+    \caption{The 128-NFE FLUX.1 dev often generates blurry images, whereas the 43-NFE FLUX.1 dev reduces the blur and produces sharper edges.}
+    \label{fig:viz_dev}
+\end{figure}
+
+The benefits of micro-window velocity matching are threefold:
+\begin{itemize}
+\item It generally smooths the training signal, reducing sensitivity to sharp local variations in the teacher trajectory.
+\item It stabilizes the less robust DX policy. In the ImageNet experiments, we observe that training with the DX policy diverges without this modification.
+\item With $\Delta t = 3/128$, the policy effectively mimics teacher sampling with $\frac{128}{3}\approx$ 43 steps instead of 128 steps. For the guidance-distilled FLUX.1 dev model, we observe that the teacher often generates blurry images using 128-step sampling, while 43-step sampling yields sharper results (see Fig.~\ref{fig:viz_dev}). This behavior is inherited by the student, so micro-window velocity matching helps reduce blur.
+\end{itemize}
+
+As shown in Table~\ref{tab:fluxabl}, ablating the micro window trick from the 4-NFE GM-FLUX leads to degraded teacher alignment.
+
+\subsection{Time Sampling}
+For high resolution image generation, \citet{sd3} proposed a time shifting mechanism to rescale the noise strength. Let $\tau$ be the pre-shift raw time and $m$ be the shift hyperparameter, the shifted time is defined as $t \coloneqq \frac{m \tau}{1 + (m - 1) \tau}$. 
+
+
+\begin{table}[t]
+    \centering
+    \caption{Hyperparameters used in the ImageNet experiments.}
+    \label{tab:params}
+    \scalebox{0.8}{%
+        % \setlength{\tabcolsep}{0.35em}
+        \renewcommand{\arraystretch}{1.4}
+        \begin{tabular}{lccccccc}
+        \toprule
+        & \multicolumn{6}{c}{1-NFE} & 2-NFE \\
+        \cmidrule(lr){2-7} \cmidrule(lr){8-8}
+        & \makecell[c]{GM-FM \\ ($K=32$)} & \makecell[c]{GM-REPA \\ ($K=8$)} & \makecell[c]{GM-REPA \\ ($K=32$)} & \makecell[c]{DX-REPA \\ ($N=10$)} & \makecell[c]{DX-REPA \\ ($N=20$)} & \makecell[c]{DX-REPA \\ ($N=40$)} & \makecell[c]{GM-REPA \\ ($K=32$)} \\
+        \midrule
+        GM dropout 
+            & 0.05 & 0.05 & 0.05 & - & - & - & 0.05 \\
+        \# of intermediate states 
+            & 2 & 2 & 2 & 2 & 2 & 2 & 2 \\
+        Window size (raw) $\Delta \tau$ 
+            & - & - & - & $10 / 128$ & $5 / 128$ & $3 / 128$ & - \\
+        Shift $m$ & 1.0 & 1.0 & 1.0 & 1.0 & 1.0 & 1.0 & 1.0 \\ \addlinespace[0.6ex]
+        Teacher CFG 
+            & 2.7 & 3.2 & 3.2 & 3.2 & 3.2 & 3.2 & 2.8 \\
+        Teacher CFG interval & $t\in[0, 0.6]$ & $t\in[0, 0.7]$ & $t\in[0, 0.7]$ & $t\in[0, 0.7]$ & $t\in[0, 0.7]$ & $t\in[0, 0.7]$ & $t\in[0, 0.7]$\\
+        Learning rate 
+            & 5e-5 & 5e-5 & 5e-5 & 5e-5 & 5e-5 & 5e-5 & 5e-5\\ 
+        Batch size 
+            & 4096 & 4096 & 4096 & 4096 & 4096 & 4096 & 4096 \\ \addlinespace[0.6ex]
+        \makecell[l]{\# of training iterations \\ in Table~\ref{tab:imagenet_sota}} & 140K & - & 140K & - & - & - & 24K \\ \addlinespace[0.6ex]
+        \makecell[l]{EMA param $\gamma$ in \\ \citet{karras2024analyzingimprovingtrainingdynamics}} & 7.0 & 7.0 & 7.0 & 7.0 & 7.0 & 7.0 & 7.0 \\
+        \bottomrule
+        \end{tabular}
+    }
+\end{table}
+
+\begin{table}[t]
+    \centering
+    \caption{Hyperparameters used in FLUX and Qwen-Image experiments.}
+    \label{tab:params2}
+    \scalebox{0.8}{%
+        % \setlength{\tabcolsep}{0.35em}
+        \renewcommand{\arraystretch}{1.4}
+        \begin{tabular}{lccccc}
+        \toprule
+        & \multicolumn{4}{c}{4-NFE} & 8-NFE \\
+        \cmidrule(lr){2-5} \cmidrule(lr){6-6}
+        & \makecell[c]{GM-FLUX \\ ($K=8$)} & \makecell[c]{GM-Qwen \\ ($K=8$)} & \makecell[c]{DX-FLUX \\ ($N=10$)} & \makecell[c]{DX-Qwen \\ ($N=10$)} & \makecell[c]{GM-FLUX \\ ($K=8$)} \\
+        \midrule
+        GM dropout 
+            & 0.1 & 0.1 & - & - & 0.1 \\
+        GM temperature $T$
+            & 0.3 & 0.3 & - & - & 0.7 \\
+        \# of intermediate states 
+            & 4 & 2 & 4 & 2 & 4 \\
+        Window size (raw) $\Delta \tau$ 
+            & $3 / 128$ & $3 / 128$ & $3 / 128$ & $3 / 128$ & $3 / 128$\\
+        Shift $m$ 
+            & 3.2 & 3.2 & 3.2 & 3.2 & 3.2 \\
+        Final step size scale 
+            & 0.5 & 0.5 & 0.5 & 0.5 & 0.5 \\        
+        Teacher CFG 
+            & 3.5 & 4.0 & 3.5 & 4.0 & 3.5 \\
+        Learning rate 
+            & 1e-4 & 1e-4 & 1e-4 & 1e-4 & 1e-4 \\ 
+        Batch size 
+            & 256 & 256 & 256 & 256 & 256 \\
+        \# of training iterations & 3K & 9K & 3K & 9K & 3K \\
+        \# of decay iterations (\S~\ref{sec:scheduled}) & 2K & - & 2K & - & 2K \\ \addlinespace[0.6ex]
+        \makecell[l]{EMA param $\gamma$ in \\ \citet{karras2024analyzingimprovingtrainingdynamics}} & 7.0 & 7.0 & 7.0 & 7.0 & 7.0 \\
+        \bottomrule
+        \end{tabular}
+    }
+\end{table}
+
+
+Following this idea, $\pi$-ID samples times uniformly in raw-time space and then applies the shift to remap those samples. Detailed time sampling routines are given in Algorithms~\ref{alg:train_datadepend} and \ref{alg:train_datafree}.
+
+For FLUX.1 and Qwen-Image, we use a fixed shift $m=3.2$, which is a rounded approximation of FLUX.1's official dynamic shift at 1MP resolution. In addition, several diffusion/flow models reduce the noise strength at the final step to improve detail~\citep{Karras2022edm,qwen}. Accordingly, for FLUX.1 and Qwen-Image we halve the final step size (relative to previous steps) in raw-time space.
+
+\section{Additional Implementation Details and Hyperparameters}
+\label{sec:hyperparam}
+
+All models are trained with BF16 mixed precision, using the 8-bit Adam optimizer~\citep{adam,dettmers20228bit} without weight decay. For inference, we use EMA weights with a dynamic moment schedule~\citep{karras2024analyzingimprovingtrainingdynamics}. Detailed hyperparameter choices are listed in Table~\ref{tab:params} and \ref{tab:params2}.
+
+
+\begin{table}[t]
+    \centering
+    \caption{FLUX.1 schnell evaluation results on COCO-10k dataset and HPSv2 prompt set.}
+    \label{tab:schnell}
+    \scalebox{0.8}{%
+        \setlength{\tabcolsep}{0.35em}
+        \begin{tabular}{lcccccccccc}
+        \toprule
+        \multirow{3}[3]{*}{\textbf{Model}} & \multirow{3}[3]{*}{\textbf{Distill method}} & \multirow{3}[3]{*}{\textbf{NFE}} & \multicolumn{5}{c}{COCO-10k prompts} & \multicolumn{3}{c}{HPSv2 prompts} \\
+        \cmidrule(lr){4-8} \cmidrule(lr){9-11} 
+        & & & \multicolumn{2}{c}{Data align.} & \multicolumn{2}{c}{Prompt align.} & Pref. align. & \multicolumn{2}{c}{Prompt align.} & Pref. align. \\
+        \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-8} \cmidrule(lr){9-10} \cmidrule(lr){11-11}
+        & & & \textbf{FID\textdownarrow} & \textbf{pFID\textdownarrow} & \textbf{CLIP\textuparrow} & \textbf{VQA\textuparrow} & \textbf{HPSv2.1\textuparrow} & \textbf{CLIP\textuparrow} & \textbf{VQA\textuparrow} & \textbf{HPSv2.1\textuparrow} \\
+        \midrule
+        FLUX.1 schnell
+            & GAN & 4 & 21.8 & 29.1 & 0.274 & 0.913 & 0.297 & 0.297 & 0.843 & 0.301 \\
+        \bottomrule
+        \end{tabular}
+    }
+\end{table}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.7\linewidth]{resources/viz_schnell.pdf}
+    \caption{Typical failure cases of FLUX.1 schnell. For reference, we also show the corresponding FLUX.1 dev and \methodname{} results from the same initial noise. }
+    \label{fig:schnell}
+\end{figure}
+
+\subsection{Discussion on GMFlow Policy Hyperparameters}
+\label{sec:gmparam}
+For the GMFlow policy, we observed that the hyperparameters suggested by \citet{gmflow} ($K=8$, $C=$ VAE latent channel size) generally work well. These parameters play important roles in balancing compatibility, expresiveness, and robustness. A larger $K$ improves expresiveness but impairs compatibility as it may complicate network training. A larger $C$ improves robustness (since GMFlow models correlations within each $C$-dimensional chunk) but impairs expresiveness (raises the theoretical $K=N\cdot C$ bound). In addition, improving expresiveness may generally compromise robustness, due to the increased chance of encountering outlier trajectories during inference. 
+
+\edit{To further justify the design choice of pixel-wise factorization in GMFlow (where the latent grid is factorized by $L=H\times W$, $C=$ VAE latent channel size), we conduct toy model experiments to test alternative factorizations. In each experiment, we initialize a set of GMFlow parameters $A_{ik}, \vmu_{ik}, s$ with $K=32$ components, and directly optimize them to overfit the FLUX teacher's behavior over the entire time domain $t\in(0, 1]$, using simple $\pi$-ID (Algorithm~\ref{alg:train_simple}) on a fixed initial noise $\vx_1$ and a fixed text prompt. This setup isolates the inductive bias of the policy itself, without any influence from the student network. As shown in Fig.~\ref{fig:toy_model}, pixel-wise factorization achieves the best results within 4000 optimization iterations, producing neutral colors and rich textures, and is therefore the most suitable choice for the GMFlow policy.}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=1.0\linewidth]{resources/toy_model.pdf}
+    \caption{\edit{Comparison of different $L \times C$ factorization schemes for the GMFlow policy, evaluated on the toy models after 4000 optimization iterations. The default pixel-wise factorization ($C = \text{VAE latent channels}$) proposed by \citet{gmflow} produces neutral colors and detailed textures. In contrast, element-wise factorization ($C = 1$) leads to over-saturated colors, high contrast, and over-smoothed textures, while patch-wise factorization ($C = 2 \times 2 \times \text{VAE latent channels}$) results in ``confetti'' artifacts and noisy textures.}}
+    \label{fig:toy_model}
+\end{figure}
+
+\section{Discussion on FLUX.1 schnell}
+\label{sec:schnell}
+
+The official 4-NFE FLUX.1 schnell model~\citep{flux1_schnell_space_2024} (based on adversarial distillation~\citep{ladd}) is distilled from the closed-source FLUX.1 pro instead of the publicly available FLUX.1 dev. This makes a direct comparison to the student models in Table~\ref{tab:fluxqwen} inequitable.
+
+For reference, nevertheless, we include the COCO-10k and HPSv2 metrics for FLUX.1 schnell in Table~\ref{tab:schnell}. These metrics reveal a trade-off: while FLUX.1 schnell achieves significantly better data and prompt alignment than FLUX.1 dev, its preference alignment is substantially weaker than FLUX.1 dev and all of its students.
+
+To validate this observation, we conducted a human preference study. Our 4-NFE \methodname{} (GM-FLUX) was compared against FLUX.1 schnell on 200 images generated from HPSv2 prompts. \methodname{} was preferred by users 59.5\% of the time, aligning with the HPSv2.1 preference metric. Furthermore, qualitative comparisons in Fig.~\ref{fig:schnell} reveals that FLUX.1 schnell is prone to frequent structural errors (e.g., missing/extra/distorted limbs), whereas \methodname{} maintains coherent structures.
+
+\section{Proof of Theorem~\ref{the:gmode}}
+\label{sec:proof}
+
+We will prove that a GM with $N\cdot C$ components suffices for approximating any $N$-step trajectory in $\R^C$ by first establishing Theorem~\ref{the:discrete_ode}, and then applying the Richter--Tchakaloff theorem to show that a mixture of $N\cdot C$ Dirac deltas satisfy all ODE moment equations, which finally leads to $N\cdot C$ Gaussian components.
+\begin{theorem}
+\label{the:discrete_ode}
+Given pairwise distinct times $t_1,\ldots,t_N\in(0,1]$ and vectors 
+$\vx_{t_n},\,\dot{\vx}_{t_n}\in\R^C$ for $n=1,\ldots,N$, there exists a probability measure $p(\diff \vx_0)$ on $\R^C$, such that Eq~(\ref{eq:pf_ode}) holds at $t=t_n$ for every $n=1,\ldots,N$.
+\end{theorem}
+
+\subsection{Moment Equation}
+For every $t\in(0, 1]$, the ODE moment equation has the following equivalent forms:
+\begin{gather}
+\begin{aligned}
+    \dot{\vx}_t &= \int_{\R^C} \frac{\vx_t - \vx_0}{t} p(\diff \vx_0 | \vx_t) \notag
+\end{aligned} \\
+\begin{aligned}
+    \equivto \dot{\vx}_t \int_{\R^C} p(\diff \vx_0 | \vx_t) = \int_{\R^C} \frac{\vx_t - \vx_0}{t} p(\diff \vx_0 | \vx_t) \notag
+\end{aligned} \\
+\begin{aligned}
+    \equivto \int_{\R^C} \frac{\vx_0 - \vx_t + t\dot{\vx}_t}{t} p(\diff \vx_0 | \vx_t) = \bm{0} \notag
+\end{aligned} \\
+\begin{aligned}
+    \equivto \int_{\R^C} \frac{(\vx_0 - \vx_t + t\dot{\vx}_t) \mathcal{N}\left(\vx_t; \alpha_t \vx_0, \sigma_t^2 \mI\right) p(\diff \vx_0)}{t p(\vx_t)} = \bm{0} \notag
+\end{aligned} \\
+\begin{aligned}
+    \equivto \int_{\R^C} (\vx_0 - \vx_t + t\dot{\vx}_t) \mathcal{N}\left(\vx_t; \alpha_t \vx_0, \sigma_t^2 \mI\right) p(\diff \vx_0) = \bm{0}.
+    \label{eq:fredholm_multi}
+\end{aligned}
+\end{gather}
+Let $\vg(t,\vx_0) \coloneqq (\vx_0 - \vx_t + t\dot{\vx}_t) \mathcal{N}\left(\vx_t; \alpha_t \vx_0, \sigma_t^2 \mI\right)$ be a kernel function. The above equation can be written as a multivariate homogeneous Fredholm integral equation of the first kind:
+\begin{align}
+    \int_{\R^C} \vg(t,\vx_0) p(\diff \vx_0) = \bm{0}.
+    \label{eq:fredholm}
+\end{align}
+
+To prove Theorem~\ref{the:discrete_ode}, we need to show that there exists a probability measure $p(\diff \vx_0)$ on $\R^C$ that solves the Fredholm equation at $t=t_n$ for every $n=1,\cdots,N$.
+
+\subsection{Univariate Moment Equation}
+To prove the existence of a solution to the multivariate Fredholm equation, we can simplify the proof into a univariate case by showing that an element-wise probability factorization $p(\diff \vx_0) = \prod_{i=1}^C p(\diff {x_i}_0)$ exists that solves the Fredholm equation. In this case, Eq.~(\ref{eq:fredholm_multi}) can be written as:
+\begin{gather}
+\begin{aligned}
+   & \forall i = 1, 2, \cdots, C, \notag \\
+   & \int_{\R} ({x_i}_0 - {x_i}_t + t{{}\dot{x}_i}_t) \mathcal{N}\left({x_i}_t; \alpha_t {x_i}_0, \sigma_t^2 \right) p(\diff {x_i}_0)  \prod_{j\neq i}\int_{\R}\mathcal{N}\left({x_j}_t; \alpha_t {x_j}_0, \sigma_t^2 \right) p(\diff {x_j}_0) = 0 \notag 
+\end{aligned} \\
+\begin{aligned}
+   \equivto \forall i = 1, 2, \cdots, C,\quad \int_{\R} ({x_i}_0 - {x_i}_t + t{{}\dot{x}_i}_t) \mathcal{N}\left({x_i}_t; \alpha_t {x_i}_0, \sigma_t^2 \right) p(\diff {x_i}_0) = 0. 
+\end{aligned}
+\end{gather}
+To see this, we need to prove that there exists a probability measure $p(x_0)$ on $\R$ that solves the following univariate Fredholm equation at $t = t_n$ for every $n=1,\cdots,N$:
+\begin{align}
+    \int_{\R} g(t,x_0) p(\diff x_0) = 0,
+\end{align}
+where $g(t,x_0) \coloneqq (x_0 - x_t + t \dot{x}_t) \mathcal{N}\left(x_t; \alpha_t x_0, \sigma_t^2\right)$ is the univariate kernel function. 
+
+\subsection{Convex Combination}
+% We will first prove that the zero vector lies in the convex hull $\mathrm{conv} \{\gamma(x_0)\colon x_0 \in \R \}$. Then, the zero vector can be written as a convex combination by Carathéodory's theorem, which corresponds to an atomic probability measure.
+\begin{lemma}
+Define the vector function:
+\begin{equation}
+    \vgamma \colon \R \to \R^{N}, \quad \vgamma(x_0) = \left( g(t_1, x_0), g(t_2, x_0),\cdots, g(t_N, x_0) \right).
+\end{equation}
+Then, the zero vector lies in the convex hull in $\R^N$, i.e.:
+\begin{equation}
+    \bm{0} \in \mathrm{conv} \Set{\vgamma(x_0) | x_0 \in \R} \in \R^N.
+\end{equation}
+\label{lem:convex}
+\end{lemma}
+
+\begin{proof}
+Define $S \coloneqq \mathrm{conv} \Set{\vgamma(x_0) | x_0 \in \R }$.
+Assume for the sake of contradiction that $\bm{0} \notin S$.
+
+By the supporting and separating hyperplane theorem, there exists $\vw \neq \bm{0} \in \R^N$, such that:
+\begin{align}
+    \forall \vchi \in S,\quad \langle \vw, \vchi \rangle \leq 0.
+\end{align}
+In particular, this implies that:
+\begin{align}
+    \forall x_0 \in \R,\quad \langle \vw, \vgamma(x_0) \rangle \leq 0.
+\end{align}
+
+Define $h(x_0) \coloneqq \langle \vw, \vgamma(x_0) \rangle = \sum_{n=1}^N w_n g(t_n,x_0)$. Recall the definition of $g(t,x_0)$ that:
+\begin{align}
+    g(t,x_0) &= (x_0 - x_t + t \dot{x}_t) \mathcal{N}\left(x_t; \alpha_t x_0, \sigma_t^2\right) \notag \\
+    &= \frac{x_0 - x_t + t \dot{x}_t}{\sqrt{2\pi t^2}} \exp\left(-\frac{(x_t - \alpha_t x_0)^2}{2\sigma_t^2}\right).
+\end{align}
+Let $n^\ast$ be an index with $w_{n^\ast} \neq 0$ for which the exponential term above decays the slowest, i.e.:
+\begin{align}
+    \frac{\alpha_{t_{n^\ast}}^2}{2\sigma_{t_{n^\ast}}^2} = \min \Set{ \frac{\alpha_{t_n}^2}{2\sigma_{t_n}^2} | w_{n^\ast} \neq 0 }.
+\end{align}
+Note that since $\frac{\alpha_t^2}{2\sigma_t^2}$ is monotonic, for every $n \neq n^\ast$ with $w_n \neq 0$, we have $\frac{\alpha_{t_n}^2}{2\sigma_{t_n}^2} > \frac{\alpha_{t_{n^\ast}}^2}{2\sigma_{t_{n^\ast}}^2}$. Therefore, as $|x_0|\to\infty$, $h(x_0)$ is dominated by the $n^\ast$-th component, i.e.:
+\begin{align}
+    h(x_0) = w_{n^\ast} \frac{
+        x_0 - x_{t_{n^\ast}} + t_{n^\ast} \dot{x}_{t_{n^\ast}}
+    }{
+        \sqrt{2 \pi t_{n^\ast}^2}
+    } \exp\left(-\frac{(x_{t_{n^\ast}} - \alpha_{t_{n^\ast}} x_0)^2}{2\sigma_{t_{n^\ast}}^2}\right)(1+O(1)).
+\end{align}
+Because the term $x_0 - x_{t_{n^\ast}} + t_{n^\ast} \dot{x}_{t_{n^\ast}}$ changes sign between $-\infty$ and $+\infty$, $h(x_0)$ takes both positive and negative values. This contradicts the hyperplane implication that $h(x_0) \leq 0$. Therefore, we conclude that $\bm{0} \in S$.
+\end{proof}
+
+By Lemma~\ref{lem:convex} and Carathéodory's theorem, the zero vector can be expressed as a convex combination of at most $N+1$ points on $\vgamma(x_0)$. Therefore, there exists a finite-support probability measure $p(\diff x_0)$ consisting of $N+1$ Dirac delta components that solves the univariate Fredholm equation at $t=t_n$ for every $n=1,\cdots,N$, completing the proof of Theorem~\ref{the:discrete_ode}.
+
+\subsection{\texorpdfstring{$N\cdot C$}{NC} Components Suffice}
+Richter's extension to Tchakaloff's theorem states as follows.
+\begin{theorem}[\citet{Richter1957,tchakaloff1957formules}]
+Let $\mathcal{V}$ be a finite-dimensional space of measurable functions on $\R^C$. For some probability measure $p(\diff \vx_0)$ on $\R^C$, define the moment functional:
+\begin{align}
+    \Lambda\colon \mathcal{V}\to \R, \quad \Lambda[g]\coloneqq \int_{\R^C} g(\vx_0) p(\diff \vx_0).
+\end{align}
+\label{the:richter}
+\end{theorem}
+Then there exists a $K$-atomic measure $p^\ast(\diff \vx_0) = \sum_{k=1}^K A_k \delta_{\vmu_k}(\diff \vx_0)$ with $A_k > 0$ and $K \leq \dim \mathcal{V}$ such that:
+\begin{align}
+    \forall g\in \mathcal{V}, \quad \Lambda[g] = \int_{\R^C} g(\vx_0)p^\ast(\diff \vx_0) = \sum_{k=1}^K A_k g(\vmu_k). 
+\end{align}
+
+By Theorem~\ref{the:discrete_ode}, we know that for $\mathcal{V}=\mathrm{span}\Set{g_i(t_n, \vx_0)|i=1,\cdots,C,\ n=1,\cdots,N}$ with the scalar function $g_i(t_n, \vx_0) \coloneqq ({x_i}_0 - {x_i}_t + t{{}\dot{x}_i}_t) \mathcal{N}\left(\vx_t; \alpha_t \vx_0, \sigma_t^2 \mI\right)$, there exists a probability measure $p(\diff \vx_0)$ such that $\int_{\R^D} g_i(t_n, \vx_0) p(\diff \vx_0) = 0$ for every $i,n$. Then, by the Richter--Tchakaloff theorem, there also exists a $K$-atomic measure with $K \leq \dim \mathcal{V} \leq N\cdot C$ that satisfies all the moment equations. By taking the upper bound, this implies the existence of an $N\cdot C$-atomic probability measure $p^\ast(\diff \vx_0) = \sum_{k=1}^{N\cdot C} A_k \delta_{\vmu_k}(\diff \vx_0)$ with $A_k > 0,\ \sum_{k=1}^{N\cdot C} A_k = 1$ that solves the Fredholm equation (Eq.~(\ref{eq:fredholm})) at $t=t_n$ for every $n=1,\cdots,N$.
+
+Finally, since $\mathcal{N}\left(\vx_t; \alpha_t \vx_0, \sigma_t^2 \mI\right)$ is continuous, the $N\cdot C$ Dirac deltas in $p^\ast(\diff \vx_0)$ can be replaced by a mixture of $N\cdot C$ narrow Gaussians, such that $\dot{\vx}_n$ is approximated arbitrarily well for every $n$, i.e.:
+\begin{align}
+    & \forall n=1,\cdots,N, \notag \\
+    & \lim_{s\to 0} \left. \frac{\vx_{t_n} - \int_{\R^D} \vx_0 p(\diff \vx_0 | \vx_{t_n})}{t_n} \right\rvert_{p(\diff \vx_0)=\sum_{k=1}^{N\cdot C} A_k \mathcal{N}(\diff \vx_0;\vmu_k,s^2I)} \notag \\
+    =& \left. \frac{\vx_{t_n} - \int_{\R^D} \vx_0 p(\diff \vx_0 | \vx_{t_n})}{t_n} \right\rvert_{p(\diff \vx_0)=\sum_{k=1}^{N\cdot C} A_k \delta_{\vmu_k}(\diff \vx_0)} \notag \\
+    =&\ \dot{\vx}_{t_n}
+\end{align}
+This completes the proof of Theorem~\ref{the:gmode}.
+
+\section{Derivation of Closed-Form GMFlow Velocity}
+\label{sec:gm_u}
+In this section, we provide details regarding the derivation of closed-form GMFlow velocity, which was originally presented by \citet{gmflow} but not covered in detail.
+
+Given the $\vu$-based GM prediction $q(\vu | \vx_{t_\text{src}}) = \sum_{k=1}^K A_k \mathcal{N}\left(\vu; \vmu_k, s^2\mI\right)$ with $A_k \in \R_+$, $\vmu_k \in \R^C$, $s \in \R_+ $, we first convert it into the ${\vx_0}$-based parameterization by substituting $\vu = \frac{\vx_{t_\text{src}} - \vx_0}{\sigma_{t_\text{src}}}$ into the density function, which yields: 
+\begin{align}
+    q(\vx_0 | \vx_{t_\text{src}}) = \sum_{k=1}^K A_k \mathcal{N}\left(\vx_0; {\vmu_\text{x}}_k, s_\text{x}^2 \mI \right),
+\end{align}
+with the new parameters ${\vmu_\text{x}}_k = \vx_{t_\text{src}} - \sigma_{t_\text{src}} \vmu_k$ and $s_\text{x} = \sigma_{t_\text{src}} s$. Then, for any $t < t_\text{src}$ and any $\vx_t \in \R^C$, the denoising posterior at $(\vx_t, t)$ is given by:
+\begin{align}
+    q(\vx_0|\vx_t) = \frac{p(\vx_t | \vx_0)}{Z \cdot p(\vx_{t_\text{src}}|\vx_0)} q(\vx_0 | \vx_{t_\text{src}}),
+\end{align}
+where $Z$ is a normalization factor dependent on $\vx_{t_\text{src}}, \vx_t, t_\text{src}, t$. Using the definition of forward diffusion $p(\vx_t|\vx_0) = \mathcal{N}\left(\vx_t;\alpha_t \vx_0, \sigma_t^2 \mI \right)$, we have:
+\begin{gather}
+\begin{aligned}
+    q(\vx_0|\vx_t) 
+    &= \frac{\mathcal{N}\left(\vx_t;\alpha_t \vx_0, \sigma_t^2 \mI \right)}{Z \cdot \mathcal{N}\left(\vx_{t_\text{src}};\alpha_{t_\text{src}} \vx_0, \sigma_{t_\text{src}}^2 \mI \right)} q(\vx_0 | \vx_{t_\text{src}}) \notag \\
+    &= \frac{
+        \mathcal{N}\left(\vx_0;\frac{1}{\alpha_t }\vx_t, \frac{\sigma_t^2}{\alpha_t^2} \mI\right)
+    }{
+        Z^\prime \cdot \mathcal{N}\left(\vx_0;\frac{1}{\alpha_{t_\text{src}} }\vx_{t_\text{src}}, \frac{\sigma_{t_\text{src}}^2}{\alpha_{t_\text{src}}^2} \mI\right)
+    } q(\vx_0 | \vx_{t_\text{src}}) \notag \\
+    &= \frac{1}{Z^{\prime\prime}} 
+    \mathcal{N} \left(
+        \vx_0 ; 
+        \frac{\vnu}{\zeta}, 
+        \frac{\mI}{\zeta} 
+    \right) q(\vx_0 | \vx_{t_\text{src}}),
+\end{aligned}
+\\
+\begin{aligned}
+    \text{where} \quad \vnu &= \frac{ \alpha_t\vx_t }{\sigma_t^2} - \frac{ \alpha_{t_\text{src}} \vx_{t_\text{src}} }{\sigma_{t_\text{src}}^2}, \notag \\
+    \zeta &= \frac{\alpha_t^2}{\sigma_t^2} - \frac{\alpha_{t_\text{src}}^2}{\sigma_{t_\text{src}}^2}. \notag
+\end{aligned}
+\end{gather}
+The result can be further simplified into a new GM:
+\begin{align}
+    q(\vx_0|\vx_t) = \sum_{k=1}^K A_k^\prime \mathcal{N}\left( \vx_0 ; \vmu_k^\prime, {s^\prime}^2 \mI \right),
+\label{eq:gm_posterior}
+\end{align}
+with the following parameters:
+\begin{align}
+    {s^\prime}^2 &= \frac{
+        s_\text{x}^2
+    }{
+        s_\text{x}^2 \zeta
+        + 1
+    } \\
+    \vmu_k^\prime &= \frac{
+        s_\text{x}^2 \vnu
+        + {\vmu_\text{x}}_k
+    }{
+        s_\text{x}^2 \zeta
+        + 1
+    } \\
+    A_k^\prime &= \frac{\exp a_k^\prime}{\sum_{k=1}^K \exp a_k^\prime},
+\end{align}
+where the new  logit $a_k^\prime$ is given by:
+\begin{align}
+    % a_k^\prime = \log A_k - \frac{1}{2}\frac{
+    %     \|\vnu - \zeta{\vmu_\text{x}}_k\|^2
+    % }{
+    %     \zeta \left(s_\text{x}^2 \zeta  + 1
+    %     \right)
+    % }.
+    a_k^\prime = \log A_k + \frac{
+        {\vmu_\text{x}}_k \cdot \left(\vnu - \frac{1}{2} \zeta {\vmu_\text{x}}_k \right)
+    }{
+        s_\text{x}^2 \zeta  + 1
+    }.
+\end{align}
+Finally, the closed-form GMFlow velocity at $(\vx_t, t)$ is given by function $\pi$:
+\begin{align}
+    \pi\colon \R^C \times \R \to \R^C, \quad \pi (\vx_t, t) &= \frac{\vx_t - \E_{\vx_0 \sim q(\vx_0 | \vx_t)}[\vx_0]}{t} \notag \\
+    &= \frac{\vx_t - \sum_{k=1}^K A_k^\prime \vmu_k^\prime}{t}.
+\end{align}
+
+\textbf{Extension to discrete support.}
+The closed-form GMFlow velocity can also be generalized to discrete support by taking $\lim_{s_\text{x} \to 0} \pi (\vx_t, t)$, which yields the simplified parameters:
+\begin{align}
+    \vmu_k^\prime &= {\vmu_\text{x}}_k \\
+    % a_k^\prime &= \log A_k - \frac{1}{2}\frac{
+    %     \|\vnu - \zeta{\vmu_\text{x}}_k\|^2
+    % }{
+    %     \zeta
+    % }.
+    a_k^\prime &= \log A_k + {\vmu_\text{x}}_k \cdot \left(\vnu - \frac{1}{2} \zeta {\vmu_\text{x}}_k \right).
+\end{align}
+
+\section{Additional Qualitative Results.}
+We show additional uncurated results of FLUX-based models in Fig.~\ref{fig:uncurated1} and \ref{fig:uncurated2}.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1.0\linewidth]{resources/viz_2.pdf}
+    \caption{An uncurated random batch from the OneIG-Bench prompt set, part A.}
+    \label{fig:uncurated1}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1.0\linewidth]{resources/viz_3.pdf}
+    \caption{An uncurated random batch from the OneIG-Bench prompt set, part B.}
+    \label{fig:uncurated2}
+\end{figure}

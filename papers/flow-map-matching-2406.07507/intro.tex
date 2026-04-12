@@ -1,0 +1,67 @@
+\section{Introduction}
+\label{sec:intro}
+%
+In recent years, diffusion models~\citep{song2020score, ho2020denoising, sohldickstein2015deep, song_improved_2020, song_generative_2020} have achieved state of the art performance across diverse modalities, including image~\citep{dhariwal_diffusion_2021, rombach2022high, esser_scaling_2024}, audio~\citep{popov_grad-tts_2021, jeong_diff-tts_2021, huang_prodiff_2022, lu_conditional_2022}, and video~\citep{ho_imagen_2022, ho_video_2022, blattmann_align_2023, wu_tune--video_2023}.
+%
+These models belong to a broader class of approaches including flow matching~\citep{lipman2022flow}, rectified flow~\citep{liu2022flow}, and stochastic interpolants~\citep{albergo2022building, albergo2023stochastic}, which construct a path in the space of measures between a base and a target distribution by specifying an explicit mapping between samples from each.
+%
+This construction yields a dynamical transport equation governing the evolution of the time-dependent probability measure along the path.
+%
+The generative modeling problem then reduces to learning a velocity field that accomplishes this transport, which provides an efficient and stable training paradigm.
+
+At sample generation time, models in this class generate data by smoothly transforming samples from the base into samples from the target through numerical integration of a differential equation.
+%
+While effective, the number of integration steps required to produce high-quality samples incurs a cost that can limit real-time applications~\citep{chi_diffusion_2024}.
+%
+Comparatively, one-step models such as generative adversarial networks~\citep{goodfellow_generative_2014, goodfellow_generative_2020, creswell_generative_2018} are notoriously difficult to train~\citep{metz_unrolled_2017, arjovsky_wasserstein_2017}, but can be orders of magnitude more efficient to sample, because they only require a single network evaluation.
+%
+As a result, there has been significant recent research effort focused on maintaining the stable training of diffusions while reducing the computational burden of inference~\citep{karras_elucidating_2022}.
+%
+\begin{figure}[t]
+	\centering
+	\includegraphics[width=0.85\textwidth]{figs/overview/fmm_t_labeled_less_compressed.pdf}
+	\caption{
+		\textbf{Overview of Flow Map Matching.}
+		%
+		Our approach learns the two-time flow map $X_{s, t}$ that transports the solution of an ordinary differential equation from time $s$ to time $t$.
+		%
+		Unlike methods that learn instantaneous velocity fields, this bidirectional map can be used to build an integrator with arbitrary discretization.
+		%
+		The integrator is exact in theory, and --crucially-- its number of steps can be adjusted post-training to balance accuracy and computational efficiency.
+		The flow map can be distilled from a known velocity field or learned directly, and supports arbitrary base distributions, as illustrated here with image-to-image translation.
+	}
+	\label{fig:overview}
+\end{figure}
+%
+Towards this goal, we introduce Flow Map Matching---a theoretical framework for learning the two-time flow map of a probability flow.
+%
+Specifically, our primary contributions can be summarized as:
+%
+
+\begin{itemize}[leftmargin=0.2in]
+	\item \textbf{A mathematical framework.}
+	      %
+	      We characterize the flow map theoretically by identifying its fundamental mathematical properties, which we show immediately lead to distillation-based algorithms for estimating the flow map from a pre-trained velocity field.
+	      %
+	      Using our characterization, we establish connections between our framework and recent approaches for learning consistency models~\citep{song_consistency_2023, song_improved_2023, kim_consistency_2024} and for progressive distillation of a diffusion model~\citep{salimans_progressive_2022, zheng_fast_2023}.
+	      %
+	\item \textbf{Lagrangian vs Eulerian learning.}
+	      %
+	      % We develop a novel \textit{Lagrangian} objective for distilling a flow map from a pre-trained velocity field, and show that it outperforms a related \textit{Eulerian} loss, which we prove is the continuous-time limit of consistency distillation~\citep{song_consistency_2023}. We show that both the Lagrangian and Eulerian losses control the Wasserstein distance between the teacher and the student models.
+	      We develop a novel \textit{Lagrangian} objective for distilling a flow map from a pre-trained velocity field, which performs well across our experiments. This loss is complementary to a related \textit{Eulerian} loss, which we prove is the continuous-time limit of consistency distillation~\citep{song_consistency_2023}. We show that both the Lagrangian and Eulerian losses control the Wasserstein distance between the teacher and the student models.
+	      %
+	\item \textbf{Direct training.}
+	      %
+	      We extend our Lagrangian loss to design a novel direct training objective for flow maps that eliminates the need for a pre-trained velocity field.
+	      %
+	      We also discuss how to modify the Eulerian loss to allow for direct training of the map, and identify some caveats with this procedure.
+	      %
+	      Our approach elucidates how the standard training signal for flow matching can be adapted to capture the more global signal needed to train the flow map.
+	      %
+	\item \textbf{Numerical experiments.}
+	      %
+	      We validate our theoretical framework through experiments on CIFAR-10 and ImageNet-$32$, where we achieve high sample quality at significantly reduced computational cost.
+	      %
+	      In particular, we highlight that learning the two-time flow map enables post-training adjustment of sampling steps, allowing practitioners to systematically trade accuracy for computational efficiency.
+	      %
+\end{itemize}

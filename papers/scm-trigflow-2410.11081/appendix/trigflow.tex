@@ -1,0 +1,201 @@
+\section{TrigFlow: A Simple Framework Unifying EDM, Flow Matching and Velocity Prediction}
+\label{appendix:trigflow}
+
+\subsection{Derivations}
+\label{appendix:trigflow_derivation}
+
+Denote the standard deviation of the data distribution $p_{d}$ as $\sigma_d$. We consider a general forward diffusion process at time $t\in[0, T]$ with $\x_t = \alpha_t \x_0 + \sigma_t \z$ for the data sample $\x_0\sim p_d$ and the noise sample $\z \sim \gN(\vzero, \sigma_d^2 \mI)$ (note that the variance of $\z$ is the same as that of the data $\x_0$)\footnote{For any diffusion process with $\x_t = \alpha'_t \x_0 + \sigma'_t \vepsilon$ where $\vepsilon\sim \gN(\vzero, \mI)$, we can always equivalently convert it to $\x_t = \alpha'_t \x_0 + \frac{\sigma'_t}{\sigma_d} \cdot (\sigma_d \vepsilon)$ and let $\z \coloneqq \sigma_d \vepsilon, \alpha_t \coloneqq \alpha'_t,\sigma_t \coloneqq \frac{\sigma'_t}{\sigma_d}$. So the assumption for $\z \sim \gN(\vzero, \sigma_d^2 \mI)$ does not result in any loss of generality.}, where $\alpha_t>0,\sigma_t>0$ are \textit{noise schedules} such that $\alpha_t/\sigma_t$ is monotonically decreasing w.r.t. $t$, with $\alpha_0=1, \sigma_0=0$. The general training loss for diffusion model can always be rewritten as
+\begin{equation}
+    \gL_{\text{Diff}}(\theta) = \E_{\x_0,\z,t}\left[
+        w(t) \left\| \D_\theta(\x_t,t) - \x_0 \right\|_2^2
+    \right],
+\end{equation}
+where different diffusion model formulation contains four different parts:
+\begin{enumerate}
+    \item Parameterization of $\D_\theta$, such as score function~\citep{song2019generative,song2020score}, noise prediction model~\citep{song2019generative,song2020score,ho2020ddpm}, data prediction model~\citep{ho2020ddpm,kingma2021vdm,salimans2022progressive}, velocity prediction model~\citep{salimans2022progressive}, EDM~\citep{karras2022edm} and flow matching~\citep{lipman2022flowmatching,rectified_flow,albergo2023stochastic_interpolants}.
+    \item Noise schedule for $\alpha_t$ and $\sigma_t$, such as variance preserving process~\citep{ho2020ddpm,song2020score}, variance exploding process~\citep{song2020score,karras2022edm}, cosine schedule~\citep{nichol2021improved}, and conditional optimal transport path~\citep{lipman2022flowmatching}.
+    \item Weighting function for $w(t)$, such as uniform weighting~\citep{ho2020ddpm,nichol2021improved,karras2022edm}, weighting by functions of signal-to-noise-ratio (SNR)~\citep{salimans2022progressive}, monotonic weighting~\citep{kingma2024diffusion_elbo} and adaptive weighting~\citep{karras2024edm2}.
+    \item Proposal distribution for $t$, such as uniform distribution within $[0, T]$~\citep{ho2020ddpm,song2020score}, log-normal distribution~\citep{karras2022edm}, SNR sampler~\citep{esser2024sd3}, and adaptive importance sampler~\citep{song2021maximum,kingma2021vdm}.
+\end{enumerate}
+
+Below we show that, under the \textit{unit variance principle} proposed in EDM~\citep{karras2022edm}, we can obtain a general but simple framework for all the above four parts, which can equivalently reproduce all previous diffusion models.
+
+\paragraph{Step 1: General EDM parameterization.} We consider the parameterization for $\D_\theta$ as the same principle in EDM~\citep{karras2022edm} by
+\begin{equation}
+    \D_\theta(\x_t,t) = \cskip(t)\x_t + \cout(t) \F_\theta(\cin(t)\x_t, \cnoise(t)),
+\end{equation}
+and thus the training objective becomes
+\begin{equation}
+    \gL_{\text{Diff}} = \E_{\x_0,\z,t}\left[
+        w(t)\cout^2(t) \left\| \F_\theta(\cin(t)\x_t,\cnoise(t))
+        - \frac{(1-\cskip(t)\alpha_t) \x_0 - \cskip(t)\sigma_t\z}{\cout(t)}
+        \right\|_2^2
+    \right].
+\end{equation}
+To ensure the input data of $\F_\theta$ has unit variance, we should ensure $\Var[\cin(t)\x_t] = 1$ by letting
+\begin{equation}
+    \cin(t) = \frac{1}{\sigma_d \sqrt{\alpha_t^2 + \sigma_t^2}}.
+\end{equation}
+To ensure the training target of $\F_\theta$ has unit variance, we have
+\begin{equation}
+    \cout^2(t) = \sigma_d^2 (1 - \cskip(t)\alpha_t)^2 + \sigma_d^2\cskip^2(t)\sigma_t^2.
+\end{equation}
+To reduce the error amplification from $\F_\theta$ to $\D_\theta$, we should ensure $\cout(t)$ to be as small as possible, which means we should take $\cskip(t)$ by letting $\frac{\partial \cout}{\partial \cskip} = 0$, which results in
+\begin{equation}
+\begin{split}
+    \cskip(t) = \frac{\alpha_t}{\alpha_t^2 + \sigma_t^2},\quad \cout(t) = \pm\frac{\sigma_d\sigma_t}{\sqrt{\alpha_t^2 + \sigma_t^2}}.
+\end{split}
+\end{equation}
+Though equivalent, we choose $\cout(t) = -\frac{\sigma_d\sigma_t}{\sqrt{\alpha_t^2 + \sigma_t^2}}$ which can simplify some derivations below.
+
+In summary, the parameterization and objective for the general diffusion noise schedule are
+\begin{align}
+    \D_\theta(\x_t,t) &= \frac{\alpha_t}{\alpha_t^2 + \sigma_t^2}\x_t - \frac{\sigma_t}{\sqrt{\alpha_t^2 + \sigma_t^2}} \sigma_d\F_\theta\left(\frac{\x_t}{\sigma_d \sqrt{\alpha_t^2 + \sigma_t^2}}, \cnoise(t)\right), \\
+    \gL_{\text{Diff}} &= \E_{\x_0,\z,t}\left[
+        w(t) \frac{\sigma^2_t}{\alpha_t^2 + \sigma_t^2}
+        \left\| \sigma_d \F_\theta\left(\frac{\x_t}{\sigma_d \sqrt{\alpha_t^2 + \sigma_t^2}}, \cnoise(t)\right)
+        - \frac{\alpha_t \z - \sigma_t \x_0}{\sqrt{\alpha_t^2 + \sigma_t^2}}
+        \right\|_2^2
+    \right].
+\end{align}
+
+\paragraph{Step 2: All noise schedules can be equivalently transformed.} One nice property of the \textit{unit variance principle} is that the $\alpha_t, \sigma_t$ in both the parameterization and the objective are \textit{homogenous}, which means we can always assume $\alpha_t^2 + \sigma_t^2 = 1$ without loss of generality. To see this, we can apply a simple change-of-variable of $\hat{\alpha}_t = \frac{\alpha_t}{\sqrt{\alpha_t^2 + \sigma_t^2}}$, $\hat{\sigma}_t = \frac{\sigma_t}{\sqrt{\alpha_t^2 + \sigma_t^2}}$ and $\hat{\x}_t = \frac{\x_t}{\sqrt{\alpha_t^2+\sigma_t^2}}=\hat{\alpha}_t \x_0 + \hat{\sigma}_t \z$, thus we have
+\begin{align}
+    \D_\theta(\x_t,t) &= \hat{\alpha}_t \hat{\x}_t - \hat{\sigma}_t \sigma_d \F_\theta\left(\frac{\hat{\x}_t}{\sigma_d }, \cnoise(t)\right), \\
+    \gL_{\text{Diff}} &= \E_{\x_0,\z,t}\left[
+        w(t) \hat{\sigma}_t^2
+        \left\| \sigma_d \F_\theta\left(\frac{\hat{\x}_t}{\sigma_d}, \cnoise(t)\right)
+        - (\hat{\alpha}_t \z - \hat{\sigma}_t \x_0)
+        \right\|_2^2 \label{eq:appendix:trigflow:objective_general}
+    \right].
+\end{align}
+As for the sampling procedure, according to DPM-Solver++~\citep{lu2022dpm++}, the exact solution of diffusion ODE from time $s$ to time $t$ satisfies
+\begin{equation}
+    \x_t = \frac{\sigma_t}{\sigma_s}\x_s + \sigma_t \int_{\lambda_s}^{\lambda_t}e^\lambda \D_\theta(\x_\lambda, \lambda)\dm\lambda,
+\end{equation}
+where $\lambda_t = \log\frac{\alpha_t}{\sigma_t}$, so the sampling procedure is also \textit{homogenous} for $\alpha_t,\sigma_t$. To see this, we can use the fact that $\frac{\x_t}{\sigma_t}  = \frac{\hat{\x}_t}{\hat{\sigma}_t}$ and $\lambda_t = \log \frac{\hat{\alpha}_t}{\hat{\sigma}_t} 
+\coloneqq \hat{\lambda}_t$, thus the above equation is equivalent to
+\begin{equation}
+    \hat{\x}_t = \frac{\hat{\sigma}_t}{\hat{\sigma}_s}\hat{\x}_s + \hat{\sigma}_t \int_{\hat{\lambda}_s}^{\hat{\lambda}_t}e^{\hat{\lambda}} \hat{\D}_\theta(\hat{\x}_{\hat{\lambda}}, \hat{\lambda})\dm\hat{\lambda},
+\end{equation}
+which is exactly the sampling procedure of the diffusion process $\hat{\x_t}$, which means \textbf{noise schedules of diffusion models won't affect the performance of sampling}. In other words, for any diffusion process $(\alpha_t, \sigma_t, \x_t)$ at time $t$, we can always divide them by $\sqrt{\alpha_t^2 + \sigma_t^2}$ to obtain the diffusion process $(\hat{\alpha}_t, \hat{\sigma}_t, \hat{\x}_t)$ with $\hat{\alpha}_t^2 + \hat{\sigma}_t^2 = 1$ and all the parameterization, training objective and sampling procedure can be equivalently transformed. The only difference is the corresponding training weighting $w(t) \sigma^2_d \hat{\sigma}_t^2$ in \eqref{eq:appendix:trigflow:objective_general}, which we will discuss in the next step.
+
+A straightforward corollary is that the ``optimal transport path''~\citep{lipman2022flowmatching} in flow matching with $\alpha_t = 1 - t, \sigma_t = t$ can be equivalently converted to other noise schedules. The reason of its better empirical performance is essentially due to the different weighting during training and the lack of advanced diffusion sampler such as DPM-Solver series~\citep{lu2022dpm,lu2022dpm++} during sampling, not the ``straight path''~\citep{lipman2022flowmatching} itself. By converting the diffusion process to the space satisfying $\sqrt{\hat\alpha_t^2+\hat\sigma_t^2=1}$, the path connection $\x_0$ and $\z$ has consistent variance which matches the unit-variance design principles of EDM.
+
+
+\paragraph{Step 3: Unified framework by TrigFlow.}
+As we showed in the previous step, we can always assume $\hat\alpha_t^2 + \hat\sigma_t^2 = 1$. An equivalent change-of-variable of such constraint is to define
+\begin{equation}
+    \hat{t} \coloneqq \arctan\left(\frac{\hat\sigma_t}{\hat\alpha_t}\right) = \arctan\left(\frac{\sigma_t}{\alpha_t}\right),
+\end{equation}
+so $\hat{t}\in [0, \frac{\pi}{2}]$ is a monotonically increasing function of $t \in [0, T]$, thus there exists a one-one mapping between $t$ and $\hat{t}$ to convert the proposal distribution $p(t)$ to the distribution of $\hat{t}$, denoted as $p\left(\hat{t}\right)$. As $\hat\alpha_t = \cos\left(\hat t\right), \hat\sigma_t = \sin\left(\hat t\right)$, the training objective in \eqref{eq:appendix:trigflow:objective_general} is equivalent to
+\begin{equation}
+    \gL_{\text{Diff}} = \E_{\x_0,\z}\left[
+        \int_0^{\frac{\pi}{2}} \underbrace{p\left(\hat{t}\right) w\left(\hat{t}\right)\sin^2\left(\hat{t}\right)}_{\text{training weighting}} 
+        \left\| \underbrace{\sigma_d\F_\theta\left(\frac{\hat{\x}_{\hat{t}}}{\sigma_d}, \cnoise\left(\hat{t}\right)\right)
+        - (\cos\left(\hat{t}\right) \z - \sin\left(\hat{t}\right) \x_0)}_{\text{independent from $\alpha_t$ and $\sigma_t$}}
+        \right\|_2^2 \dm \hat{t}
+    \right]. 
+\end{equation}
+Therefore, we can always put the influence of different noise schedules into the training weighting of the integral for $\hat{t}$ from $0$ to $\frac{\pi}{2}$, while the $\ell_2$ norm loss at each $\hat{t}$ is independent from the choices of $\alpha_t$ and $\sigma_t$. As we equivalently convert the noise schedules by trigonometric functions, we name such framework for diffusion models as \textit{TrigFlow}.
+
+For simplicity and with a slight abuse of notation, we omit the $\hat{t}$ and denote the whole training weighting as a single $w(t)$, we summarize the diffusion process, parameterization, training objective and samplers of TrigFlow as follows.
+
+\paragraph{Diffusion Process.}
+$\x_0 \sim p_d(\x_0)$, $\z \sim \gN(\vzero, \sigma_d^2 \mI)$, $\x_t = \cos(t)\x_0 + \sin(t)\z$ for $t \in [0,\frac{\pi}{2}]$.
+
+\paragraph{Parameterization.}
+\begin{equation}
+    \D_\theta(\x_t,t) = \cos(t) \x_t - \sin(t) \sigma_d \F_\theta\left(\frac{\x_t}{\sigma_d }, \cnoise(t)\right),
+\end{equation}
+where $\cnoise(t)$ is the conditioning input of the noise levels for $\F_\theta$, which can be arbitrary one-one mapping of $t$. Moreover, the parameterized diffusion ODE is defined by
+\begin{equation}
+\label{eq:appendix:diffusion_ode}
+    \frac{\dm \x_t}{\dm t} = \sigma_d \F_\theta\left(\frac{\x_t}{\sigma_d }, \cnoise(t)\right).
+\end{equation}
+
+\paragraph{Training Objective.}
+\begin{equation}
+\label{eq:appendix:trigflow_objective}
+    \gL_{\text{Diff}}(\theta) = \E_{\x_0,\z}\left[
+        \int_0^{\frac{\pi}{2}} w(t)
+        \left\| \sigma_d\F_\theta\left(\frac{\x_t}{\sigma_d}, \cnoise\left(t\right)\right)
+        - (\cos(t) \z - \sin(t) \x_0)
+        \right\|_2^2 \dm t
+    \right],
+\end{equation}
+where $w(t)$ is the training weighting, which we will discuss in details in Appendix~\ref{appendix:adaptive_weighting}.
+
+As for the sampling procedure, although we can directly solve the diffusion ODE in \eqref{eq:appendix:diffusion_ode} by Euler's or Heun's solvers as in flow matching~\citep{lipman2022flowmatching}, the parameterization for $\sigma_d\F_\theta$ may be not the optimal parameterization for reducing the discreteization errors. As proved in DPM-Solver-v3~\citep{zheng2023dpmv3}, the optimal parameterization should cancel all the linearity of the ODE, and the data prediction model $\D_\theta$ is an effective approximation of such parameterization. Thus, we can also apply DDIM, DPM-Solver and DPM-Solver++ for TrigFlow by rewriting the coefficients into the TrigFlow notation, as listed below.
+
+\paragraph{1st-order Sampler by DDIM.} Starting from $\x_s$ at time $s$, the solution $\x_{t}$ at time $t$ is
+\begin{equation}
+    \x_{t} = \cos(s - t)\x_t - \sin(s - t)\sigma_d \F_\theta\left(\frac{\x_s}{\sigma_d}, \cnoise(s)\right)
+\end{equation}
+One good property of TrigFlow is that the 1st-order sampler can naturally support zero-SNR sampling~\citep{lin2024common} by letting $s = \frac{\pi}{2}$ without any numerical issues.
+
+
+\paragraph{2nd-order Sampler by DPM-Solver.} Starting from $\x_s$ at time $s$, by reusing a previous solution $\x_{s'}$ at time $s'$, the solution $\x_{t}$ at time $t$ is
+\begin{equation}
+    \x_{t} = \cos(s - t)\x_s - \sin(s - t)\sigma_d \F_\theta\left(\frac{\x_s}{\sigma_d}, \cnoise(s)\right)
+                - \frac{\sin(s - t)}{2 r_s \cos(s)}\left( \vepsilon_\theta(\x_{s'}, s') - \vepsilon_\theta(\x_s,s) \right),
+\end{equation}
+where $\vepsilon_\theta(\x_t,t)=\sin(t)\x_t + \cos(t) \sigma_d \F_\theta\left(\frac{\x_t}{\sigma_d}, \cnoise(t)\right)$ is the noise prediction model, and $r_s = \frac{\log\tan(s) - \log\tan(s')}{\log\tan(s) - \log\tan(t)}$.
+
+\paragraph{2nd-order Sampler by DPM-Solver++.} Starting from $\x_s$ at time $s$, by reusing a previous solution $\x_{s'}$ at time $s'$, the solution $\x_{t}$ at time $t$ is
+\begin{equation}
+    \x_{t} = \cos(s - t)\x_s - \sin(s - t)\sigma_d \F_\theta\left(\frac{\x_s}{\sigma_d}, \cnoise(s)\right)
+                + \frac{\sin(s - t)}{2 r_s \sin(s)}\left( \D_\theta(\x_{s'}, s') - \D(\x_s,s) \right),
+\end{equation}
+where $r_s = \frac{\log\tan(s) - \log\tan(s')}{\log\tan(s) - \log\tan(t)}$.
+
+
+\subsection{Relationship with other parameterization}
+\label{appendix:relation_with_other_parameterization}
+As previous diffusion models define the forward process with $\x_{t'} = \alpha_{t'} \x_0 + \sigma_{t'} \vepsilon = \alpha_{t'} \x_0 + \frac{\sigma_{t'}}{\sigma_d} (\sigma_d\vepsilon)$ for $\vepsilon\sim \gN(\vzero, \mI)$, we can obtain the relationship between $t'$ and TrigFlow time steps $t\in[0,\frac{\pi}{2}]$ by
+\begin{equation}
+    t = \arctan\left( \frac{\sigma_{t'}}{\sigma_d \alpha_{t'}} \right), \quad 
+    \x_t = \frac{\sigma_d}{\sqrt{\alpha_{t'}^2 \sigma_d^2 + \sigma_{t'}^2}}\x_{t'}.
+\end{equation}
+Thus, we can always translate the notation from previous noise schedules to TrigFlow notations. Moreover, below we show that TrigFlow unifies different current frameworks for training diffusion models, including EDM, flow matching and velocity prediction.
+
+\paragraph{EDM.}
+As our derivations closely follow the \textit{unit variance principle} proposed in EDM~\citep{karras2022edm}, our parameterization can be equivalently converted to EDM notations. Specifically, the transformation between TrigFlow $(\x_t, t)$ and EDM $(\x_\sigma, \sigma)$ is
+\begin{equation}
+\label{eq:appendix:relationship_edm_trigflow}
+    t = \arctan\left( \frac{\sigma}{\sigma_d} \right),\quad 
+    \x_t = \cos(t) \x_\sigma.
+\end{equation}
+The reason why TrigFlow notation is much simpler than EDM is just because we define the end point of the diffusion process as $\z \sim \gN(\vzero, \sigma_d^2 \mI)$ with the same variance as the data distribution. Thus, the \textit{unit variance principle} can ensure that all the intermediate $\x_t$ does not need to multiply other coefficients as in EDM.
+
+\paragraph{Flow Matching.}
+Flow matching~\citep{lipman2022flowmatching,rectified_flow,albergo2023stochastic_interpolants,kornilov2024optimal} defines a stochastic path between two samples $\x_0$ from data distribution and $\z$ from a tractable distribution which is usually some Gaussian distribution. For a general path $\x_t = \alpha_t \x_0 + \sigma_t \z$ with $\alpha_0 = 1, \alpha_T = 0, \sigma_0 = 0, \sigma_T = 1$, the conditional probability path is
+\begin{equation}
+   \vv_t  = \frac{\dm \alpha_t }{\dm t} \x_0 + \frac{\dm \sigma_t}{\dm t} \z,
+\end{equation}
+and it learns a parameterized model $\vv_\theta(\x_t,t)$ by minimizing
+\begin{equation}
+    \mathbb{E}_{\x_0,\z,t}\left[w(t)\left\|
+        \vv_\theta(\x_t,t) - \vv_t 
+    \right\|_2^2\right],
+\end{equation}
+and the final probability flow ODE is defined by
+\begin{equation}
+    \frac{\dm \x_t}{\dm t} = \vv_\theta(\x_t,t).
+\end{equation}
+As TrigFlow uses $\alpha_t = \cos(t)$ and $\sigma_t = \sin(t)$, it is easy to see that the training objective and the diffusion ODE of TrigFlow are also the same as flow matching with $\vv_\theta(\x_t,t) = \sigma_d \F_\theta(\frac{\x_t}{\sigma_d}, \cnoise(t))$. To the best of our knowledge, TrigFlow is the first framework that unifies EDM and flow matching for training diffusion models.
+
+\paragraph{Velocity Prediction.}
+The velocity prediction parameterization~\citep{salimans2022progressive} trains a parameterization network with the target $\alpha_t \z - \sigma_t \x_0$. As TrigFlow uses $\alpha_t = \cos(t), \sigma_t = \sin(t)$, it is easy to see that the training target in TrigFlow is also the velocity.
+
+\paragraph{Discussions on SNR.}
+Another good property of TrigFlow is that it can define a data-variance-invariant SNR. Specifically, previous diffusion models define the SNR at time $t$ as $\text{SNR}(t) = \frac{\alpha^2_t}{\sigma_t^2}$ for $\x_t = \alpha_t \x_0 + \sigma_t \vepsilon$ with $\vepsilon\sim\gN(\vzero, \mI)$. However, such definition ignores the influence of the variance of $\x_0$: if we rescale the data $\x_0$ by a constant, then such SNR doesn't get rescaled correspondingly, which is not reasonable in practice. Instead, in TrigFlow we can define the SNR by
+\begin{equation}
+    \hat{\text{SNR}}(t) = \frac{\alpha_t^2\sigma_d^2}{\sigma_t^2} = \frac{1}{\tan^2(t)},
+\end{equation}
+which is data-variance-invariant and also simple.
+
+
+
+
+

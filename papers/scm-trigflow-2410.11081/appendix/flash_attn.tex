@@ -1,0 +1,45 @@
+\section{Jacobian-Vector Product of Flash Attention}
+\label{appendix:flash_attn_jvp}
+The attention operator~\citep{vaswani2017attention} needs to compute $\y = \text{softmax}(\x)\V$ where $\x\in \R^{1\times L}, \V \in \R^{L\times D}, \y \in \R^{1\times D}$. Flash Attention~\citep{dao2022flashattention,dao2023flashattention2} computes the output by maintaining three variables $m(\x) \in \R, \ell(\x) \in \R$, and $\f(\x)$ with the same dimension as $\x$. The computation is done recursively: for each block, we have
+\begin{equation*}
+    m(\x) = \max(e^{\x}), \quad \ell(\x) = \sum_i e^{\x^{(i)} - m(\x)},\quad \f(\x) = e^{\x - m(\x)} \V,
+\end{equation*}
+and for combining two blocks $\x = [\x^{(a)}, \x^{(b)}]$, we merge their corresponding $m, \ell, \f$ by
+\begin{equation*}
+\begin{aligned}
+    &m(\x) = \max\left( \x^{(a)}, \x^{(b)} \right),
+    \quad \ell(\x) = e^{m(\x^{(a)}) - m(\x)}\ell(\x^{(a)}) + e^{m(\x^{(b)}) - m(\x)}\ell(\x^{(b)}), \\
+    &\f(\x) = \left[e^{m(\x^{(a)}) - m(\x)}\f(\x^{(a)}), e^{m(\x^{(b)}) - m(\x)}\f(\x^{(b)})\right],
+    \quad \y = \frac{\f(\x)}{\ell(\x)}.
+\end{aligned}
+\end{equation*}
+However, to the best of knowledge, there does not exist an algorithm for computing the Jacobian-Vector product of the attention operator in the Flash Attention style for faster computation and memory saving. We propose a recursive algorithm for the JVP computation of Flash Attention below.
+
+Denote $\vp \coloneqq \text{softmax}(\x)$. Denote the tangent vector for $\x \in \R^{1\times L},\vp\in \R^{1\times L},\V\in\R^{L\times D},\y\in \R^{1\times D}$ as $\vt_{\x}\in \R^{1\times L}, \vt_{\vp}\in \R^{1\times L}, \vt_{\V}\in \R^{L\times D}, \vt_{\y}\in \R^{1\times D}$, correspondingly. The JVP for attention is computing $(\x, \vt_{\x}), (\V,\vt_{\V})\rightarrow (\y,\vt_{\y})$, which is
+\begin{equation*}
+    \vt_{\y} = \vt_{\vp} \V + \underbrace{\vp \vt_{\V}}_{\text{softmax}(\x)\vt_{\V}},\quad \text{where}\quad 
+    \vt_{\vp}\V = \underbrace{(\vp \odot \vt_{\x})}_{1\times L}\V - \underbrace{(\vp \vt^\top_{\x})}_{1\times 1}\cdot \underbrace{(\vp \V)}_{\y}.
+\end{equation*}
+Notably, the computation for both $\vp \vt_{\V}$ and $\vp \V$ can be done by the standard Flash Attention with the value matrices $\V$ and $\vt_{\V}$. Thus, to compute $\vt_{\y}$, we only need to maintain a vector $\vg(\x)\coloneqq (\vp \odot \vt_{\x})\V$ and a scalar $\mu(\x)\coloneqq \vp \vt_{\x}^\top$ during the Flash Attention computation loop. Moreover, since we do not know $\vp$ during the loop, we can reuse the intermediate $m,\ell, \f$ in Flash Attention. Specifically, for each block,
+\begin{equation*}
+    \vg(\x) = \left(
+        e^{\x - m(\x)} \odot \vt_{\x}
+    \right)\V, \quad
+    \mu(\x) = \sum_{i} e^{\x^{(i)} - m(\x)} \vt_{\x}^{(i)},
+\end{equation*}
+and for combining two blocks $\x = [\x^{(a)}, \x^{(b)}]$, we merge their corresponding $\vg$ and $\mu$ by
+\begin{equation*}
+\begin{aligned}
+    \vg(\x) &= \left[
+        e^{m(\x^{(a)}) - m(\x)}\vg(\x^{(a)}), e^{m(\x^{(b)}) - m(\x)}\vg(\x^{(b)})
+    \right], \\
+    \mu(\x) &= e^{m(\x^{(a)}) - m(\x)}\mu(\x^{(a)}) + e^{m(\x^{(b)}) - m(\x)}\mu(\x^{(b)}),
+\end{aligned}
+\end{equation*}
+and after obtaining $m,\ell,\f,\vg,\mu$ for the row vector $\x$, the final result of $\vt_{\vp}\V$ is
+\begin{equation*}
+    \vt_{\vp}\V = \frac{\vg(\x)}{\ell(\x)}  - \frac{\mu(\x)}{\ell(\x)} \cdot \y.
+\end{equation*}
+Therefore, we can use a single loop to obtain both the output $\y$ and the JVP output $\vt_{\y}$, which accesses the memory for the attention matrices only once and avoids saving the intermediate activations, thus saving the GPU memory. 
+
+

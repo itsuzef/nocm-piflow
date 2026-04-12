@@ -1,0 +1,11 @@
+Generative models based on dynamical equations such as flows and diffusions offer exceptional sample quality, but require computationally expensive numerical integration during inference.
+%
+The advent of consistency models has enabled efficient one-step or few-step generation, yet despite their practical success, a systematic understanding of their design has been hindered by the lack of a comprehensive theoretical framework.
+%
+Here we introduce Flow Map Matching (FMM), a principled framework for learning the two-time flow map of an underlying dynamical generative model, thereby providing this missing mathematical foundation.
+%
+Leveraging stochastic interpolants, we propose training objectives both for distillation from a pre-trained velocity field and for direct training of a flow map over an interpolant or a forward diffusion process.
+%
+Theoretically, we show that FMM unifies and extends a broad class of existing approaches for fast sampling, including consistency models, consistency trajectory models, and progressive distillation.
+%
+Experiments on CIFAR-10 and ImageNet-32 highlight that our approach can achieve sample quality comparable to flow matching while reducing generation time by a factor of 10-20.

@@ -1,0 +1,615 @@
+
+\section{Approximation Theory}
+\label{sec:approximation}
+
+The paper by \cite{chen1995universal} provides the first universal approximation theorem
+for operator approximation via neural networks, and the paper by
+\cite{Kovachki} provides an alternative architecture and approximation result.
+The analysis of \cite{chen1995universal} was recently extended
+in significant ways in the paper by \cite{lanthaler2021error} where, for the first
+time, the curse of dimensionality is addressed, and resolved, for certain specific
+operator learning problems, using the DeepOnet generalization
+\cite{lu2019deeponet,lu2021learning} of \cite{chen1995universal}.
+The paper \cite{lanthaler2021error} was generalized to study
+operator approximation, and the curse of dimensionality, for the FNO,
+in \cite{kovachki2021universal}.
+
+
+Unlike the finite-dimensional setting, the choice of input 
+and output spaces \(\A\) and \(\U\) for the mapping \(\G^\dagger\) play a crucial role in the approximation theory due to the distinctiveness of the induced norm topologies.
+In this section, we prove universal approximation theorems for neural operators both 
+with respect to the topology of uniform convergence over compact sets and 
+with respect to the topology induced by
+the Bochner norm \eqref{eq:bochner_error}.  We focus our attention on the Lebesgue, Sobolev, continuous, and continuously differentiable function classes as they have numerous applications in scientific computing and machine learning problems. Unlike the results of \cite{Kovachki, kovachki2021universal} which rely on the Hilbertian %\kamyar{isnt it Hilberian?} 
+% ZL: should be Hilbertian
+structure of the input and output spaces or the results of \cite{chen1995universal, lanthaler2021error} which rely on the continuous  functions, our results extend to more general Banach spaces as specified by Assumptions \ref{assump:input} and \ref{assump:output} \nk{(stated in Section \ref{sec:approximation_main})} and are, to the best of our knowledge, the first of their kind
+to apply at this level of generality.
+
+Our method of proof proceeds by making use of the following two observations.
+First we establish the Banach space approximation property 
+\cite{grothendieck1955produits} for the input and output spaces of interest, which allows for a finite dimensionalization of the problem. In particular, we prove that the
+Banach space approximation property holds for various function spaces defined on Lipschitz domains; the precise result we need, while unsurprising, seems to be missing from the functional analysis literature and so we provide statement
+and proof. Details are given in Appendix A. Second, we establish that integral kernel operators with smooth kernels can be used to approximate linear functionals of various input spaces. In doing so, we establish a Riesz-type representation theorem for the continuously differentiable functions. Such a result is not surprising and mimics the well-known result for Sobolev spaces; however in the form we need it we could not find the
+result in the functional analysis literature and so we provide statement
+and proof. Details are given in Appendix B. With these two facts, we construct a neural operator which linearly maps any input function to a finite vector then non-linearly maps this vector to a new finite vector which is then used to form the coefficients of a basis expansion for the output function. We reemphasize that our approximation theory uses the fact that neural operators can be reduced to a linear method of approximation (as pointed out in Section \ref{sec:deeponets}) and does not capture
+any benefits of nonlinear approximation. However these benefits \emph{are} present in the architecture and are exploited by the trained networks we find in practice.
+Exploiting their nonlinear nature to potentially obtain improved rates of approximation remains an interesting direction for future research.
+
+The rest of this section is organized as follows. 
+In Subsection \ref{sec:approximation_nos}, we define allowable activation functions and the set of neural operators used in our theory, noting that they constitute a subclass of the neural operators defined in Section \ref{sec:framework}.
+In Subsection \ref{sec:approximation_main}, we state and prove our main universal approximation theorems.
+
+
+
+\subsection{Neural Operators}
+\label{sec:approximation_nos}
+
+For any \(n \in \N\) and \(\sigma :\R \to \R\), we define the set of real-valued \(n\)-layer neural networks
+on \(\R^d\) by
+\begin{align*}
+\NN_n (\sigma;\R^d) \coloneqq \{ f : \R^d \to \R : \: &f(x) = W_n \sigma ( \dots W_1 \sigma (W_0 x + b_0) + b_1 \dots ) + b_n, \\
+&W_0 \in \R^{d_0 \times d}, W_1 \in \R^{d_1 \times d_0}, \dots, W_n \in \R^{1 \times d_{n-1}}, \\
+&b_0 \in \R^{d_0}, b_1 \in \R^{d_1}, \dots, b_n \in \R, \: d_0,d_1,\dots,d_{n-1} \in \N\}.
+\end{align*}
+We define the set of \(\R^{d'}\)-valued neural networks simply by stacking real-valued networks
+\[\NN_n(\sigma;\R^d, \R^{d'}) \coloneqq \{f : \R^d \to \R^{d'} : f(x) = \bigl ( f_1(x), \dots, f_{d'}(x) \bigl), \: f_1,\dots,f_{d'} \in \NN_n(\sigma;\R^d)\}.\]
+We remark that we could have defined \(\NN_n(\sigma;\R^d, \R^{d'})\) by letting \(W_n \in \R^{d' \times d_n}\) and \(b_n \in \R^{d'}\) in 
+the definition of \(\NN_n(\sigma;\R^d)\) because we allow arbitrary width, making the two definitions equivalent; however the definition as presented is  more  convenient  for  our  analysis. We also employ the preceding definition with $\R^d$ and $\R^{d'}$ 
+replaced by spaces of matrices.
+For any \(m \in \N_0\), we define the set of allowable activation functions as the continuous \(\R \to \R\) maps which make
+neural networks dense in \(C^m(\R^d)\) on compacta at any fixed depth,
+\[\mathsf{A}_m \coloneqq \{\sigma \in C(\R) : \exists n \in \N \text{ s.t. } \NN_n(\sigma;\R^d) \text{ is dense in } C^m(K) \:\: \forall K \subset \R^d \text{ compact}\}.\]
+It is shown in \cite[Theorem 4.1]{pinkus1999approximation} that \(\{\sigma \in C^m(\R) : \sigma \text{ is not a polynomial}\} \subseteq \mathsf{A}_m\) with \(n = 1\).
+Clearly \(\mathsf{A}_{m+1} \subseteq \mathsf{A}_{m}\).
+
+We define the set of linearly bounded activations as
+\[\mathsf{A}^{\text{L}}_m \coloneqq \left \{ \sigma \in \mathsf{A}_m : \sigma \text{ is Borel measurable }, \:\: \sup_{x \in \R} \frac{|\sigma(x)|}{1 + |x|} < \infty \right \},\]
+noting that any globally Lipschitz, non-polynomial, \(C^m\)-function is contained in \(\mathsf{A}^{\text{L}}_m\). Most activation functions 
+used in practice fall within this class, for example, \(\text{ReLU} \in \mathsf{A}^{\text{L}}_0\), \(\text{ELU} \in \mathsf{A}^{\text{L}}_1\)
+while \(\tanh, \text{sigmoid} \in \mathsf{A}^{\text{L}}_m\) for any \(m \in \N_0\). 
+
+For approximation in a Bochner norm, we will be interested in constructing 
+globally bounded neural networks which can approximate the identity over compact sets as done in \citep{lanthaler2021error, Kovachki}. This allows us to control the potential unboundedness of the support of the input measure by exploiting the fact that the probability of an input must decay to zero in unbounded regions. Following \citep{lanthaler2021error}, we introduce the forthcoming definition which uses the notation of the diameter of a set. In particular, the diameter of any set \(S \subseteq \R^d\) is defined as, for
+$|\cdot|_2$ the Euclidean norm on $\R^d$,
+\[\text{diam}_2(S) \coloneqq \sup_{x,y \in S} |x - y|_2.\]
+
+
+\begin{definition}
+\label{def:bounded_activations}
+We denote by \(\mathsf{BA}\) the set of maps \(\sigma \in \mathsf{A}_0\) such that,
+for any compact set \(K \subset \R^d\), \(\epsilon > 0\), and \(C \geq \emph{\text{diam}}_2(K)\) 
+%\kamyar{did we define diam before? I am not sure}
+% should be diameter in l2
+, there exists 
+a number \(n \in \N\) and a neural network \(f \in \NN_n(\sigma;\R^d,\R^{d'})\) such that
+\begin{align*}
+|f(x) - x|_2 &\leq \epsilon, \qquad \forall x \in K, \\
+|f(x)|_2 &\leq C, \quad \:\:\: \forall x \in \R^d.
+\end{align*} 
+\end{definition}
+It is shown in \cite[Lemma C.1]{lanthaler2021error} that \(\text{ReLU} \in \mathsf{A}^{\text{L}}_0 \cap \mathsf{BA}\) with \(n=3\).
+
+We will now define the specific class of neural operators for which we prove
+a universal approximation theorem. It is important to note that the class
+with which we work is a simplification of the one given in \eqref{eq:F}. In particular, the lifting and projection operators \(\mathcal{Q}, \mathcal{P}\), together with the final 
+activation function \(\sigma_n\), are set to the identity, and the local linear operators \(W_0,\dots,W_{n-1}\) are set to zero. In our numerical studies we have in any case
+typically set \(\sigma_n\) to the identity. However we have found that learning the local
+operators \(\mathcal{Q}, \mathcal{P}\) and \(W_0,\dots,W_{n-1}\) is beneficial in practice;
+extending the universal approximation theorems given here to explain this benefit 
+would be an important but non-trivial development of the analysis we present here.
+
+
+
+
+Let \(D \subset \R^d\) be a domain.
+For any \(\sigma \in \mathsf{A}_0\), we define the set of affine kernel integral operators by 
+\begin{align*}
+\mathsf{IO}(\sigma;D,\R^{d_1},\R^{d_2}) = \{f \mapsto \int_D \kappa(\cdot, y) f(y) \dy + b : \: &\kappa \in \NN_{n_1}(\sigma;\R^{d} \times \R^{d},\R^{d_2 \times d_1}), \\
+&b \in \NN_{n_2}(\sigma;\R^{d},\R^{d_2}), \: n_1, n_2 \in \N\},
+\end{align*}
+for any \(d_1,d_2 \in \N\). Clearly, since \(\sigma \in \mathsf{A}_0\), any \(S \in \mathsf{IO}(\sigma;D,\R^{d_1},\R^{d_2})\) acts 
+as \(S : L^p(D;\R^{d_1}) \to L^p(D;\R^{d_2})\) for any \(1 \leq p \leq \infty\) since \(\kappa \in C(\bar{D} \times \bar{D};\R^{d_2 \times d_1})\)
+and \(b \in C(\bar{D};\R^{d_2})\).
+For any \(n \in \N_{\geq 2}\), \(d_a,d_u \in \N\), \(D \subset \R^d\), \(D' \subset \R^{d'}\) domains, and \(\sigma_1 \in \mathsf{A}^{\text{L}}_0\), \(\sigma_2, \sigma_3 \in \mathsf{A}_0\), 
+we define the set of \(n\)-layer neural operators by
+\begin{align*}
+\mathsf{NO}_n(\sigma_1,\sigma_2,\sigma_3;D,D',\R^{d_a},\R^{d_u}) = \{&f \mapsto \int_{D} \kappa_n (\cdot, y) \bigl ( S_{n-1} \sigma_1 ( \dots S_2 \sigma_1(S_1(S_0 f)) \dots) \bigl )(y) \dy : \\
+&S_0 \in \mathsf{IO}(\sigma_2,D;\R^{d_a},\R^{d_1}), \dots S_{n-1} \in \mathsf{IO}(\sigma_2,D;\R^{d_{n-1}},\R^{d_n}), \\
+&\kappa_n \in \NN_l (\sigma_3; \R^{d'} \times \R^{d}, \R^{d_u \times d_n}), \: d_1,\dots,d_n, l \in \N\}.
+\end{align*}
+When \(d_a = d_u = 1\), we will simply write \(\mathsf{NO}_n(\sigma_1,\sigma_2,\sigma_3;D,D')\).
+Since \(\sigma_1\) is linearly bounded, we can use a result about compositions of maps in \(L^p\) spaces such as \cite[Theorem 7.13]{dudley2010concrete} to conclude that any \(G \in \mathsf{NO}_n(\sigma_1,\sigma_2,\sigma_3,D,D';\R^{d_a},\R^{d_u})\) acts as \(G : L^p(D;\R^{d_a}) \to L^p (D';\R^{d_u})\).
+Note that it is only in the last layer that we transition from functions defined
+over domain $D$ to functions defined over domain $D'$.
+
+
+When the input space of an operator of interest is \(C^m (\bar{D})\), for \(m \in \N\),
+we will need to take in derivatives explicitly as they cannot be learned using kernel integration  as employed in the current 
+construction given in Lemma~\ref{lemma:c_kernelapprox}; note that this is \textit{not} the case for \(W^{m,p}(D)\) as shown in Lemma~\ref{lemma:wmp_kernelapprox}.
+We will therefore define the set of \(m\)-th order 
+neural operators by
+\begin{align*}
+\mathsf{NO}_n^m(\sigma_1,\sigma_2,\sigma_3;D,D',\R^{d_a},\R^{d_u}) = \{&(\partial^{\alpha_1}f, \dots,\partial^{\alpha_{J_m}} f) \mapsto G(\partial^{\alpha_1}f, \dots,\partial^{\alpha_{J_m}} f) : \\
+& G \in \mathsf{NO}_n (\sigma_1,\sigma_2,\sigma_3;D,D',\R^{J_m d_a}, \R^{d_u})\}
+\end{align*}
+where \(\alpha_1,\dots,\alpha_{J_m} \in \N^d\) is an enumeration of the set
+\(\{\alpha \in \N^d : 0 \leq |\alpha|_1 \leq m\}\). Since we only use the \(m\)-th order operators when dealing with spaces of continuous functions, each element of \(\mathsf{NO}_n^m\) can be thought of as a mapping from a product space of spaces of the form \(C^{m - |\alpha_j|}(\bar{D};\R^{d_a})\) for all \(j \in \{1,\dots,J_m\}\) to an appropriate Banach space of interest.
+
+
+
+
+
+
+
+\nk{
+\subsection{Discretization Invariance}
+\label{sec:discritizational_invariance}
+Given the construction above and the definition of discretization invariance in Definition~\ref{def:discretization_invariance}, in the following we prove that neural operators are discretization invariant deep learning models.
+
+\begin{theorem}%[Restatement of Theorem~\ref{thm:disc_inv_informal}]
+\label{thm:discretizational_invariance}
+Let \(D \subset \R^{d}\) and \(D' \subset \R^{d'}\) be two domains for some \(d, d' \in \N\). Let
+\(\A\) and \(\U\) be real-valued Banach function spaces on \(D\) and \(D'\) respectively. Suppose that
+\(\A\) and \(\U\) can be continuously embedded in \(C(\bar{D})\) and \(C(\bar{D'})\) respectively and that
+\(\sigma_1, \sigma_2, \sigma_3 \in C(\R)\). Then,
+for any \(n \in \N\), the set of neural operators \(\mathsf{NO}_n(\sigma_1,\sigma_2,\sigma_3;D,D')\) whose elements are viewed 
+as maps \(\A \to \U\) is discretization-invariant. 
+\end{theorem}
+
+The proof, provided in appendix~\ref{sec_proof:discretizational_invariance}, constructs a sequence of finite dimensional maps which approximate the neural operator by Riemann sums and shows uniform converges of the error over compact sets of \(\A\).   
+
+%This theorem states that as the discretization of the domain becomes finer and finer, the behavior of the neural operator applied to the discretized domain becomes closer and closer to that of the abstract operator. To prove this theorem, we use the compactness of the input space to argue that there is a dictionary of finitely many functions that can approximate any function in the space. Then, we show that given a discretization, the summation approximation to the integral operator on any function in the constructed dictionary has an error depending on the fineness of the discretization. Therefore, when summation is used to approximate the integral on any function since that function is close to the dictionary, the approximation error shrinks as the discretization becomes finer.
+}
+
+
+
+\subsection{Approximation Theorems}
+\label{sec:approximation_main}
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}
+\begin{tikzcd}
+\A \arrow[rr,"F"] \arrow[d,swap,"\G^\dagger"] && \mathbb{R}^{J} \arrow[rr,""] \arrow[d,swap,"\psi"] && \A \arrow[d,swap,"\G^\dagger"] \\
+\U \arrow[rr,""] && \mathbb{R}^{J'} \arrow[rr,"G"] && \U
+\end{tikzcd}
+\end{tikzpicture}
+\hspace*{6.2cm}
+\caption{A schematic overview of the maps used to approximate \(\G^\dagger\).} \label{fig:approach}
+\end{figure}
+
+Let \(\A\) and \(\U\) be Banach function spaces on the domains \(D \subset \R^d\) and \(D' \subset \R^{d'}\) respectively.
+We will work in the setting where functions in \(\A\) or \(\U\) are real-valued, but note that all results generalize 
+in a straightforward fashion to the vector-valued setting. We are interested in the approximation of nonlinear operators \(\G^\dagger : \A \to \U\)
+by neural operators. We will make the following assumptions on the spaces \(\A\) and \(\U\).
+
+\begin{assumption}
+\label{assump:input}
+Let \(D \subset \R^d\) be a Lipschitz domain for some \(d \in \N\).
+One of the following holds
+\begin{enumerate}
+	\item \(\A = L^{p_1} (D)\) for some \(1 \leq p_1 < \infty\).
+	\item \(\A = W^{m_1,p_1}(D)\) for some \(1 \leq p_1 < \infty\) and \(m_1 \in \N\),
+	\item \(\A = C (\bar{D})\).
+\end{enumerate}
+\end{assumption}
+
+\begin{assumption}
+\label{assump:output}
+Let \(D' \subset \R^{d'}\) be a Lipschitz domain for some \(d' \in \N\).
+One of the following holds
+\begin{enumerate}
+	\item \(\U = L^{p_2} (D')\) for some \(1 \leq p_2 < \infty\),
+	and \(m_2 = 0\),
+	\item \(\U = W^{m_2,p_2}(D')\) for some \(1 \leq p_2 < \infty\) and \(m_2 \in \N\),
+	\item \(\U = C^{m_2}(\bar{D}')\) and \(m_2 \in \N_0\).  
+\end{enumerate}
+\end{assumption}
+
+
+We first show that neural operators are dense in the continuous operators \(\G^\dagger : \A \to \U\) in the topology of uniform convergence on compacta. The proof proceeds by making three main approximations which are schematically shown in Figure~\ref{fig:approach}. First, inputs are mapped to a finite-dimensional representation through a set of appropriate linear functionals on \(\A\) denoted by \(F : \A \to \R^{J}\). We show in Lemmas 21 and 23 that, when \(\A\) satisfies Assumption \ref{assump:input}, elements of \(\A^*\) can be approximated by integration against smooth functions. This generalizes the idea from \citep{chen1995universal} where functionals on \(C(\bar{D})\) are approximated by a weighted sum of Dirac measures. We then show in Lemma 25 that, by lifting the dimension, this representation can be approximated by a single element of \(\mathsf{IO}\). Second, the representation is non-linearly mapped to a new representation by a continuous function \(\psi : \R^{J} \to \R^{J'}\) which finite-dimensionalizes the action of \(\G^\dagger\). We show, in Lemma 28, that this map can be approximated by a neural operator by reducing the architecture to that of a standard neural network. Third, the new representation is used as the coefficients of an expansion onto representers of \(\U\), the map denoted \(G : \R^{J'} \to \U\), which we show can be approximated by a single \(\mathsf{IO}\) layer in Lemma 27 using density results for continuous functions. The structure of the overall approximation is similar to \citep{Kovachki} but generalizes the ideas from working on Hilbert spaces to the spaces in Assumptions \ref{assump:input} and \ref{assump:output}. Statements and proofs of the lemmas used in the theorems are given in the appendices.
+
+\begin{theorem}
+\label{thm:main_compact}
+Let Assumptions~\ref{assump:input} and \ref{assump:output} hold and suppose \(\G^\dagger : \A \to \U\) is continuous.
+Let \(\sigma_1 \in \mathsf{A}^{\emph{\text{L}}}_0\), \(\sigma_2 \in \mathsf{A}_0\), and \(\sigma_3 \in \mathsf{A}_{m_2}\).
+Then for any compact set \(K \subset \A\) and \(0 < \epsilon \leq 1\), there exists a number \(N \in \N\) and a neural operator 
+\(\G \in \mathsf{NO}_{N}(\sigma_1,\sigma_2,\sigma_3;D,D')\) such that
+\[\sup_{a \in K} \|\G^\dagger (a) - \G (a) \|_{\U} \leq \epsilon.\]
+Furthermore, if \(\U\) is a Hilbert space and \(\sigma_1 \in \mathsf{BA}\) and, for some \(M > 0\), we have that \(\|\G^\dagger (a)\|_{\U} \leq M\) for all 
+\(a \in \A\) then \(\G\) can be chosen so that
+\[\|\G(a)\|_{\U} \leq 4M, \qquad \forall a \in \A.\]
+\end{theorem}
+The proof is provided in appendix~\ref{sec_proof:main_compact}
+In the following theorem, we extend this result to the case \(\A = C^{m_1}(\bar{D})\), showing density of the \(m_1\)-th order neural operators.
+
+\begin{theorem}
+\label{thm:cm_compact}
+Let \(D \subset \R^d\) be a Lipschitz domain, \(m_1 \in \N\), define \(\A := C^{m_1}(\bar{D})\), suppose Assumption~\ref{assump:output} holds and
+assume that  \(\G^\dagger : \A \to \U\) is continuous.
+Let \(\sigma_1 \in \mathsf{A}^{\emph{\text{L}}}_0\), \(\sigma_2 \in \mathsf{A}_0\), and \(\sigma_3 \in \mathsf{A}_{m_2}\).
+Then for any compact set \(K \subset \A\) and \(0 < \epsilon \leq 1\), there exists a number \(N \in \N\) and a neural operator 
+\(\G \in \mathsf{NO}_{N}^{m_1}(\sigma_1,\sigma_2,\sigma_3;D,D')\) such that
+\[\sup_{a \in K} \|\G^\dagger (a) - \G (a) \|_{\U} \leq \epsilon.\]
+Furthermore, if \(\U\) is a Hilbert space and \(\sigma_1 \in \mathsf{BA}\) and, for some \(M > 0\), we have that \(\|\G^\dagger (a)\|_{\U} \leq M\) for all 
+\(a \in \A\) then \(\G\) can be chosen so that
+\[\|\G(a)\|_{\U} \leq 4M, \qquad \forall a \in \A.\]
+\end{theorem}
+\begin{proof}
+The proof follows as in Theorem~\ref{thm:main_compact}, replacing the use of Lemma~\ref{lemma:input_approx} with Lemma~\ref{lemma:cm_input_approx}.
+\end{proof}
+
+With these results in hand, we show density of neural operators in the space \(L^2_\mu (\A;\U)\)
+where \(\mu\) is a probability measure and \(\U\) is a separable Hilbert space. The Hilbertian structure of \(\U\) allows us to uniformly control the norm of the approximation due to the isomorphism with \(\ell_2\) as shown in Theorem \ref{thm:main_compact}. It remains an interesting future direction to obtain similar results for Banach spaces. The proof follows the ideas in \citep{lanthaler2021error} where similar results are obtained for DeepONet(s) on \(L^2(D)\) by using Lusin's theorem to restrict the approximation to a large enough compact set and exploit the decay of \(\mu\) outside it. \cite{Kovachki} also employ a similar approach but explicitly constructs the necessary compact set after finite-dimensionalizing. 
+ 
+\begin{theorem}
+\label{thm:measurable_approx}
+Let \(D' \subset \R^{d'}\) be a Lipschitz domain, \(m_2 \in \N_0\), and suppose Assumption~\ref{assump:input} holds.
+Let \(\mu\) be a probability measure on \(\A\) and suppose \(\G^\dagger : \A \to H^{m_2}(D)\) is \(\mu\)-measurable and \(\G^\dagger \in L^2_\mu (\A;H^{m_2}(D))\).
+Let \(\sigma_1 \in \mathsf{A}^{\emph{\text{L}}}_0 \cap \mathsf{BA}\), \(\sigma_2 \in \mathsf{A}_0\), and \(\sigma_3 \in \mathsf{A}_{m_2}\).
+Then for any \(0 < \epsilon \leq 1\), there exists a number \(N \in \N\) and a neural operator 
+\(\G \in \mathsf{NO}_{N}(\sigma_1,\sigma_2,\sigma_3;D,D')\) such that
+\[\|\G^\dagger  - \G  \|_{L^2_\mu(\A;H^{m_2}(D))} \leq \epsilon.\]
+\end{theorem}
+The proof is provided in appendix~\ref{sec_proof:measurable_approx}. In the following we extend this result to the case \(\A = C^{m_1}(D)\) using the \(m_1\)-th order neural operators.
+
+\begin{theorem}
+\label{thm:cm_measurable_approx}
+Let \(D \subset \R^d\) be a Lipschitz domain, \(m_1 \in \N\), define
+\(\A := C^{m_1}(D)\) and suppose Assumption~\ref{assump:output} holds. Let \(\mu\)
+be a probability measure on \(C^{m_1}(D)\) and let 
+\(\G^\dagger : C^{m_1}(D) \to \U\) be \(\mu\)-measurable and suppose \(\G^\dagger \in L^2_\mu (C^{m_1}(D);\U)\).
+Let \(\sigma_1 \in \mathsf{A}^{\emph{\text{L}}}_0 \cap \mathsf{BA}\), \(\sigma_2 \in \mathsf{A}_0\), and \(\sigma_3 \in \mathsf{A}_{m_2}\).
+Then for any \(0 < \epsilon \leq 1\), there exists a number \(N \in \N\) and a neural operator 
+\(\G \in \mathsf{NO}_{N}^{m_1}(\sigma_1,\sigma_2,\sigma_3;D,D')\) such that
+\[\|\G^\dagger  - \G  \|_{L^2_\mu(C^{m_1}(D);\U)} \leq \epsilon.\]
+\end{theorem}
+\begin{proof}
+The proof follows as in Theorem~\ref{thm:measurable_approx} by replacing the use of Theorem~\ref{thm:main_compact}
+with Theorem~\ref{thm:cm_compact}.
+\end{proof}
+
+
+
+
+
+%%%%%%%%OLD%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\iffalse 
+
+We first define the set of standard neural networks. For  any \(n \in \N\) and \(\sigma : \R \to \R\), define the set
+\begin{align*}
+\mathcal{N}_n(\sigma;\R^d, \R^{d'}) = \big \{ &f : \R^{d} \to \R^{d'} : f(x) = W_{n+1} \sigma \big ( \dots W_2 \sigma (W_1 x +b_1) +b_2 \dots \big ), \\
+&W_1 \in \R^{d_1 \times d}, W_2 \in \R^{d_2 \times d_1}, \dots, W_{n+1} \in \R^{d' \times d_{n}}, \\
+&b_1 \in \R^{d_1}, b_2 \in \R^{d_2}, \dots, b_n \in \R^{d_n}, \:\: \forall d_1,d_2,\dots,d_n \in \N\big \}. 
+\end{align*}
+The defining property of neural networks is the universal approximation of continuous functions on compacta. This property does not hold for any activation function, for example, if we pick \(\sigma (x) = x\) then \(f \in \mathcal{N}_n (\sigma;\R^d, \R^{d'})\) is a linear map for any \(n \in \N\), so the continuous functions cannot be approximated arbitrarily well. When \(n=1\), the set of activation functions for which universality holds is usually called the Tauber-Wiener class. We stay faithful to this name, but define this class for networks of arbitrary depth
+\[\mathsf{TW} = \{\sigma : \R \to \R : \exists \in n \in \N \text{ s.t. } \mathcal{N}_n(\sigma; \R^{d},\R^{d'}) \text{ is dense in } C(K;\R^{d'}) \:\: \forall K \subset \R^d \text{ compact}\}\]
+noting that this is a strictly larger set than the usual set of Tauber-Wiener functions. Even when \(n = 1\), the \(\mathsf{TW}\) class is rich because, for example, any non-polynomial, continous function that is also a tempered distribution is in \(\mathsf{TW}\) \cite[Theorem 1]{chen1995universal}. Since our goal is to study infinite dimensional approximation, we will not attempt to characterize the \(\mathsf{TW}\) class, but simply refer the interested reader to some of the known results [CITE]. It will furthermore be useful to define the class of activation functions which admit bounded constructions. In particular, define the set all bounded functions
+\[B(\R^d;\R^{d'}) = \bigg \{f : \R^d \to \R^{d'} : \sup_{x \in \R^d} |f(x)| < \infty \bigg \}\]
+where \(|\cdot|\) denotes any norm on \(\R^{d'}\). Then we define
+\begin{align*}
+    \mathsf{TW}_{\text{b}} = \{\sigma : \R \to \R : \exists \in n \in \N \text{ s.t. } &\mathcal{N}_n(\sigma; \R^{d},\R^{d'}) \cap B(\R^d;\R^{d'}) \\
+    &\text{is dense in } C(K;\R^{d'}) \:\: \forall K \subset \R^d \text{ compact}\}.
+\end{align*}
+A popular activation function belonging to \(\mathsf{TW}_{\text{b}}\) is the ReLU \(\sigma (x) = \max \{0,x\}\).
+
+We will now define the set of neural operators, noting that the current definition constitutes a subclass of the operators defined in Section~\ref{sec:framework}. Since our framework rests on kernel integral transforms, it is natural to define the method on inputs in \(L^1(D;\R^{d'})\) where \(D \subset \R^d\) is a compact set. We remark that, since \(D\) is compact, \(L^p(D;\R^{d'}) \subseteq L^1(D;\R^{d'})\) for any \(1 \leq p \leq \infty\) hence our definition is broad is enough to include most Lebesgue spaces as well as the continuous functions. We first define the set of possible outer activation functions
+\[\mathsf{A}_1(D) = \big \{\sigma : \R \to \R : \sigma \text{ is Borel measurable, } \|\sigma \circ f \|_{L^1(D;\R)} < \infty \:\: \forall f \in L^1(D;\R) \big \}.\]
+For any \(\sigma : \R \to \R\), define the set of single-layer affine operator mappings
+\begin{align*}
+    \mathsf{L}(\sigma;D,\R^{d_1},\R^{d_2}) = \bigg \{&S : L^1(D;\R^{d_1}) \to L^1(D;\R^{d_2}) : S = \int_D \kappa(\cdot, y) \: \cdot \: \text{d}y + b,  \\
+    &\kappa \in \mathcal{N}_{k_1}(\sigma;\R^{d} \times \R^{d}, \R^{d_2 \times d_1}), \: b \in \mathcal{N}_{k_2}(\sigma;\R^{d}, \R^{d_2}), \: \forall k_1, k_2 \in \N \bigg \}.
+\end{align*}
+Let \(D \subset \R^d\) and \(D' \subset \R^{d'}\) be compact sets. We can now define the set of zeroth order neural operators by
+\begin{align*}
+\mathsf{NO}_{n,0}(\sigma_1, \sigma_2; D, D') = \bigg \{ &a \mapsto \int_{D'} \kappa_{n+1}(\cdot,y) \big ( S_n \sigma_1 ( \dots S_2 \sigma_1 (S_1 ( S_0(a))) \dots) \big) (y) \: \text{d}y : \\
+&S_0 \in \mathsf{L}(\sigma_2;D,\R,\R^{d_1}), \dots, S_n \in \mathsf{L}(\sigma_2;D,\R^{d_{n}},\R^{d_{n+1}}), \\ &\kappa_{n+1} \in \mathcal{N}_l(\sigma_2;\R^{d'} \times \R^{d'}, \R^{1 \times d_{n+1}}), \:\: \forall d_1,\dots,d_{n+1}, l \in \N
+\bigg \}
+\end{align*}
+for any \(n \in \N\),  \(\sigma_1 \in \mathsf{A}_1\), and \(\sigma_2 : \R \to \R\). Note that we do not require the last kernel to define a mapping into \(L^1(D';\R)\), allowing the architecture more flexibility. Furthermore we have defined the neural operators as mappings of scalar-valued functions; we do this only for simplicity as the vector-valued extension follows similarly. When the input function has derivatives (strong or weak), we define the set of \(m\)-th order neural operators \(\mathsf{NO}_{n,m}(\sigma_1, \sigma_2; D, D')\) for some \(m \in \N\) by modifying the initial input from \(a\) to
+\(\{\partial_\alpha a\}_{0 \leq |\alpha|_1 \leq m}\) i.e. \(a\) as well as all \(m\)-th order partial derivatives of \(a\). In particular, we have \(S_0 \in \mathsf{L}(\sigma_2; D,\R^M,\R^{d_1})\) where \(M = |\{\alpha \in \N^d : |\alpha|_1 \leq m\}|\).
+
+\begin{theorem}
+Let \(D \subset \R^d\) and \(D' \subset \R^{d'}\) be compact domains. Suppose \(\A = W^{m,p}(D;\R)\) for some \(m \geq 0\) and \(1 \leq p < \infty\) or \(\A = C(D;\R)\), setting \(m=0\) in that case, and \(\U\) is any Banach space with AP such that \(C(D';\R) \subseteq \U\) is dense. Let \(\G^\dagger : \A \to \U\) be continuous.
+Let \(\sigma_1 \in \mathsf{A}_1(D) \cap \mathsf{TW}\) and \(\sigma_2 \in \mathsf{TW}_{\emph{\text{b}}}\). 
+Then for any compact set \(K \subset \A\) and \(\epsilon > 0\), there exists a \(n \in \N\) and a neural operator \(\G \in \mathsf{NO}_{n,m}(\sigma_1,\sigma_2;D,D')\) such that
+\[\sup_{a \in K} \|\G^\dagger (a) - \G (a) \|_{\U} < \epsilon.\]
+\end{theorem}
+
+\begin{proof}
+By Lemma [], we can find a mapping \(\G_1 : \A \to \U\) 
+such that
+\[\sup_{a \in K} \|\G^\dagger (a) - \G_1(a)\|_{\U} < \frac{\epsilon}{2}\]
+where \(\G_1 = G^\U \circ \psi \circ F^\A\) with \(F^\A : \A \to \R^J\), \(G^\U : \R^{J'} \to \U\) Lipschitz  and \(\psi : \R^{J} \to \R^{J'}\) continuous for some \(J, J' \in \N\).
+By Lemma [], we can find a sequence of maps \(\tilde{F}^\A_t : \A \to \R^J\), viewing the derivative operators \(\partial_\alpha\) as part of their definition, such that 
+\(\tilde{F}^\A_t (K)\) is bounded for any \(t \in \N\) and 
+\[\sup_{a \in K} |\tilde{F}^\A_t (a) - F^\A (a)|_1 < \frac{1}{t}.\]
+Therefore, there exists a compact set \(Z \subset \R^J\) such that 
+\(F^\A (K) \cup \bigcup_{t=1}^\infty \tilde{F}^\A_t (K) \subseteq Z\). Since \(\psi\) is continuous, it is uniformly continuous on \(Z\) hence there exists a modulus of continuity \(\omega : \R_+ \to \R_+\) which is continuous, non-negative, and non-decreasing on \(\R_+\), satisfies \(\omega(s) \to \omega(0) = 0\) as \(s \to 0\) and
+\[|\psi(z_1) - \psi(z_2)|_1 \leq \omega ( |z_1 - z_2|_1 ) \qquad \forall z_1, z_2 \in Z.\]
+We can thus find \(t \in \N\) large enough such that
+\[\sup_{a \in K} \omega (|F^\A (a) - \tilde{F}^\A_t (a)|_1) < \frac{\epsilon}{6 L_G}\]
+where \(L_G > 0\) is the Lipschitz constant of \(G^\U\).
+By Lemma [], there exists \(S_0 \in \mathsf{L}(\sigma_2;D;\R^{M}, \R^{J})\) such that \(S_0 = F^\A_t\) where we view each component function as a constant, in particular, 
+\[(S_0 a)_j (x) = \tilde{F}^\A_t(a)_j \qquad \forall x \in D, \:\: j=1,\dots J.\]
+By construction \(\tilde{F}^\A_t\) is continuous hence \(\tilde{F}^\A_t (K)\) is compact. Then,  similarly by Lemma [], we can find \(n \in \N\), dimensions \(d_2,\dots,d_n \in \N\) and operators \(S_1 \in \mathsf{L}(\sigma_2;D,\R^J,\R^{d_2}), \dots, S_n \in \mathsf{L}(\sigma_2;D,\R^{d_n},\R^{J'})\) such that
+\[\tilde{\psi} = S_n \circ \sigma_1 \circ \dots \circ S_2 \circ \sigma_1 \circ S_1 \]
+satisfies
+\[\sup_{x \in D} \sup_{q \in \tilde{F}^\A_t (K)} | \psi(q) - \tilde{\psi}(q \mathds{1})(x) |_1 < \frac{\epsilon}{6 L_G}. \]
+where \(\mathds{1}\) denotes the function \(D \to \R^J\) that is identically one. By construction, \(\tilde{\psi}\) is continuous hence \((\tilde{\psi} \circ \tilde{F}^\A_t)(K)\) is compact. Therefore, by Lemma [], we can find a number \(l \in \N\) and a kernel 
+\(\kappa_{n+1} \in \mathcal{N}_l (\sigma_2; \R^{d'} \times \R^{d'}, \R^{1 \times J'})\) such that
+\[\tilde{G}^\U = \int_{D'} \kappa_{n+1} (\cdot, y) \: \cdot \text{d}y \]
+satisfies
+\[\sup_{y \in (\tilde{\psi}  \circ \tilde{F}^\A_t)(K)} \|G^\U (y) - \tilde{G}^\U (y \mathds{1}) \|_\U < \frac{\epsilon}{6}.\]
+Notice that \(\G = \tilde{G}^\U \circ \tilde{\psi} \circ S_0 \in \mathsf{NO}_{n,m}(\sigma_1,\sigma_2;D,D')\). Let \(C\) denote the set of constant functions mapping \(D \to \R^{J'}\) and denote by \(P : C \to \R^{J'}\) the evaluation operator, in particular, for some \(x \in D\),
+\[P(f)_j = f_j(x) \qquad \forall f \in C, \:\: j=1,\dots,J'.\]
+Clearly the definition of \(P\) is independent of any particular \(x \in D\).
+For any \(a \in K\), define \(a_1 = (\psi \circ F^\A) (a)\) and \(\tilde{a}_1 =  (\tilde{\psi} \circ S_0)(a)\) then
+\begin{align*}
+    \|\G_1(a) - \G(a)\|_\U &\leq \|G^\U (a_1) - G^\U (P \tilde{a}_1) \|_\U + \|G^\U (P\tilde{a}_1) - \tilde{G}^\U(\tilde{a}_1) \|_\U \\
+    &\leq L_G |a_1 - P \tilde{a_1}|_1 + \sup_{y \in (\tilde{\psi} \circ \tilde{F}^\A)(K)} \|G^\U (y) - \tilde{G}^\U (y \mathds{1}) \|_\U \\
+    &< L_G |\psi (F^\A(a)) - \psi(\tilde{F}^\A_t (a))|_1 + L_G |\psi(\tilde{F}^\A_t(a)) - P \tilde{\psi} (\tilde{F}^\A_t (a) \mathds{1}) |_1 + \frac{\epsilon}{6} \\
+    &\leq L_G \omega (|F^\A(a) - \tilde{F}^\A (a)|_1 ) + L_G \sup_{q \in \tilde{F}^\A_t (K)} |\psi(q) - P \tilde{\psi}(q \mathds{1})|_1 + \frac{\epsilon}{6} \\
+    &< \frac{\epsilon}{6} + \frac{\epsilon}{6} + \frac{\epsilon}{6} \\
+    &= \frac{\epsilon}{2}.
+\end{align*}
+Finally we have
+\begin{align*}
+    \|\G^\dagger(a) - \G(a)\|_\U &\leq \|\G^\dagger (a) - \G_1(a) \|_\U + \|\G_1(a) - \G(a)\|_\U \\
+    &< \frac{\epsilon}{2} + \frac{\epsilon}{2} \\
+    &= \epsilon
+\end{align*}
+which completes the proof.
+\end{proof}
+
+\begin{theorem}
+Let \(D \subset \R^d\) and \(D' \subset \R^{d'}\) be compact domains. Suppose \(\A = W^{m,p}(D;\R)\) for some \(m \geq 0\) and \(1 \leq p < \infty\) or \(\A = C(D;\R)\) and \(\U\) is any separable Banach space with AP such that \(C(D';\R) \subseteq \U\) is dense. Let \(\mu\) be a probability measure supported on \(\A\) and let \(\G^\dagger : \A \to \U\) be a \(\mu\)-measurable mapping. Then for any  \(\epsilon > 0\), there exists a neural operator \(\G_\theta : \A \to \U \) such that
+\[\|\G^\dagger - \G_\theta \|_{L^2_\mu (\A;\U)} < \epsilon.\]
+
+\end{theorem}
+
+
+
+
+In this section, we prove our main approximation result Theorem~\ref{thm:main_measurable}: given any \(\epsilon > 0\),  there exists a neural operator \(\G_\theta\) that is an \(\epsilon\)-close approximation to \(\G^\dagger\). The approximation is close in the topology of the \(L^2_\mu(\A;\U)\) Bochner norm \eqref{eq:bochner_error}. In order to state the theorem, we need the notion of a \textit{zero-extended} neural operator originally introduced, for standard neural networks, in \cite{Kovachki}. Given \(M > 0\) define the zero- extended neural operator
+\begin{equation}
+    \label{eq:zeroextendedno}
+    \G_{M,\theta}(a) = \begin{cases}
+    \G_\theta(a), & \|a\|_\A \leq M \\
+    0, & \text{otherwise}
+    \end{cases}
+\end{equation}
+for any \(a \in \A\) where \(\G_\theta\) is a neural operator of the form \eqref{eq:F}. For Theorem~\ref{thm:main_measurable} to remain valid, any bounded operator on \(\A\) can replace zero in \eqref{eq:zeroextendedno}; we simply choose zero for convenience. We also note that this zero-extension does not have negative practical implications since \(M\) can always be chosen to be arbitrarily far away from the upper bound on the training set. 
+\postponed{Not sure I understand this as stated; surely one wants the trained model to be good on the test data which may indeed go outside the training set?}
+Its purpose is only to control the unbounded set \(\{a \in \A : \|a\|_\A > M\}\) which will never be seen unless the model is used in a scenario where the size of inputs grows unboundedly. In such scenarios, Theorem~\ref{thm:main_measurable} is not applicable, however, we note that such applications do not often occur in practice. 
+
+We further remark that the zero-extension can be avoided if the activation function for the kernel network is chosen to be ReLU or another activation function for which global constructions over \(\R^n\) can be made. In particular, one can design a ReLU network which approximates the identity over any closed ball in \(\R^n\) and remains bounded outside it. This network can then be composed with the functionals in the finite dimensional approximation \eqref{eq:likedeeponet} to produce an approximation bounded on all of \(\A\) thus avoiding the need for the zero-extension \eqref{eq:zeroextendedno}. For details we refer the reader to \cite{lanthaler2021error}. We choose to state the result using the zero-extension so that it remains valid for any neural network used to approximate the kernels. 
+
+We remark that the conditions placed on \(\sigma\) in Theorem~\ref{thm:main_measurable} are not restrictive and are satisfied by most activation functions used in practice; see e.g. \cite{lu2019deeponet} for a further discussion. Furthermore, we note that extensions to vector-valued functions follow immediately by repeatedly applying the result to each component function.
+\postponed{Give citation for Tauber-Weiner class; make clear where this
+is used in proof.}
+
+
+\begin{theorem}
+\label{thm:main_measurable}
+Let \(D \subset \R^d\), \(D' \subset \R^{d'}\) be compact domains and suppose \(\mu\) is a probability measure supported on \(C(D;\R)\). Furthermore let \(\U\) be a separable Banach space of real-valued functions on \(D'\) such that \(C(D';\R) \subset \U\) is dense, and suppose there exists a constant \(C > 0\) such that \(\|u\|_{\U} \leq C \|u\|_{L^\infty (D';\R)}\) for all \(u \in \U \cap L^\infty(D';\R)\). Assume \(\sigma : \R \to \R\) is  H{\"o}lder continuous and of the Tauber-Wiener class. Then for any \(\mu\)-measurable \(\G^\dagger \in L^2_\mu(C(D;\R); \U)\) and \(\epsilon > 0\), there exists \(M_0 > 0\) such that, for any \(M \geq M_0\),
+there exists a neural operator \(\G_{\theta}\) of the form \eqref{eq:F} such that the zero-extended neural operator \(\G_{M,\theta}\) satisfies
+\[\|\G^\dagger - \G_{M,\theta} \|_{L^2_\mu (C(D;\R);\U)} < \epsilon.\]
+\end{theorem}
+\begin{proof}
+Let \(R > 0\) and define
+\[
+\G_R^\dagger(a) = \begin{cases}
+\G^\dagger(a), & \|\G^\dagger(a)\|_\U \leq R \\
+\frac{R}{\|\G^\dagger(a)\|_\U} \G^\dagger(a), & \|\G^\dagger(a)\|_\U > R.
+\end{cases}
+\]
+Since \(\G^\dagger_R \to \G^\dagger\) as \(R \to \infty\) \(\mu\)-almost everywhere, \(\G^\dagger \in L^2_\mu(C(D;\R);\U)\), and clearly \(\|\G^\dagger_R(a)\|_{\U} \leq \|\G^\dagger (a)\|_{\U}\) for any \(a \in C(D;\R)\), we can apply the dominated convergence theorem for Bochner integrals to find \(R > 0\) large enough such that
+\[\|\G^\dagger_R - \G^\dagger\|_{L^2_\mu (C(D;\R);\U)} < \epsilon.\]
+It therefore suffices to approximate \(\G^\dagger_R\) which is uniformly bounded on \(C(D;\R)\). Since \(\G_R^\dagger\) is \(\mu\)-measurable, Lusin's theorem , see e.g. \cite[Theorem 1.0.0]{aaronson1997introduction}, implies that there exists a compact set \(K \subset C(D;\R)\) such that \(\G_R^\dagger|_K\) is continuous and \(\mu(C(D;\R) \setminus K) < \epsilon\), noting that we can apply Lusin's theorem since \(C(D;\R)\) and \(\U\) are both Polish spaces. 
+Since \(\G^\dagger_R|_K\) is continuous, \(\G^\dagger_R(K) \subset \U\) is compact hence we can apply Lemma~\ref{lemma:compact_representers_dense} to find a number \(n \in \N\), continuous, linear, functionals \(G_1,\dots,G_n \in C(\G^\dagger_R(K);\R)\) and functions \(\varphi_1,\dots,\varphi_n \in C(D';\R)\) such that 
+\[\sup_{a \in K} \Big\|\G^\dagger_R(a) - \sum_{j=1}^n G_j(\G^\dagger_R(a)) \varphi_j \Big\|_{\U}  = \sup_{a \in K} \|\G^\dagger_R(a) - (P_n \circ \G^\dagger_R)(a) \|_{\U} < \epsilon\]
+where we define the operator \(P_n : \G^\dagger_R(K) \to C(D';\R)\) by
+\[P_n(v) = \sum_{j=1}^n G_j(v) \varphi_j, \qquad \forall v \in \G^\dagger_R(K).\]
+\(P_n\) is continuous by continuity of the functionals \(G_1,\dots,G_n\) hence \((P_n \circ \G^\dagger_R) : K \subset C(D;\R) \to C(D';\R)\) is a continuous mapping so we can apply Theorem~\ref{thm:main_compact} to find a neural operator \(\G_\theta\) such that
+\[\sup_{a \in K} \|\G_\theta(a) - (P_n \circ \G^\dagger_R)(a)\|_{C(D';\R)} < \frac{\epsilon}{C}.\]
+Therefore,
+\[\sup_{a \in K} \|\G_\theta(a) - (P_n \circ \G^\dagger_R)(a)\|_{\U} \leq C \sup_{a \in K} \|\G_\theta(a) - (P_n \circ \G^\dagger_R)(a)\|_{C(D';\R)} < \epsilon, \]
+by noting that since \(\G_\theta(a) - (P_n \circ \G^\dagger_R)(a) \in C(D';\R)\), the norm on \(L^\infty(D';\R)\) coincides with the one on \(C(D';\R)\).
+Since \(K\) is compact, we can find \(M_0 > 0\) large enough such that \(K \subset B_M \subset C(D;\R)\) for any \(M \geq M_0\), see e.g. \cite[Theorem 1]{ward1974chebyshev}, where we denote \(B_M = \{a \in C(D;\R) : \|a\|_{C(D;\R)} \leq M\}\). Define, for any \(a \in C(D;\R)\),
+\begin{equation*}
+    \G_{M,\theta}(a) = \begin{cases}
+    \G_\theta(a), & \|a\|_{C(D;\R)} \leq M \\
+    0, & \text{otherwise.}
+    \end{cases}
+\end{equation*}
+Theorem~\ref{thm:main_compact} implies that we can choose \(\G_\theta\) such that
+\[\sup_{a \in B_M} \|\G_\theta (a) \|_{C(D';\R)} \leq L\]
+for some constant \(L > 0\). Therefore,
+\[\sup_{a \in B_M} \|\G_\theta (a) \|_{\U} \leq C \sup_{a \in B_M} \| \G_\theta (a) \|_{C(D';\R)} \leq CL.\]
+Repeated use of the triangle inequality shows
+\begin{align*}
+    \|\G_{M,\theta} - \G^\dagger\|_{L^2_\mu(C(D;\R);\U)} &\leq \|\G_{M,\theta} - \G^\dagger_R\|_{L^2_\mu(C(D;\R);\U)} + \|\G^\dagger_R - \G^\dagger\|_{L^2_\mu(C(D;\R);\U)} \\
+    &<  \epsilon + \|\G_{M,\theta} - P_n \circ \G^\dagger_R \|_{L^2_\mu(C(D;\R);\U)} + \|P_n \circ \G^\dagger_R - \G^\dagger_R\|_{L^2_\mu(C(D;\R);\U)} \\
+    &= \epsilon + \|\G_{M,\theta} - P_n \circ \G^\dagger_R \|_{L^2_\mu(K;\U)} + \|\G_{M,\theta} - P_n \circ \G^\dagger_R \|_{L^2_\mu(C(D;\R) \setminus K;\U)} \\
+    &\quad+  \|P_n \circ \G^\dagger_R - \G^\dagger_R\|_{L^2_\mu(K;\U)} + \|P_n \circ \G^\dagger_R - \G^\dagger_R\|_{L^2_\mu(C(D;\R) \setminus K;\U)} \\
+    &< \epsilon + \mu(K)^{\frac{1}{2}} \epsilon  + \mu(K)^{\frac{1}{2}} \epsilon + \|P_n \circ \G^\dagger_R - \G^\dagger_R\|_{L^2_\mu(C(D;\R) \setminus K;\U)} \\
+    &\quad+ \|\G_\theta - P_n \circ \G_R^\dagger \|_{L^2_\mu(B_M \setminus K;\U)} + \|\as{\G_{M,\theta}} - P_n \circ \G_R^\dagger \|_{L^2_\mu(C(D;\R) \setminus B_M;\U)} \\
+    &\leq 3 \epsilon  + 2 \mu(C(D;\R) \setminus K)^{\frac{1}{2}} R + \mu(B_M \setminus K)^{\frac{1}{2}} (CL + R) \\
+    &\quad+ \mu(C(D;\R) \setminus B_M)^{1/2} R \\
+    &< 3\epsilon + \epsilon^{\frac{1}{2}}(CL + 4R).
+\end{align*}
+\postponed{State clearly why $\mu(C(D;\R) \setminus B_M)$ and
+$\mu(B_M \setminus K)$ can be made arbitrarily small.}
+Since \(\epsilon\) is arbitrary, the proof is complete.
+\end{proof}
+
+The proof of Theorem \ref{thm:main_measurable} follows the approach in \cite{lanthaler2021error}, but generalizes the result from \(L^2(D';\R)\) to the Banach space \(\U\). Indeed, the conditions on \(\U\) in Theorem~\ref{thm:main_measurable} are satisfied by all of the spaces \(L^p(D';\R)\) for \(1 \leq p < \infty\) as well as \(C(D';\R)\). The input space \(\A\), in Theorem~\ref{thm:main_measurable}, is asserted to be \(C(D;\R)\) which can, for some applications, be restrictive. We show in Theorem~\ref{thm:main_measurable_extended} that this restriction may be lifted and \(\A\) can be chosen to be a much more general Banach space. This comes at the price of assuming that the true operator of interest \(\G^\dagger\) is H{\"o}lder continuous and the addition of an extra linear layer to \(\G_{M,\theta}\).
+\postponed{Can we use a letter different from $F$ for the linear map, please?
+It suggests nonlinearity to many people.}
+
+\begin{theorem}
+\label{thm:main_measurable_extended}
+Let \(D \subset \R^d\), \(D' \subset \R^{d'}\) be compact domains and suppose that \(\A\) is a separable Banach space of real-valued functions on \(D\) such that \(C(D;\R) \subset \U\) 
+\postponed{do you mean $\A$ in preceding inclusion?} 
+is dense and that \(\U\) is a separable Banach space of real-valued functions on \(D'\) such that \(C(D';\R) \subset \U\) is dense , and that there exists a constant \(C > 0\) such that \(\|u\|_{\U} \leq C \|u\|_{L^\infty (D';\R)}\) for all \(u \in \U \cap L^\infty(D';\R)\). Let \(\mu\) be a probability measure supported on \(\A\) and assume that, for some \(\alpha > 0\), \(\mathbb{E}_{a \sim \mu} \|a\|_{\A}^{4\alpha} < \infty \). Suppose further that \(\sigma : \R \to \R\) is  H{\"o}lder continuous and of the Tauber-Wiener class. Then for any \(\mu\)-measurable \(\G^\dagger \in L^2_\mu(C(D;\R); \U)\) that is \(\alpha\)-H{\"o}lder continuous and \(\epsilon > 0\), there exists a continuous, linear map \(F : \A \to C(D;\R)\), independent of \(\G^\dagger\), as well as \(M_0 > 0\) such that, for any \(M \geq M_0\),
+there exists a neural operator \(\G_{\theta}\) of the form \eqref{eq:F} such that the zero-extended neural operator \(\G_{M,\theta}\) satisfies
+\[\|\G^\dagger - \G_{M,\theta} \circ F \|_{L^2_\mu (\A;\U)} < \epsilon.\]
+\end{theorem}
+
+\postponed{I am slightly confused about theorem statement and role of
+$\alpha$; why would you not just choose $\alpha$ arbitrarily small
+and positive? The smaller $\alpha$ is the easier to satisfy
+the moment condition and the larger the class of functions which you
+can approximate. Am I confusing myself?}
+
+\begin{proof}
+Since \(\A\) is a Polish space, we can find a compact set \(K \subset \A\) such that \(\mu(\A \setminus K) < \epsilon\). Therefore, we can apply Lemma~\ref{lemma:compact_representers_dense} to find a number \(n \in \N\), continuous, linear, functionals \(G_1,\dots,G_n \in C(\A;\R)\) and functions \(\varphi_1,\dots,\varphi_n \in C(D;\R)\) such that 
+\[\sup_{a \in K} \Big\|a - \sum_{j=1}^n G_j(a) \varphi_j \Big\|_{\A}  = \sup_{a \in K} \|a - F(a) \|_{\A} < \epsilon\]
+where the equality defines the map \(F : \A \to C(D;\R)\). Linearity and continuity of \(F\) follow by linearity and continuity of the functionals \(G_1,\dots,G_n\). Therefore, there exists a constant \(C_1 > 0\), such that
+\[\|F(a)\|_{\A} \leq C_1 \|a\|_{\A}, \qquad \forall a \in \A.\]
+We can apply Theorem~\ref{thm:main_measurable}
+to find \(M_0 > 0\), such that, for any \(M \geq M_0\), there is a neural operator \(\G_{M,\theta}\) such that
+\[\|\G^\dagger - \G_{M,\theta}\|_{L^2_{F_\sharp \mu}(C(D;\R);\U)} < \epsilon.\]
+By triangle inequality,
+\begin{align*}
+    \|\G^\dagger - \G_{M,\theta} \circ F \|_{L^2_\mu(\A;\U)} &\leq \|\G^\dagger - \G^\dagger \circ F \|_{L^2_\mu(\A;\U)} + \|\G^\dagger \circ F - \G_{M,\theta} \circ F \|_{L^2_\mu(\A;\U)}  \\
+    &= \|\G^\dagger - \G^\dagger \circ F \|_{L^2_\mu(\A;\U)} + \|\G^\dagger - \G_{M,\theta} \|_{L^2_{F_\sharp\mu}(C(D;\R);\U)} \\
+    &< \|\G^\dagger - \G^\dagger \circ F \|_{L^2_\mu(\A;\U)} + \epsilon.
+\end{align*}
+We now estimate the first term using \(\alpha\)-H{\"o}lder continuity of \(\G^\dagger\) and the generalized triangle inequality, see e.g. \cite{didipour2012haracterization}. In particular, there are constants \(C_2, C_3 > 0\) such that
+\begin{align*}
+    \|\G^\dagger - \G^\dagger \circ F \|_{L^2_\mu(\A;\U)}^2 &\leq C_2 \int_\A \|a - F(a)\|_\A^{2\alpha} \: \text{d} \mu(a) \\
+    &\leq C_2 \Bigg (\int_K \|a - F(a)\|_\A^{2\alpha} \: \text{d} \mu(a) \\
+    &\:\:+ C_3 \Bigg ( \int_{\A \setminus K} \|a\|_\A^{2\alpha} \: \text{d}\mu(a) + \int_{\A \setminus K} \|F(a)\|_\A^{2\alpha} \: \text{d}\mu(a) \Bigg ) \Bigg ) \\
+    &\leq C_2 \Bigg (\epsilon^{2\alpha} + C_3 \Bigg ( \epsilon^{1/2} (\mathbb{E}_{a \sim \mu} \|a\|_\A^{4\alpha})^{1/2} + \epsilon^{1/2} C_1^{2\alpha} (\mathbb{E}_{a \sim \mu} \|a\|_\A^{4\alpha})^{1/2} \Bigg) \Bigg)
+\end{align*}
+using Cauchy–Schwarz in the last line. Since \(\mathbb{E}_{a \sim \mu} \|a\|_\A^{4\alpha} < \infty\) by assumption and \(\epsilon\) is arbitrary, the proof is complete.
+\end{proof}
+
+In general, the linear map \(F\) from Theorem~\ref{thm:main_measurable_extended} may not be approximated by an integral kernel operator. However, in the special case when \(\A = L^p(D;\R)\) for any \(1 < p < \infty\), \(F\) can indeed be approximated by an integral kernel operator. We state  and prove this result in Corollary~\ref{corr:AL2}.
+
+\begin{corollary}
+\label{corr:AL2}
+Assume the setting of Theorem~\ref{thm:main_measurable_extended} and suppose that \(\A = L^p(D;\R)\) for any \(1 < p < \infty\). Then there exists a neural network \(\kappa : \R^d \times \R^d \to \R\) such that the conclusion of Theorem~\ref{thm:main_measurable_extended} holds with \(F: L^p(D;\R) \to C(D;\R)\) defined as 
+\[F(a)(x) = \int_D \kappa(x, y) a(y) \: \text{d}y, \qquad \forall a \in L^p(D;\R), \:\: \forall x \in D.\]
+\end{corollary}
+\begin{proof}
+Let \(\tilde{F}: \A \to C(D;\R)\) be the mapping defined in Theorem~\ref{thm:main_measurable_extended} which is given as
+\[\tilde{F}(a) = \sum_{j=1}^n G_j(a) \varphi_j, \qquad \forall a \in \A\]
+for some continuous, linear, functionals \(G_1,\dots,G_n \in C(\A;\R)\)
+and functions \(\varphi_1,\dots,\varphi_n \in C(D;\R)\). Perusal of the proof of Theorem~\ref{thm:main_measurable_extended} implies that it is enough to to show existence of a neural network \(\kappa \in \R^d \times \R^d \to \R\) for which the mapping \(F: \A \to C(D;\R)\) defined as
+\[F(a)(x) = \int_D \kappa(x,y) a(y) \: \text{d}y, \qquad \forall a \in \A, \:\: \forall x \in D\]
+satisfies, for all \(\epsilon > 0\),
+\[\int_{\A} \|\tilde{F}(a) - F(a)\|_{\A}^{2\alpha} \: \text{d} \mu(a) < \epsilon.\]
+Let \(1 < q < \infty\) be the H{\"o}lder conjugate of \(p\). Since \(\A = L^p(D;\R)\), by the Reisz Representation Theorem \citep[Appendix B]{conway85acourse}, there exists functions \(g_1,\dots,g_n \in L^q(D;\R)\) such that, for each \(j=1,\dots,n\),
+\[G_j(a) = \int_D a(x) g_j(x) \: \text{d}x, \qquad \forall a \in L^p(D;\R).\]
+By density of \(C(D;\R)\) in \(L^q(D;\R)\), we can find functions \(\psi_1,\dots,\psi_n \in C(D;\R)\) such that
+\[\sup_{j \in \{1,\dots,n\}}  \|\psi_j - g_j\|_{L^q(D;\R)} < \frac{\epsilon}{n^{1/2\alpha}}.\]
+Define \(\hat{F} : L^p(D;\R) \to C(D;\R)\) by
+\[\hat{F}(a) = \sum_{j=1}^n \int_D \psi_j(y) a(y) \: \text{d}y \: \varphi_j(x) \qquad \forall a \in L^p(D;\R), \:\: \forall x \in D.\]
+Furthermore, we can find a neural network \(\kappa : \R^d \times \R^d \to \R\) such that 
+\[\sup_{x,y \in D} |\kappa(x,y) - \sum_{j=1}^n \psi_j(y) \phi_j(x) | < \epsilon\]
+and define \(F\) using this network. Then there is a constant \(C_1 > 0\) such that 
+\[\|\tilde{F}(a) - F(a)\|_{L^p(D;\R)}^{2\alpha}  \leq C_1 ( \|\tilde{F}(a) - \hat{F}(a)\|_{L^p(D;\R)}^{2\alpha} + \|\hat{F}(a) - F(a)\|_{L^p(D;\R)}^{2\alpha}).\]
+For the first term, we have that there is a constant \(C_2 > 0\) such that
+\begin{align*}
+    \|\tilde{F}(a) - \hat{F}(a)\|_{L^p(D;\R)}^{2\alpha} &\leq C_2 \sum_{j=1}^n \| \int_D a(y) (g_j(y) - \psi_j(y)) \: \text{d}y \: \varphi_j \|_{L^p(D;\R)}^{2\alpha} \\
+    &\leq C_2 \sum_{j=1}^n \|a\|_{L^p(D;\R)}^{2\alpha} \|g_j - \psi_j\|_{L^q(D;\R)}^{2\alpha } \|\varphi_j\|_{L^p(D;\R)}^{2\alpha} \\
+    &\leq C_3 \epsilon^{2\alpha} \|a\|^{2\alpha}_{L^p(D;\R)}
+\end{align*}
+for some \(C_3 > 0\). For the second term,
+\begin{align*}
+    \|\hat{F}(a) - F(a)\|_{L^p(D;\R)}^{2\alpha} &= \|\int_D a(y) \Big ( \sum_{j=1}^n \psi_j(y) \varphi_j(\cdot) - \kappa(\cdot,y) \Big ) \: \text{d}y \|_{L^p(D;\R)}^{2\alpha} \\
+    &\leq |D|^{2\alpha} \epsilon^{2 \alpha} \|a\|^{2\alpha}_{L^p(D;\R)}.
+\end{align*}
+Therefore, we conclude that there is a constant \(C > 0\) such that
+\[\int_{\A} \|\tilde{F}(a) - F(a)\|_{\A}^{2\alpha} \: \text{d} \mu(a) \leq \epsilon^{2\alpha} C \mathbb{E}_{a \sim \mu} \|a\|^{2\alpha}_{L^p(D;\R)}.\]
+Since \(\mathbb{E}_{a \sim \mu} \|a\|^{2\alpha}_{L^p(D;\R)} < \infty\) by assumption and \(\epsilon\) is arbitrary, the proof is complete.
+\end{proof}
+
+Furthermore, we note that, in \cite{lanthaler2021error}, it is shown that, in certain cases, DeepONets can learn the optimal \textit{linear} approximation. In particular, assuming \(\U\) is a Hilbert space, for any fixed \(n \in \N\), there is a DeepONet with range \(O_n \subset \U\) where 
+\(O_n\) is closed linear subspace of \(\U\) with dimension \(n\) that is approximately a minimizer of 
+\begin{equation}
+    \label{eq:optimal_linear}
+    \min_{U \in \mathcal{U}_n} \|I - P_U\|_{L^p_{\nu} (\U;\U)}
+\end{equation}
+\as{where $\nu$ is the pushforward of $\mu$ under
+$\G^\dagger$ and} \(\U_n\) denotes the set of all \(n\)-dimensional linear subspaces of \(\U\) and \(P_U : \U \to U\) is the orthonormal projection of \(\U\) onto \(U\). This follows by noting that a neural network can be used to approximate the first \(n\) eigenfunctions of the convariance of \(\G^\dagger_\sharp \mu\) whose span is indeed a minimizer of \eqref{eq:optimal_linear}. In the closely related work by \cite{Kovachki}, the eigenfunctions of the convariance of \(\G^\dagger_\sharp \mu\) are instead directly approximated via PCA \citep{blanchard2007statistical}. We note that such optimality results also hold for neural operators by the reduction \eqref{eq:likedeeponet} and therefore we do not state and prove them here but simply refer the interested reader to \cite{lanthaler2021error}. We emphasize however that the general form of the neural operator \eqref{eq:F} constitutes a form of \textit{non-linear} approximation and we therefore expect faster rates of convergence than the optimal linear rates. We leave this characterization for future work.
+
+% \subsection{Continuous Operators}
+% \label{sec:continuousoperators}
+\postponed{I prefer not to have a single numbered subsection; please create
+another, earlier, subsection. And write at the beginning of the
+section what happens in each subsection.}
+The proof of Theorem \ref{thm:main_measurable} relies on Theorem \ref{thm:main_compact} which states that for any continuous \(\G^\dagger\), any compact set \(K \subset \A\), and a fixed error tolerance, there is a neural operator which uniformly approximates \(\G^\dagger\) up the error tolerance. The proof is based on the following single-layer construction 
+\begin{equation}
+    \label{eq:singlelayercompact}
+    (\G_\theta (a))(x) = \cQ \left( \int_D \kappa^{(1)} (x,y) \sigma \left ( \int_D \kappa^{(0)} (y,z) \cP (a)(z) \: \text{d}z + b(y) \right ) \: \text{d}y \right ) 
+\end{equation}
+which we obtain from \eqref{eq:singlehiddenlayer} by setting \(W_0 = 0\). Our result is based on the observation that \eqref{eq:singlelayercompact} can be reduced to \eqref{eq:likedeeponet} which simplifies the problem to that of approximating a finite set of non-linear functionals by parmetrizations of the form \eqref{eq:functionals}. In \cite{chen1995universal}, it is shown that functionals defined on compact sets of \(\A\) can be uniformly approximated by single-layer, finite width, neural networks. We show in Theorem~\ref{thm:functional_chen} of Appendix~\ref{app:chenandchen} that such neural networks may be approximated by the parametric forms \eqref{eq:functionals}. Since the result of \cite{chen1995universal} is at the heart of our approximation result, in Appendix~\ref{app:chenandchen}, we give an intuitive overview of their proof techniques for the interested reader. 
+\postponed{Odd to have a Theorem buried in an appendix; should it
+be a proposition (kept there) or should it be in the main text?
+Also it is not clear if the "intuitive overview" is what you do
+here or what you do in the appendix; please reword.}
+
+\begin{theorem}
+\label{thm:main_compact}
+Let \(D \subset \R^d\), \(D' \subset \R^{d'}\) be compact domains and \(K \subset C(D;\R)\) be a compact set. Let \(\sigma : \R \to \R\) be H{\"o}lder continuous and of the Tauber-Wiener class. Then for any \(\G^\dagger \in C(K; C(D';\R))\) and \(\epsilon > 0\), there exists \(n = n(\epsilon) \in \N\) as well as neural networks \(\cQ : \R^n \to \R\), \(\cP: \R \to \R^n\), \(\kappa^{(1)} : \R^{d'} \times \R^d \to \R^{n \times n}\), \(\kappa^{(0)}: \R^d \times \R^d \to \R^{n \times n}\),  \(b : \R^d \to \R^n\) with parameters concatenated in \(\theta \in \R^p\) such that the neural operator \(\G_\theta\) defined by \eqref{eq:singlelayercompact} satisfies
+\[\sup_{a \in K} \|\G^\dagger(a) - \G_\theta(a)\|_{C(D';\R)} < \epsilon.\]
+Furthermore, if  \(B \subset C(D;\R)\) is a bounded set such that \(K \subseteq B\), then the neural networks can be chosen so that there exists a constant \(C > 0\) such that
+\[\sup_{a \in B} \|\G_\theta (a) \|_{C(D;\R)} < C.\]
+\end{theorem}
+
+\postponed{Your discussions of this theorem both precede and follow it. More generally the discussions you have (here and in earlier sections) about the theory contain helpful insights but are very scattered. Rethink and make more coherent.}
+Theorem~\ref{thm:main_compact} is a consequence of the reduction \eqref{eq:likedeeponet} and Theorem~\ref{thm:operator_chen} which establishes existence of the scalar kernels necessary for defining \(\kappa^{(0)}\) and \(\kappa^{(1)}\) as well as the bias function \(b\). Indeed, the proof of Theorem~\ref{thm:main_compact} simply amounts to approximating the continuous function \(\cP\), \(\kappa^{(1)}\), \(\kappa^{(0)}\),  \(b\) by neural networks and is given in Appendix~\ref{app:chenandchen}. 
+
+\begin{theorem}
+\label{thm:operator_chen}
+Let \(D \subset \R^d\), \(D' \subset \R^{d'}\) be compact domains and \(K \subset C(D;\R)\) be a compact set. Let \(\sigma : \R \to \R\) be H{\"o}lder continuous and of the Tauber-Wiener class. Then for any \(\G^\dagger \in C(K; C(D';\R))\) and \(\epsilon > 0\), there exists 
+a number \(n = n(\epsilon) \in \N\) as well as separable kernels \(\kappa^{(1)}_1,\dots,\kappa^{(1)}_n \in C (D' \times D;\R)\), smooth kernels \(\kappa^{(0)}_1,\dots,\kappa^{(0)}_n \in C^\infty (D \times D;\R)\), and smooth functions \(b_1,\dots,b_n \in C^\infty (D;\R)\) such that
+\[\sup_{a \in K} \sup_{x \in D'} \Big| \G^\dagger(a)(x) - \sum_{j=1}^n \int_D \kappa^{(1)}_j(x, y) \sigma \left ( \int_D \kappa^{(0)}_j (y,z) a(z) \: \emph{\text{d}} z + b_j(y) \right ) \: \emph{\text{d}} y \Big| < \epsilon.\]
+\end{theorem}
+\begin{proof}
+Since \(K\) is compact and \(\G^\dagger\) is continuous, \(\G^\dagger (K)\) is compact. Therefore, by Lemma \ref{lemma:compact_representers}, there exists \(n \in \N\) as well as 
+functionals \(G_1,\dots,G_n \in C(K;\R)\) and functions \(\varphi_1,\dots,\varphi_n \in \G^\dagger (K)\) such that
+for any \(a \in K\)
+\begin{equation}
+\label{eq:representer_approx}
+\Big|\G^\dagger (a)(x) - \sum_{j=1}^n G_j( a ) \varphi_j(x)\Big| < \frac{\epsilon}{2} \qquad \forall x \in D'. 
+\end{equation}
+Continuity of the functionals follows since compositions of continuous maps are continuous. Since \(K\) is compact, we can find \(M > 0\) such that
+\[\sup_{a \in K} \sup_{x \in D} |a(x)| \leq M.\]
+Repeatedly applying Theorem \ref{thm:functional_chen} for \(j=1,\dots,n\), we can find 
+smooth kernels \(\kappa^{(0)}_j \in C^\infty(D \times D;\R)\) and smooth functions \(w_j, b_j \in C^\infty(D;\R)\)
+such that
+\begin{equation}
+\label{eq:many_functionals}
+\Big|G_j(a) - \int_D w_j (y) \sigma \left ( \int_D \kappa_j^{(0)} (y,z) a(z) \: \text{d}z + b_j(y) \right ) \: \text{d}y \Big| < \frac{\epsilon}{2nM} \qquad \forall a \in K.
+\end{equation}
+Define the kernels 
+\[\kappa^{(1)}_j (x,y) = w_j(y) \varphi_j(x) \qquad \forall y \in D, \: \forall x \in D', \quad j=1,\dots,n\]
+as well as our approximation 
+\[\G(a)(x) = \sum_{j=1}^n \int_D \kappa^{(1)}_j(x, y) \sigma \left ( \int_D \kappa^{(2)}_j (y,z) a(z) \: \text{d}z + b_j(y) \right ) \: \text{d}y \qquad \forall x \in D', \quad \forall a \in K.\]
+Applying triangle inequality and combining \eqref{eq:representer_approx} and \eqref{eq:many_functionals}, we find
+that, for any \(a \in K\) and \(x \in D'\), we have
+\begin{align*}
+\Big| \G^\dagger(a)(x) - \G(a)(x) \Big| &\leq \Big| \G^\dagger(a)(x) - \sum_{j=1}^n G_j(a) \varphi_j(x)\Big| + \Big|\sum_{j=1}^n G_j(a) \varphi_j(x) - \G(a)(x)\Big| \\
+&< \frac{\epsilon}{2} + \sum_{j=1}^n | \varphi_j(x)| \Big|G_j(a) - \int_D w_j(y) \sigma \left ( \int_D \kappa_j^{(2)}(y,z) a(z) \: \text{d}z + b_j(y) \right ) \: \text{d}y\Big| \\
+&< \frac{\epsilon}{2} +  M \sum_{j=1}^n \frac{\epsilon}{2nM} \\
+&= \epsilon
+\end{align*}
+as desired.
+\end{proof}
+
+\fi
+
+%%%%%%%%OLD%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+
+
+
+

@@ -1,0 +1,32 @@
+\begin{table}[t!]
+\caption{Generative performance on class-conditional CIFAR-10. }
+\vspace{5pt}
+\centering
+\small
+\centering
+\setlength{\tabcolsep}{5pt} % Adjust horizontal padding between columns
+\renewcommand{\arraystretch}{0.98} % 
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Method & \dino$\downarrow$ & NFE$\downarrow$ \\ 
+\midrule
+{\color{gray} GANs} & ~ & ~ \\ 
+\midrule
+BigGAN~\citep{biggan}               & 326.66 & 1 \\
+StyleGAN2-ADA~\citep{Karras2020ada} & 305.92 & 1 \\
+StyleGAN-XL~\citep{styleganxl}      & 204.60 & 1 \\
+\midrule
+{\color{gray} Diffusion Models} & ~ & ~ \\ 
+\midrule
+EDM~\citep{Karras2022edm}	& 145.20 & 35 \\
+PFGM++~\citep{xu2023pfgm++}  & 141.65 & 35 \\
+\midrule
+{\color{gray} ECT} & ~ & ~ \\ 
+\midrule
+ECM (ECT Pretrained) & 121.05 & 35\\
+ECM (Tuned) & 198.51 & 1 \\
+ECM	(Tuned) & 128.63 & 2 \\
+\bottomrule
+\end{tabular}
+\label{tab:cifar-dino}
+\end{table}

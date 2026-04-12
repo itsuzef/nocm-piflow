@@ -1,0 +1,94 @@
+\section{Preliminaries}
+
+\subsection{Diffusion Models}
+
+Given a training dataset, let $p_d$ denote its underlying data distribution and $\sigma_d$ its standard deviation. Diffusion models generate samples by learning to reverse a noising process that progressively perturbs a data sample $\x_0 \sim p_d$ into a noisy version $\x_t = \alpha_t \x_0 + \sigma_t \z$, where $\z \sim \gN(\vzero, \mI)$ is standard Gaussian noise. This perturbation increases with $t \in [0,T]$, where larger $t$ indicates greater noise.
+
+We consider two recent formulations for diffusion models.
+
+\textbf{EDM}~\citep{karras2022edm,karras2024edm2}.~~
+The noising process simply sets $\alpha_t = 1$ and $\sigma_t = t$, with the training objective given by
+$
+\E_{\x_0,\z,t}\left[
+w(t) \left\| \f^{\text{DM}}_\theta(\x_t,t) - \x_0 \right\|_2^2
+\right]
+$,
+where $w(t)$ is a weighting function. The diffusion model is parameterized as $\f^{\text{DM}}_\theta(\x_t,t) = c_{\text{skip}}(t)\x_t + c_{\text{out}}(t)\F_\theta(c_{\text{in}}(t)\x_t, c_{\text{noise}}(t))$, where $\F_\theta$ is a neural network with parameters $\theta$, and $c_{\text{skip}}$, $c_{\text{out}}$, $c_{\text{in}}$, and $c_{\text{noise}}$ are manually designed coefficients that ensure the training objective has the unit variance across timesteps at initialization. For sampling, EDM solves the \textit{probability flow ODE (PF-ODE) }~\citep{song2020score}, defined by
+$
+\frac{\dm \x_t}{\dm t} = [\x_t - \f^{\text{DM}}_\theta(\x_t,t)]/t
+$, starting from $\x_T \sim \gN(\vzero, T^2 \mI)$ and stopping at $\x_0$.
+
+\textbf{Flow Matching}.~~ 
+The noising process uses differentiable coefficients $\alpha_t$ and $\sigma_t$, with time derivatives denoted by $\alpha_t'$ and $\sigma_t'$ (typically, $\alpha_t = 1 - t$ and $\sigma_t = t$). The training objective is given by
+$
+\E_{\x_0, \z, t} \left[ w(t) \left\| \F_\theta(\x_t, t) - (\alpha_t' \x_0 + \sigma_t' \z) \right\|_2^2 \right]
+$,
+where $w(t)$ is a weighting function and $\F_\theta$ is a neural network parameterized by $\theta$. The sampling procedure begins at $t = 1$ with $\x_1 \sim \gN(\vzero, \mI)$ and solves the probability flow ODE (PF-ODE), defined by
+$
+\frac{\dm \x_t}{\dm t} = \F_\theta(\x_t, t)
+$,
+from $t = 1$ to $t = 0$.
+
+
+
+
+
+\subsection{Consistency Models}\label{sec:cm}
+
+\begin{wrapfigure}[24]{r}{0.4\textwidth}  %
+  \centering
+  \vspace{-1.2em}
+  \begin{minipage}{0.85\linewidth}
+    \includegraphics[width=\linewidth]{figures/main/diagram3-1.pdf}\\
+    \includegraphics[width=\linewidth]{figures/main/diagram3-2.pdf}\\
+    \includegraphics[width=\linewidth]{figures/main/diagram3-3.pdf}
+  \end{minipage}
+  \begin{minipage}{0.03\linewidth}
+        \rotatebox{90}{$\xlongleftarrow{\hspace{4cm}}$}
+  \end{minipage}
+  \hfill
+  \begin{minipage}{0.03\linewidth}
+        \rotatebox{270}{\small{$\Delta t \to 0$}}
+  \end{minipage}
+	\caption{\small{Discrete-time CMs (top \& middle) vs. continuous-time CMs (bottom). Discrete-time CMs suffer from discretization errors from numerical ODE solvers, causing imprecise predictions during training. In contrast, continuous-time CMs stay on the ODE trajectory by following its tangent direction with infinitesimal steps.}
+	\label{fig:intro}}
+\end{wrapfigure}
+
+A consistency model (CM)~\citep{song2023cm,song2023ict} is a neural network $\f_\theta(\x_t,t)$ trained to map the noisy input $\x_t$ directly to the corresponding clean data $\x_0$ in one step, by following the sampling trajectory of the PF-ODE starting at $\x_t$. A valid $\f_\theta$ must satisfy the \textit{boundary condition}, $\f_\theta(\x, 0) \equiv \x$. One way to meet this condition is to parameterize the consistency model as $\f_\theta(\x_t,t) = c_{\text{skip}}(t)\x_t + c_{\text{out}}(t)\F_\theta(c_{\text{in}}(t)\x_t, c_{\text{noise}}(t) )$ with $c_{\text{skip}}(0) = 1$ and $c_{\text{out}}(0)=0$. CMs are trained to have consistent outputs at adjacent time steps. Depending on how nearby time steps are selected, there are two categories of consistency models, as described below.
+
+\textbf{Discrete-time CMs. }
+The training objective is defined at two adjacent time steps with finite distance:
+\begin{equation}
+\label{eq:consistency_objective}
+    \E_{\x_t,t}\left[
+    w(t) d(\f_\theta(\x_t,t), \f_{\theta^-}(\x_{t-\Delta t}, t-\Delta t)) 
+    \right],
+\end{equation}
+where $\theta^{-}$ denotes $\operatorname{stopgrad}(\theta)$, $w(t)$ is the weighting function, $\Delta t > 0$ is the distance between adjacent time steps, and $d(\cdot, \cdot)$ is a metric function; common choices are $\ell_2$ loss $d(\x,\y)=\|\x-\y\|_2^2$, Pseudo-Huber loss $d(\x,\y) = \sqrt{\|\x-\y\|_2^2+c^2} - c$ for $c > 0$ \citep{song2023ict}, and LPIPS loss~\citep{zhang2018unreasonable}. Discrete-time CMs are sensitive to the choice of $\Delta t$, and therefore require manually designed annealing schedules~\citep{song2023ict,geng2024ect} for fast convergence. The noisy sample $\x_{t-\Delta t}$ at the preceding time step $t-\Delta t$ is often obtained from $\x_t$ by solving the PF-ODE with numerical ODE solvers using step size $\Delta t$, which can cause additional discretization errors.
+
+
+
+
+\textbf{Continuous-time CMs. }
+When using $d(\x,\y) = \| \x - \y \|_2^2$ and taking the limit $\Delta t \to 0$, \citet[\textit{Remark 10}]{song2023cm} show that the gradient of \eqref{eq:consistency_objective} with respect to $\theta$ converges to
+\begin{equation}
+\label{eq:gradient_cm_general}
+    \nabla_\theta \E_{\x_t,t}\left[
+        w(t) \f^\top_\theta(\x_t,t) \frac{\dm \f_{\theta^-}(\x_t,t)}{\dm t}
+    \right],
+\end{equation}
+where $\frac{\dm \f_{\theta^-}(\x_t, t)}{\dm t} = \nabla_{\x_t}\f_{\theta^-}(\x_t, t) \frac{\dm \x_t}{\dm t} + \partial_t \f_{\theta^-}(\x_t, t)$ is the \textit{tangent} of $\f_{\theta^-}$ at $(\x_t, t)$ along the trajectory of the PF-ODE $\frac{\dm \x_t}{\dm t}$. Notably, continuous-time CMs do not rely on ODE solvers, which avoids discretization errors and offers more accurate supervision signals during training. However, previous work~\citep{song2023cm,geng2024ect} found that training continuous-time CMs, or even discrete-time CMs with an extremely small $\Delta t$, suffers from severe instability in optimization. This greatly limits the empirical performance and adoption of continuous-time CMs.
+
+\textbf{Consistency Distillation and Consistency Training. }
+Both discrete-time and continuous-time CMs can be trained using either \emph{consistency distillation (CD)} or \emph{consistency training (CT)}. In consistency distillation, a CM is trained by distilling knowledge from a pretrained diffusion model. This diffusion model provides the PF-ODE, which can be directly plugged into \eqref{eq:gradient_cm_general} for training continuous-time CMs. Furthermore, by numerically solving the PF-ODE to obtain $\x_{t-\Delta t}$ from $\x_t$, one can also train discrete-time CMs via \eqref{eq:consistency_objective}. Consistency training (CT), by contrast, trains CMs from scratch without the need for pretrained diffusion models, which establishes CMs as a standalone family of generative models in their own right. Specifically, CT approximates $\x_{t-\Delta t}$ in discrete-time CMs as $\x_{t-\Delta t} = \alpha_{t-\Delta t} \x_0 + \sigma_{t-\Delta t} \z$, reusing the same data $\x_0$ and noise $\z$ when sampling $\x_t = \alpha_t \x_0 + \sigma_t \z$. In the continuous-time limit, as $\Delta t\to 0$, this approach yields an unbiased estimate of the PF-ODE $\frac{\dm \x_t}{\dm t} \to \alpha_t' \x_0 + \sigma_t' \z$, leading to an unbiased estimate of \eqref{eq:gradient_cm_general} for training continuous-time CMs.
+
+
+
+
+
+
+
+
+
+
+

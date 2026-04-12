@@ -1,0 +1,131 @@
+
+\section{Learning Operators}
+\label{sec:setting}
+In subsection~\ref{sec:genericPDE}, we describe the generic setting of PDEs to make the discussions in the following setting concrete.
+In subsection \ref{sec:PS}, we outline the general problem of operator learning as well as our approach to solving it. In subsection \ref{sec:discretization}, we discuss the functional data that is available and how we work with it numerically.
+
+
+\subsection{Generic Parametric PDEs}
+\label{sec:genericPDE}
+We consider the generic family of PDEs of the following form,
+ \begin{align}
+\label{eq:generalpde0}
+\begin{split}
+(\LL_a u)(x) &= f(x), \qquad x \in D, \\
+u(x) &= 0, \qquad \quad \:\: x \in \partial D,
+\end{split}
+\end{align}
+for some \(a \in \A\), \(f \in \U^*\) and \(D \subset \R^d\) a bounded domain. We assume that the solution \(u: D \to \R\) lives in the Banach space \(\U\) and  \(\LL_{a}: \A \to \mathcal{L}(\U; \U^*)\) is a mapping from the parameter Banach space \(\A\) to the space of (possibly unbounded) linear operators mapping \(\U\) to its dual \(\U^*\). A natural operator which arises from this PDE is \(\G^\dagger:= \LL_{a}^{-1}f : \A \to \U\) defined to map the parameter to the solution \(a \mapsto u\). A simple example that we study further in Section \ref{ssec:darcy} is when \(\LL_a\) is the weak form of the second-order elliptic operator  \(-\nabla \cdot (a \nabla)\) subject to homogeneous Dirichlet
+boundary conditions. In this setting, \(\A = L^\infty(D;\R_+)\), \(\U = H^1_0(D;\R)\), and \(\U^* = H^{-1}(D;\R)\). When needed, we will assume that the domain $D$ is discretized into $K \in \N$ points 
+and that we observe $N \in \N$ pairs of coefficient functions and (approximate) solution functions \(\{a^{(i)}, u^{(i)}\}_{i=1}^N\) that are used to train the model (see Section \ref{sec:PS}). We assume that \(a^{(i)}\) are i.i.d. samples from a probability measure \(\mu\) supported on \(\A\) and \(u^{(i)}\) are the pushforwards under \(\G^\dagger\).
+
+\subsection{Problem Setting}
+\label{sec:PS}
+
+% {\bf State the problem as supervised learning between Banach spaces of
+% functions on a bounded domain $D$ in $\R^d$. Mapping function $a$
+% to function $u$. I guess I'd be happy 
+% to stick to the setting where input and output share the same domain. 
+% (Maybe discuss how to generalize at the end of the paper). No reference 
+% to any specific PDE here.}
+
+
+
+Our goal is to learn a mapping between two infinite dimensional spaces by using a finite
+collection of observations of input-output pairs from this mapping. We make this problem concrete in the following setting. Let \(\A\) and \(\U\) 
+be Banach spaces of functions defined on bounded domains $D \subset \R^d$, $D' \subset \R^{d'}$ respectively and \(\Ftrue : \A \to \U\) be
+a (typically) non-linear map. Suppose we have observations \(\{a^{(i)}, u^{(i)}\}_{i=1}^N\) where 
+\(a^{(i)} \sim \mu\) are i.i.d. samples drawn from some probability measure \(\mu\) supported on 
+\(\A\) and \(u^{(i)} = \Ftrue(a^{(i)})\) is possibly corrupted with noise. We aim to build an approximation of \(\Ftrue\) by 
+constructing a parametric map 
+\begin{equation}
+\label{eq:approxmap2}
+\F_{\theta} : \A \to \U, \quad \theta \in \R^p
+\end{equation}
+with parameters from the finite-dimensional space \(\R^p\) and then choosing
+\(\theta^\dagger \in \R^p\) so that \(\F_{\theta^\dagger} \approx \Ftrue\).
+
+We will be interested in controlling the error of the approximation on average with respect to \(\mu\). In particular, assuming \(\G^\dagger\) is \(\mu\)-measurable, we will aim to control
+the \(L^2_\mu(\A;\U)\) Bochner norm of the approximation
+\begin{equation}
+\label{eq:bochner_error}
+\|\G^\dagger - \G_\theta\|^2_{L^2_\mu(\A;\U)} = \E_{a \sim \mu} \|\G^\dagger(a) - \G_\theta(a)\|_{\U}^2 = \int_\A \|\G^\dagger(a) - \G_\theta(a)\|_{\U}^2 \: d \mu (a).
+\end{equation}
+This is a natural framework for learning in infinite-dimensions as one could seek to solve the associated  empirical-risk minimization problem
+\begin{equation}
+\label{eq:empirical_risk}
+\min_{\theta \in \R^p} \E_{a \sim \mu} \|\G^\dagger(a) - \G_\theta(a)\|_{\U}^2 \approx \min_{\theta \in \R^p} \frac{1}{N} \sum_{i=1}^N \|u^{(i)} - \G_\theta(a^{(i)})\|_{\U}^2
+\end{equation}
+which directly parallels the classical finite-dimensional 
+setting \citep{Vapnik1998}. 
+\nk{As well as using error measured in the Bochner norm, we 
+will also consider the setting where error is measured uniformly over compact sets of \(\A\). In particular, given any \(K \subset \A\) compact, we consider
+\begin{equation}
+    \label{eq:unform_risk}
+    \sup_{a \in K} \|\G^\dagger (a) - \G_\theta (a) \|_\U
+\end{equation}
+which is a more standard error metric in the approximation theory literature. Indeed, the classic approximation theory of neural networks in formulated analogously to equation \eqref{eq:unform_risk} \citep{hornik1989multilayer}. }
+
+In Section~\ref{sec:approximation} we show that, for the
+architecture we propose and given any desired error tolerance, there exists \(p \in \N\) and an associated parameter \(\theta^\dagger \in \R^p\), so that the loss \eqref{eq:bochner_error} or \eqref{eq:unform_risk} is less
+than the specified tolerance. However, we do not address the challenging open problems of characterizing the error with respect to either (a) a fixed parameter dimension \(p\) or (b) a fixed number of training samples \(N\). Instead, we approach this in the empirical test-train setting where we minimize \eqref{eq:empirical_risk} based on a fixed training set and approximate \eqref{eq:bochner_error} from new samples that were not seen during training.   
+Because we conceptualize our methodology in the
+infinite-dimensional setting, all finite-dimensional approximations
+can share a common set of network parameters which are defined in the (approximation-free) infinite-dimensional setting. In particular, our architecture does not depend on the way the functions \(a^{(i)},u^{(i)}\) are discretized.
+. The notation used through out this paper,
+along with a useful summary table, may be found in
+Appendix \ref{sec:appendix_notation}.
+
+
+\iffalse
+To be concrete, we consider  Banach
+spaces of real-valued functions defined on a bounded open set $D$ in $\mathbb{R}^d$. We then consider
+mappings $\Ftrue$ which take input functions defined on $D$ and map them to 
+another set of functions, also defined on $D$.
+Generalizations, in which the input and output functions are defined
+over different domains, are straightforward conceptually, but not studied.
+in this paper.
+\fi 
+
+
+\subsection{Discretization}
+\label{sec:discretization}
+Since our data \(a^{(i)}\) and \(u^{(i)}\) are, in general, functions, to work with them numerically, we assume access only to their point-wise evaluations. To illustrate this, we will continue with the example of the preceding paragraph. For simplicity, assume \(D = D'\) and suppose that the input and output functions are both real-valued. Let \(D^{(i)} = \{x^{(i)}_{\ell}\}_{\ell=1}^L \subset D\) be a \(L\)-point discretization of the domain \(D\) and assume we have observations \(a^{(i)}|_{D^{(i)}}, u^{(i)}|_{D^{(i)}} \in \R^{L}\), for a finite collection  of input-output pairs indexed by $j$.
+In the next section, we propose a kernel inspired graph neural network architecture which, while trained on the discretized data, can produce the solution \(u(x)\) for any \(x \in D\) given an input \(a \sim \mu\). \nk{In particular, our discretized architecture maps into the space \(\U\) and not into a discretization thereof. Furthermore our parametric operator class is consistent, in that, given a fixed set of parameters, refinement of the input discretization converges to the true functions space operator. We make this notion precise in what follows and refer to architectures that possess it as function space architectures, 
+mesh-invariant architectures, or \textit{discretization-invariant} architectures.
+\footnote{\nk{Note that the meaning of the indexing of sets $D_{\bullet}$ in the following
+definition differs that used earlier in this paragraph.}}
+\begin{definition}
+We call a \textit{discrete refinement} of the domain \(D \subset \R^d\) any sequence of nested sets \(D_1 \subset D_2 \subset \dots \subset D\) with \(|D_L| = L\) for any \(L \in \N\) such that, for any \(\epsilon > 0\), there exists a number \(L = L(\epsilon) \in \N\) such that
+\[D \subseteq \bigcup_{x \in D_L} \{y \in \R^d : \|y - x\|_2 < \epsilon\}.\]
+\end{definition}
+\begin{definition}
+Given a discrete refinement \((D_L)_{L=1}^\infty\) of the domain \(D \subset \R^d\), any member \(D_L\) is called a \textit{discretization} of \(D\).
+\end{definition}
+%%%%%%%%
+Since $a:D \subset \R^d \to \R^m$, pointwise evaluation of the
+function (discretization) at a set of $L$ points gives rise to
+the data set $\{(x_{\ell}, a(x_{\ell}))\}_{\ell=1}^L.$ Note that this
+may be viewed as a vector in $\R^{Ld} \times \R^{Lm}.$ An example of the mesh refinement is given in Figure \ref{fig:discretization-invariance}.
+%%%%%%%%
+\begin{definition}
+Suppose \(\A\) is a Banach space of \(\R^m\)-valued functions on the domain \(D \subset \R^d\). Let \(\G : \A \to \U\) be an operator, \(D_L\) be an \(L\)-point discretization of \(D\), and \(\hat{\G} : \R^{Ld} \times \R^{Lm} \to \U\) some map. For any \(K \subset \A\) compact, we define the \textit{discretized uniform risk} as
+\[R_K (\G,\hat{\G},D_L) = \sup_{a \in K} \|\hat{\G}(D_L,a|_{D_L}) - \G(a) \|_{\U}.\]
+\end{definition}
+%%%%%%%%
+%%%%%%%%
+
+
+
+\begin{definition}\label{def:discretization_invariance}
+Let \(\Theta \subseteq \R^p\) be a finite dimensional parameter space and \(\G : \A \times \Theta \to \U\) a map representing a parametric class of operators with parameters \(\theta \in \Theta\). Given a discrete refinement \((D_n)_{n=1}^\infty\) of the domain \(D \subset \R^d\), we say \(\G\) is \textit{discretization-invariant} if there exists a sequence of maps \(\hat{\G}_1, \hat{\G}_2, \dots\) where \(\hat{\G}_L : \R^{Ld} \times \R^{Lm} \times \Theta \to \U\) such that, for any \(\theta \in \Theta\) and any compact set \(K \subset \A\),
+\[\lim_{L \to \infty} R_K(\G(\cdot,\theta), \hat{\G}_L(\cdot,\cdot,\theta),D_L) = 0.\]
+\end{definition}
+We prove that the architectures proposed in Section~\ref{sec:neuraloperators} are discretization-invariant. % in Section~\ref{sec:discritizational_invariance}.
+We further verify this claim numerically by showing that the approximation error is 
+approximately constant as we refine the discretization.}
+Such a property is highly desirable as it allows a transfer of solutions between different grid geometries and discretization sizes with a single architecture that has a fixed number of parameters. 
+
+%This desirable property is not shared with neural networks, which are maps between finite-dimensional spaces, and recently proposed DeepONet models that are maps from finite-dimensional to infinite-dimensional spaces. In this work, we propose a modified DeepONet architecture, DeepONet-Operator that are full-stack neural operators, resulting in a model with the discretization invariance property. The proposed definition of discretization invariance is a generic definition and considers conventional neural networks such as CNNs discretization invariant models when they are accompanied by grid interpolation in the input. An additional interpolation layer in the output makes these models maps between infinite dimensional spaces. 
+
+We note that, while the application of our methodology is based on having point-wise evaluations of the function, it is not limited by it. One may, for example, represent a function numerically as a finite set of truncated basis coefficients. Invariance of the representation would then be with respect to the size of this set. Our methodology can, in principle, be modified to accommodate this scenario through a suitably chosen architecture. We do not pursue this direction in the current work. From the construction of neural operators, when the input and output functions are evaluated on fixed grids, the architecture of neural operators on these fixed grids coincide with the class of neural networks. 

@@ -1,0 +1,886 @@
+\begin{thebibliography}{133}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Aaronson(1997)]{aaronson1997introduction}
+J.~Aaronson.
+\newblock \emph{An Introduction to Infinite Ergodic Theory}.
+\newblock Mathematical surveys and monographs. American Mathematical Society,
+  1997.
+\newblock ISBN 9780821804940.
+
+\bibitem[Adams and Fournier(2003)]{adams2003sobolev}
+R.~A. Adams and J.~J. Fournier.
+\newblock \emph{Sobolev Spaces}.
+\newblock Elsevier Science, 2003.
+
+\bibitem[Adler and Oktem(2017)]{Adler2017}
+Jonas Adler and Ozan Oktem.
+\newblock Solving ill-posed inverse problems using iterative deep neural
+  networks.
+\newblock \emph{Inverse Problems}, nov 2017.
+\newblock \doi{10.1088/1361-6420/aa9581}.
+\newblock URL \url{https://doi.org/10.1088%2F1361-6420%2Faa9581}.
+
+\bibitem[Albiac and Kalton(2006)]{albiac2006topics}
+Fernando Albiac and Nigel~J. Kalton.
+\newblock \emph{Topics in Banach space theory}.
+\newblock Graduate Texts in Mathematics. Springer, 1 edition, 2006.
+
+\bibitem[Alet et~al.(2019)Alet, Jeewajee, Villalonga, Rodriguez, Lozano-Perez,
+  and Kaelbling]{pmlr-v97-alet19a}
+Ferran Alet, Adarsh~Keshav Jeewajee, Maria~Bauza Villalonga, Alberto Rodriguez,
+  Tomas Lozano-Perez, and Leslie Kaelbling.
+\newblock Graph element networks: adaptive, structured computation and memory.
+\newblock In \emph{36th International Conference on Machine Learning}. PMLR,
+  2019.
+\newblock URL \url{http://proceedings.mlr.press/v97/alet19a.html}.
+
+\bibitem[Ba et~al.(2016)Ba, Kiros, and Hinton]{ba2016layer}
+Jimmy~Lei Ba, Jamie~Ryan Kiros, and Geoffrey~E Hinton.
+\newblock Layer normalization.
+\newblock \emph{arXiv preprint arXiv:1607.06450}, 2016.
+
+\bibitem[Bach(2013)]{bach2013sharp}
+Francis Bach.
+\newblock Sharp analysis of low-rank kernel matrix approximations.
+\newblock In \emph{Conference on Learning Theory}, pages 185--209, 2013.
+
+\bibitem[Bar and Sochen(2019)]{bar2019unsupervised}
+Leah Bar and Nir Sochen.
+\newblock Unsupervised deep learning algorithm for {PDE}-based forward and
+  inverse problems.
+\newblock \emph{arXiv preprint arXiv:1904.05417}, 2019.
+
+\bibitem[Battaglia et~al.(2018)Battaglia, Hamrick, Bapst, Sanchez-Gonzalez,
+  Zambaldi, Malinowski, Tacchetti, Raposo, Santoro, Faulkner,
+  et~al.]{battaglia2018relational}
+Peter~W Battaglia, Jessica~B Hamrick, Victor Bapst, Alvaro Sanchez-Gonzalez,
+  Vinicius Zambaldi, Mateusz Malinowski, Andrea Tacchetti, David Raposo, Adam
+  Santoro, Ryan Faulkner, et~al.
+\newblock Relational inductive biases, deep learning, and graph networks.
+\newblock \emph{arXiv preprint arXiv:1806.01261}, 2018.
+
+\bibitem[Beck et~al.(2021)Beck, Becker, Grohs, Jaafari, and
+  Jentzen]{beck2021solving}
+Christian Beck, Sebastian Becker, Philipp Grohs, Nor Jaafari, and Arnulf
+  Jentzen.
+\newblock Solving the kolmogorov pde by means of deep learning.
+\newblock \emph{Journal of Scientific Computing}, 88\penalty0 (3), 2021.
+
+\bibitem[Belongie et~al.(2002)Belongie, Fowlkes, Chung, and
+  Malik]{belongie2002spectral}
+Serge Belongie, Charless Fowlkes, Fan Chung, and Jitendra Malik.
+\newblock Spectral partitioning with indefinite kernels using the nystr{\"o}m
+  extension.
+\newblock In \emph{European conference on computer vision}. Springer, 2002.
+
+\bibitem[Bengio et~al.(2007)Bengio, LeCun, et~al.]{bengio2007scaling}
+Yoshua Bengio, Yann LeCun, et~al.
+\newblock Scaling learning algorithms towards ai.
+\newblock \emph{Large-scale kernel machines}, 34\penalty0 (5):\penalty0 1--41,
+  2007.
+
+\bibitem[Bhatnagar et~al.(2019)Bhatnagar, Afshar, Pan, Duraisamy, and
+  Kaushik]{bhatnagar2019prediction}
+Saakaar Bhatnagar, Yaser Afshar, Shaowu Pan, Karthik Duraisamy, and Shailendra
+  Kaushik.
+\newblock Prediction of aerodynamic flow fields using convolutional neural
+  networks.
+\newblock \emph{Computational Mechanics}, pages 1--21, 2019.
+
+\bibitem[Bhattacharya et~al.(2020)Bhattacharya, Hosseini, Kovachki, and
+  Stuart]{Kovachki}
+Kaushik Bhattacharya, Bamdad Hosseini, Nikola~B Kovachki, and Andrew~M Stuart.
+\newblock Model reduction and neural networks for parametric {PDEs}.
+\newblock \emph{arXiv preprint arXiv:2005.03180}, 2020.
+
+\bibitem[Bogachev(2007)]{bogachev2007measure}
+V.~I. Bogachev.
+\newblock \emph{Measure Theory}, volume~2.
+\newblock Springer-Verlag Berlin Heidelberg, 2007.
+
+\bibitem[Bonito et~al.(2020)Bonito, Cohen, DeVore, Guignard, Jantsch, and
+  Petrova]{bonito2020nonlinear}
+Andrea Bonito, Albert Cohen, Ronald DeVore, Diane Guignard, Peter Jantsch, and
+  Guergana Petrova.
+\newblock Nonlinear methods for model reduction.
+\newblock \emph{arXiv preprint arXiv:2005.02565}, 2020.
+
+\bibitem[B{\"o}rm et~al.(2003)B{\"o}rm, Grasedyck, and
+  Hackbusch]{borm2003hierarchical}
+Steffen B{\"o}rm, Lars Grasedyck, and Wolfgang Hackbusch.
+\newblock Hierarchical matrices.
+\newblock \emph{Lecture notes}, 21:\penalty0 2003, 2003.
+
+\bibitem[Box(1976)]{box1976science}
+George~EP Box.
+\newblock Science and statistics.
+\newblock \emph{Journal of the American Statistical Association}, 71\penalty0
+  (356):\penalty0 791--799, 1976.
+
+\bibitem[Boyd(2001)]{boyd2001chebyshev}
+John~P Boyd.
+\newblock \emph{Chebyshev and Fourier spectral methods}.
+\newblock Courier Corporation, 2001.
+
+\bibitem[Brown et~al.(2020)Brown, Mann, Ryder, Subbiah, Kaplan, Dhariwal,
+  Neelakantan, Shyam, Sastry, Askell, et~al.]{brown2020language}
+Tom~B Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared Kaplan, Prafulla
+  Dhariwal, Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda Askell,
+  et~al.
+\newblock Language models are few-shot learners.
+\newblock \emph{arXiv preprint arXiv:2005.14165}, 2020.
+
+\bibitem[Brudnyi and Brudnyi(2012)]{brudnyi2012methods}
+Alexander Brudnyi and Yuri Brudnyi.
+\newblock \emph{Methods of Geometric Analysis in Extension and Trace Problems},
+  volume~1.
+\newblock Birkhäuser Basel, 2012.
+
+\bibitem[Bruno et~al.(2007)Bruno, Han, and Pohlman]{bruno2007accurate}
+Oscar~P Bruno, Youngae Han, and Matthew~M Pohlman.
+\newblock Accurate, high-order representation of complex three-dimensional
+  surfaces via fourier continuation analysis.
+\newblock \emph{Journal of computational Physics}, 227\penalty0 (2):\penalty0
+  1094--1125, 2007.
+
+\bibitem[Chandler and Kerswell(2013)]{chandler2013invariant}
+Gary~J. Chandler and Rich~R. Kerswell.
+\newblock Invariant recurrent solutions embedded in a turbulent two-dimensional
+  kolmogorov flow.
+\newblock \emph{Journal of Fluid Mechanics}, 722:\penalty0 554–595, 2013.
+
+\bibitem[Chen et~al.(2019)Chen, Ye, Zuo, Zheng, and Ong]{chen2019graph}
+Chi Chen, Weike Ye, Yunxing Zuo, Chen Zheng, and Shyue~Ping Ong.
+\newblock Graph networks as a universal machine learning framework for
+  molecules and crystals.
+\newblock \emph{Chemistry of Materials}, 31\penalty0 (9):\penalty0 3564--3572,
+  2019.
+
+\bibitem[Chen and Chen(1995)]{chen1995universal}
+Tianping Chen and Hong Chen.
+\newblock Universal approximation to nonlinear operators by neural networks
+  with arbitrary activation functions and its application to dynamical systems.
+\newblock \emph{IEEE Transactions on Neural Networks}, 6\penalty0 (4):\penalty0
+  911--917, 1995.
+
+\bibitem[Choromanski et~al.(2020)Choromanski, Likhosherstov, Dohan, Song, Gane,
+  Sarlos, Hawkins, Davis, Mohiuddin, Kaiser, et~al.]{choromanski2020rethinking}
+Krzysztof Choromanski, Valerii Likhosherstov, David Dohan, Xingyou Song,
+  Andreea Gane, Tamas Sarlos, Peter Hawkins, Jared Davis, Afroz Mohiuddin,
+  Lukasz Kaiser, et~al.
+\newblock Rethinking attention with performers.
+\newblock \emph{arXiv preprint arXiv:2009.14794}, 2020.
+
+\bibitem[Ciesielski and Domsta(1972)]{ciesielski1972construction}
+Z.~Ciesielski and J.~Domsta.
+\newblock Construction of an orthonormal basis in cm(id) and wmp(id).
+\newblock \emph{Studia Mathematica}, 41:\penalty0 211--224, 1972.
+
+\bibitem[Cohen and DeVore(2015)]{cohendevore}
+Albert Cohen and Ronald DeVore.
+\newblock Approximation of high-dimensional parametric {PDE}s.
+\newblock \emph{Acta Numerica}, 2015.
+\newblock \doi{10.1017/S0962492915000033}.
+
+\bibitem[Cohen et~al.(2020)Cohen, Devore, Petrova, and
+  Wojtaszczyk]{cohen2020optimal}
+Albert Cohen, Ronald Devore, Guergana Petrova, and Przemyslaw Wojtaszczyk.
+\newblock Optimal stable nonlinear approximation.
+\newblock \emph{arXiv preprint arXiv:2009.09907}, 2020.
+
+\bibitem[Conway(2007)]{conway2007acourse}
+J.~B. Conway.
+\newblock \emph{A Course in Functional Analysis}.
+\newblock Springer-Verlag New York, 2007.
+
+\bibitem[Cotter et~al.(2013)Cotter, Roberts, Stuart, and White]{Cotter_2013}
+S.~L. Cotter, G.~O. Roberts, A.~M. Stuart, and D.~White.
+\newblock Mcmc methods for functions: Modifying old algorithms to make them
+  faster.
+\newblock \emph{Statistical Science}, 28\penalty0 (3):\penalty0 424–446, Aug
+  2013.
+\newblock ISSN 0883-4237.
+\newblock \doi{10.1214/13-sts421}.
+\newblock URL \url{http://dx.doi.org/10.1214/13-STS421}.
+
+\bibitem[Cotter et~al.(2009)Cotter, Dashti, Robinson, and
+  Stuart]{cotter2009bayesian}
+Simon~L Cotter, Massoumeh Dashti, James~Cooper Robinson, and Andrew~M Stuart.
+\newblock Bayesian inverse problems for functions and applications to fluid
+  mechanics.
+\newblock \emph{Inverse problems}, 25\penalty0 (11):\penalty0 115008, 2009.
+
+\bibitem[Damianou and Lawrence(2013)]{damianou2013deep}
+Andreas Damianou and Neil Lawrence.
+\newblock Deep gaussian processes.
+\newblock In \emph{Artificial Intelligence and Statistics}, pages 207--215,
+  2013.
+
+\bibitem[De~Hoop et~al.(2022)De~Hoop, Huang, Qian, and Stuart]{de2022cost}
+Maarten De~Hoop, Daniel~Zhengyu Huang, Elizabeth Qian, and Andrew~M Stuart.
+\newblock The cost-accuracy trade-off in operator learning with neural
+  networks.
+\newblock \emph{Journal of Machine Learning, to appear; arXiv preprint
+  arXiv:2203.13181}, 2022.
+
+\bibitem[Devlin et~al.(2018)Devlin, Chang, Lee, and Toutanova]{devlin2018bert}
+Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova.
+\newblock Bert: Pre-training of deep bidirectional transformers for language
+  understanding.
+\newblock \emph{arXiv preprint arXiv:1810.04805}, 2018.
+
+\bibitem[DeVore(1998)]{devore1998nonlinear}
+Ronald~A. DeVore.
+\newblock Nonlinear approximation.
+\newblock \emph{Acta Numerica}, 7:\penalty0 51–150, 1998.
+
+\bibitem[DeVore(2014)]{DeVoreReducedBasis}
+Ronald~A. DeVore.
+\newblock \emph{Chapter 3: The Theoretical Foundation of Reduced Basis
+  Methods}.
+\newblock 2014.
+\newblock \doi{10.1137/1.9781611974829.ch3}.
+
+\bibitem[Dosovitskiy et~al.(2020)Dosovitskiy, Beyer, Kolesnikov, Weissenborn,
+  Zhai, Unterthiner, Dehghani, Minderer, Heigold, Gelly,
+  et~al.]{dosovitskiy2020image}
+Alexey Dosovitskiy, Lucas Beyer, Alexander Kolesnikov, Dirk Weissenborn,
+  Xiaohua Zhai, Thomas Unterthiner, Mostafa Dehghani, Matthias Minderer, Georg
+  Heigold, Sylvain Gelly, et~al.
+\newblock An image is worth 16x16 words: Transformers for image recognition at
+  scale.
+\newblock \emph{arXiv preprint arXiv:2010.11929}, 2020.
+
+\bibitem[Dudley and Norvaisa(2011)]{dudley2011concrete}
+R.~Dudley and Rimas Norvaisa.
+\newblock \emph{Concrete Functional Calculus}, volume 149.
+\newblock 01 2011.
+\newblock ISBN 978-1-4419-6949-1.
+
+\bibitem[Dudley and Norvai{\v{s}}a(2010)]{dudley2010concrete}
+R.M. Dudley and R.~Norvai{\v{s}}a.
+\newblock \emph{Concrete Functional Calculus}.
+\newblock Springer Monographs in Mathematics. Springer New York, 2010.
+
+\bibitem[Dugundji(1951)]{dugundji1961anextension}
+J.~Dugundji.
+\newblock An extension of tietze's theorem.
+\newblock \emph{Pacific Journal of Mathematics}, 1\penalty0 (3):\penalty0 353
+  -- 367, 1951.
+
+\bibitem[Dunlop et~al.(2018)Dunlop, Girolami, Stuart, and Teckentrup]{aretha}
+Matthew~M Dunlop, Mark~A Girolami, Andrew~M Stuart, and Aretha~L Teckentrup.
+\newblock How deep are deep gaussian processes?
+\newblock \emph{The Journal of Machine Learning Research}, 19\penalty0
+  (1):\penalty0 2100--2145, 2018.
+
+\bibitem[E(2017)]{weinan2017proposal}
+W~E.
+\newblock A proposal on machine learning via dynamical systems.
+\newblock \emph{Communications in Mathematics and Statistics}, 5\penalty0
+  (1):\penalty0 1--11, 2017.
+
+\bibitem[E(2011)]{e2011principles}
+Weinan E.
+\newblock \emph{Principles of Multiscale Modeling}.
+\newblock Cambridge University Press, Cambridge, 2011.
+
+\bibitem[E and Yu(2018)]{Weinan}
+Weinan E and Bing Yu.
+\newblock The deep ritz method: A deep learning-based numerical algorithm for
+  solving variational problems.
+\newblock \emph{Communications in Mathematics and Statistics}, 3 2018.
+\newblock ISSN 2194-6701.
+\newblock \doi{10.1007/s40304-018-0127-z}.
+
+\bibitem[Fan et~al.(2019{\natexlab{a}})Fan, Bohorquez, and Ying]{fan2019bcr}
+Yuwei Fan, Cindy~Orozco Bohorquez, and Lexing Ying.
+\newblock Bcr-net: A neural network based on the nonstandard wavelet form.
+\newblock \emph{Journal of Computational Physics}, 384:\penalty0 1--15,
+  2019{\natexlab{a}}.
+
+\bibitem[Fan et~al.(2019{\natexlab{b}})Fan, Feliu-Faba, Lin, Ying, and
+  Zepeda-N{\'u}nez]{fan2019multiscale2}
+Yuwei Fan, Jordi Feliu-Faba, Lin Lin, Lexing Ying, and Leonardo
+  Zepeda-N{\'u}nez.
+\newblock A multiscale neural network based on hierarchical nested bases.
+\newblock \emph{Research in the Mathematical Sciences}, 6\penalty0
+  (2):\penalty0 21, 2019{\natexlab{b}}.
+
+\bibitem[Fan et~al.(2019{\natexlab{c}})Fan, Lin, Ying, and
+  Zepeda-N{\'u}nez]{fan2019multiscale}
+Yuwei Fan, Lin Lin, Lexing Ying, and Leonardo Zepeda-N{\'u}nez.
+\newblock A multiscale neural network based on hierarchical matrices.
+\newblock \emph{Multiscale Modeling \& Simulation}, 17\penalty0 (4):\penalty0
+  1189--1213, 2019{\natexlab{c}}.
+
+\bibitem[Fefferman(2007)]{fefferman2007cmextension}
+Charles Fefferman.
+\newblock Cm extension by linear operators.
+\newblock \emph{Annals of Mathematics}, 166:\penalty0 779–835, 2007.
+
+\bibitem[Fresca and Manzoni(2022)]{fresca2022poddlrom}
+Stefania Fresca and Andrea Manzoni.
+\newblock Pod-dl-rom: Enhancing deep learning-based reduced order models for
+  nonlinear parametrized pdes by proper orthogonal decomposition.
+\newblock \emph{Computer Methods in Applied Mechanics and Engineering},
+  388:\penalty0 114--181, 2022.
+
+\bibitem[Gardner et~al.(2018)Gardner, Pleiss, Wu, Weinberger, and
+  Wilson]{gardner2018product}
+Jacob~R Gardner, Geoff Pleiss, Ruihan Wu, Kilian~Q Weinberger, and
+  Andrew~Gordon Wilson.
+\newblock Product kernel interpolation for scalable gaussian processes.
+\newblock \emph{arXiv preprint arXiv:1802.08903}, 2018.
+
+\bibitem[{Garriga-Alonso} et~al.(2018){Garriga-Alonso}, {Rasmussen}, and
+  {Aitchison}]{Garriga-AlonsoGP}
+Adri{\`a} {Garriga-Alonso}, Carl~Edward {Rasmussen}, and Laurence {Aitchison}.
+\newblock {Deep Convolutional Networks as shallow Gaussian Processes}.
+\newblock \emph{arXiv e-prints}, art. arXiv:1808.05587, Aug 2018.
+
+\bibitem[Gilmer et~al.(2017)Gilmer, Schoenholz, Riley, Vinyals, and
+  Dahl]{gilmer2017neural}
+Justin Gilmer, Samuel~S Schoenholz, Patrick~F Riley, Oriol Vinyals, and
+  George~E Dahl.
+\newblock Neural message passing for quantum chemistry.
+\newblock In \emph{Proceedings of the 34th International Conference on Machine
+  Learning}, 2017.
+
+\bibitem[Globerson and Livni(2016)]{GlobersonLivni}
+Amir Globerson and Roi Livni.
+\newblock Learning infinite-layer networks: Beyond the kernel trick.
+\newblock \emph{CoRR}, abs/1606.05316, 2016.
+\newblock URL \url{http://arxiv.org/abs/1606.05316}.
+
+\bibitem[Greenfeld et~al.(2019)Greenfeld, Galun, Basri, Yavneh, and
+  Kimmel]{greenfeld2019learning}
+Daniel Greenfeld, Meirav Galun, Ronen Basri, Irad Yavneh, and Ron Kimmel.
+\newblock Learning to optimize multigrid {PDE} solvers.
+\newblock In \emph{International Conference on Machine Learning}, pages
+  2415--2423. PMLR, 2019.
+
+\bibitem[Greengard and Rokhlin(1997)]{greengard1997new}
+Leslie Greengard and Vladimir Rokhlin.
+\newblock A new version of the fast multipole method for the laplace equation
+  in three dimensions.
+\newblock \emph{Acta numerica}, 6:\penalty0 229--269, 1997.
+
+\bibitem[Grothendieck(1955)]{grothendieck1955produits}
+A~Grothendieck.
+\newblock \emph{Produits tensoriels topologiques et espaces nucl{\'e}aires},
+  volume~16.
+\newblock American Mathematical Society Providence, 1955.
+
+\bibitem[Guibas et~al.(2021)Guibas, Mardani, Li, Tao, Anandkumar, and
+  Catanzaro]{guibas2021adaptive}
+John Guibas, Morteza Mardani, Zongyi Li, Andrew Tao, Anima Anandkumar, and
+  Bryan Catanzaro.
+\newblock Adaptive fourier neural operators: Efficient token mixers for
+  transformers.
+\newblock \emph{arXiv preprint arXiv:2111.13587}, 2021.
+
+\bibitem[Guo et~al.(2016)Guo, Li, and Iorio]{guo2016convolutional}
+Xiaoxiao Guo, Wei Li, and Francesco Iorio.
+\newblock Convolutional neural networks for steady flow approximation.
+\newblock In \emph{Proceedings of the 22nd ACM SIGKDD International Conference
+  on Knowledge Discovery and Data Mining}, 2016.
+
+\bibitem[Gurtin(1982)]{gurtin1982introduction}
+Morton~E Gurtin.
+\newblock \emph{An introduction to continuum mechanics}.
+\newblock Academic press, 1982.
+
+\bibitem[{Guss}(2016)]{Guss}
+William~H. {Guss}.
+\newblock {Deep Function Machines: Generalized Neural Networks for Topological
+  Layer Expression}.
+\newblock \emph{arXiv e-prints}, art. arXiv:1612.04799, Dec 2016.
+
+\bibitem[Haber and Ruthotto(2017)]{haber2017stable}
+Eldad Haber and Lars Ruthotto.
+\newblock Stable architectures for deep neural networks.
+\newblock \emph{Inverse Problems}, 34\penalty0 (1):\penalty0 014004, 2017.
+
+\bibitem[Hamilton et~al.(2017)Hamilton, Ying, and
+  Leskovec]{hamilton2017inductive}
+Will Hamilton, Zhitao Ying, and Jure Leskovec.
+\newblock Inductive representation learning on large graphs.
+\newblock In \emph{Advances in neural information processing systems}, pages
+  1024--1034, 2017.
+
+\bibitem[He and Xu(2019)]{he2019mgnet}
+Juncai He and Jinchao Xu.
+\newblock Mgnet: A unified framework of multigrid and convolutional neural
+  network.
+\newblock \emph{Science china mathematics}, 62\penalty0 (7):\penalty0
+  1331--1354, 2019.
+
+\bibitem[He et~al.(2016)He, Zhang, Ren, and Sun]{he2016deep}
+Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun.
+\newblock Deep residual learning for image recognition.
+\newblock In \emph{Proceedings of the IEEE conference on computer vision and
+  pattern recognition}, pages 770--778, 2016.
+
+\bibitem[Herrmann et~al.(2020)Herrmann, Schwab, and Zech]{herrmann2020deep}
+L~Herrmann, Ch~Schwab, and J~Zech.
+\newblock Deep relu neural network expression rates for data-to-qoi maps in
+  bayesian {PDE} inversion.
+\newblock 2020.
+
+\bibitem[Hornik et~al.(1989)Hornik, Stinchcombe, White,
+  et~al.]{hornik1989multilayer}
+Kurt Hornik, Maxwell Stinchcombe, Halbert White, et~al.
+\newblock Multilayer feedforward networks are universal approximators.
+\newblock \emph{Neural networks}, 2\penalty0 (5):\penalty0 359--366, 1989.
+
+\bibitem[Jiang et~al.(2020)Jiang, Esmaeilzadeh, Azizzadenesheli, Kashinath,
+  Mustafa, Tchelepi, Marcus, Anandkumar, et~al.]{jiang2020meshfreeflownet}
+Chiyu~Max Jiang, Soheil Esmaeilzadeh, Kamyar Azizzadenesheli, Karthik
+  Kashinath, Mustafa Mustafa, Hamdi~A Tchelepi, Philip Marcus, Anima
+  Anandkumar, et~al.
+\newblock Meshfreeflownet: A physics-constrained deep continuous space-time
+  super-resolution framework.
+\newblock \emph{arXiv preprint arXiv:2005.01463}, 2020.
+
+\bibitem[Johnson(2012)]{johnson2012numerical}
+Claes Johnson.
+\newblock \emph{Numerical solution of partial differential equations by the
+  finite element method}.
+\newblock Courier Corporation, 2012.
+
+\bibitem[Kashinath et~al.(2020)Kashinath, Marcus,
+  et~al.]{kashinath2020enforcing}
+Karthik Kashinath, Philip Marcus, et~al.
+\newblock Enforcing physical constraints in cnns through differentiable {PDE}
+  layer.
+\newblock In \emph{ICLR 2020 Workshop on Integration of Deep Neural Models and
+  Differential Equations}, 2020.
+
+\bibitem[Khoo and Ying(2019)]{khoo2019switchnet}
+Yuehaw Khoo and Lexing Ying.
+\newblock Switchnet: a neural network model for forward and inverse scattering
+  problems.
+\newblock \emph{SIAM Journal on Scientific Computing}, 41\penalty0
+  (5):\penalty0 A3182--A3201, 2019.
+
+\bibitem[Khoo et~al.(2021)Khoo, Lu, and Ying]{khoo2017solving}
+Yuehaw Khoo, Jianfeng Lu, and Lexing Ying.
+\newblock Solving parametric {PDE} problems with artificial neural networks.
+\newblock \emph{European Journal of Applied Mathematics}, 32\penalty0
+  (3):\penalty0 421--435, 2021.
+
+\bibitem[Kipf and Welling(2016)]{kipf2016semi}
+Thomas~N Kipf and Max Welling.
+\newblock Semi-supervised classification with graph convolutional networks.
+\newblock \emph{arXiv preprint arXiv:1609.02907}, 2016.
+
+\bibitem[Kondor et~al.(2014)Kondor, Teneva, and
+  Garg]{kondor2014multiresolution}
+Risi Kondor, Nedelina Teneva, and Vikas Garg.
+\newblock Multiresolution matrix factorization.
+\newblock In \emph{International Conference on Machine Learning}, pages
+  1620--1628, 2014.
+
+\bibitem[Kovachki et~al.(2021)Kovachki, Lanthaler, and
+  Mishra]{kovachki2021universal}
+Nikola Kovachki, Samuel Lanthaler, and Siddhartha Mishra.
+\newblock On universal approximation and error bounds for {Fourier Neural
+  Operators}.
+\newblock \emph{arXiv preprint arXiv:2107.07562}, 2021.
+
+\bibitem[Kraichnan(1967)]{kraichnan67inertial}
+Robert~H. Kraichnan.
+\newblock Inertial ranges in two‐dimensional turbulence.
+\newblock \emph{The Physics of Fluids}, 10\penalty0 (7):\penalty0 1417--1423,
+  1967.
+
+\bibitem[Kulis et~al.(2006)Kulis, Sustik, and Dhillon]{kulis2006learning}
+Brian Kulis, M{\'a}ty{\'a}s Sustik, and Inderjit Dhillon.
+\newblock Learning low-rank kernel matrices.
+\newblock In \emph{Proceedings of the 23rd international conference on Machine
+  learning}, pages 505--512, 2006.
+
+\bibitem[Kutyniok et~al.(2022)Kutyniok, Petersen, Raslan, and
+  Schneider]{kutyniok2022atheoretical}
+Gitta Kutyniok, Philipp Petersen, Mones Raslan, and Reinhold Schneider.
+\newblock A theoretical analysis of deep neural networks and parametric pdes.
+\newblock \emph{Constructive Approximation}, 55\penalty0 (1):\penalty0 73--125,
+  2022.
+
+\bibitem[Lan et~al.(2017)Lan, Zhang, Ge, Cheng, Liu, Rauber, Li, Wang, and
+  Zha]{lan2017low}
+Liang Lan, Kai Zhang, Hancheng Ge, Wei Cheng, Jun Liu, Andreas Rauber, Xiao-Li
+  Li, Jun Wang, and Hongyuan Zha.
+\newblock Low-rank decomposition meets kernel learning: A generalized
+  nystr{\"o}m method.
+\newblock \emph{Artificial Intelligence}, 250:\penalty0 1--15, 2017.
+
+\bibitem[Lanthaler et~al.(2021)Lanthaler, Mishra, and
+  Karniadakis]{lanthaler2021error}
+Samuel Lanthaler, Siddhartha Mishra, and George~Em Karniadakis.
+\newblock Error estimates for deeponets: A deep learning framework in infinite
+  dimensions.
+\newblock \emph{arXiv preprint arXiv:2102.09618}, 2021.
+
+\bibitem[Leoni(2009)]{leoni2009first}
+G.~Leoni.
+\newblock \emph{A First Course in Sobolev Spaces}.
+\newblock Graduate studies in mathematics. American Mathematical Soc., 2009.
+
+\bibitem[Li et~al.(2020{\natexlab{a}})Li, Kovachki, Azizzadenesheli, Liu,
+  Bhattacharya, Stuart, and Anandkumar]{li2020fourier}
+Zongyi Li, Nikola Kovachki, Kamyar Azizzadenesheli, Burigede Liu, Kaushik
+  Bhattacharya, Andrew Stuart, and Anima Anandkumar.
+\newblock Fourier neural operator for parametric partial differential
+  equations, 2020{\natexlab{a}}.
+
+\bibitem[Li et~al.(2020{\natexlab{b}})Li, Kovachki, Azizzadenesheli, Liu,
+  Bhattacharya, Stuart, and Anandkumar]{li2020multipole}
+Zongyi Li, Nikola Kovachki, Kamyar Azizzadenesheli, Burigede Liu, Kaushik
+  Bhattacharya, Andrew Stuart, and Anima Anandkumar.
+\newblock Multipole graph neural operator for parametric partial differential
+  equations, 2020{\natexlab{b}}.
+
+\bibitem[Li et~al.(2020{\natexlab{c}})Li, Kovachki, Azizzadenesheli, Liu,
+  Bhattacharya, Stuart, and Anandkumar]{li2020neural}
+Zongyi Li, Nikola Kovachki, Kamyar Azizzadenesheli, Burigede Liu, Kaushik
+  Bhattacharya, Andrew Stuart, and Anima Anandkumar.
+\newblock Neural operator: Graph kernel network for partial differential
+  equations.
+\newblock \emph{arXiv preprint arXiv:2003.03485}, 2020{\natexlab{c}}.
+
+\bibitem[Li et~al.(2021)Li, Zheng, Kovachki, Jin, Chen, Liu, Azizzadenesheli,
+  and Anandkumar]{li2021physics}
+Zongyi Li, Hongkai Zheng, Nikola Kovachki, David Jin, Haoxuan Chen, Burigede
+  Liu, Kamyar Azizzadenesheli, and Anima Anandkumar.
+\newblock Physics-informed neural operator for learning partial differential
+  equations.
+\newblock \emph{arXiv preprint arXiv:2111.03794}, 2021.
+
+\bibitem[Lu et~al.(2019)Lu, Jin, and Karniadakis]{lu2019deeponet}
+Lu~Lu, Pengzhan Jin, and George~Em Karniadakis.
+\newblock Deeponet: Learning nonlinear operators for identifying differential
+  equations based on the universal approximation theorem of operators.
+\newblock \emph{arXiv preprint arXiv:1910.03193}, 2019.
+
+\bibitem[Lu et~al.(2021{\natexlab{a}})Lu, Jin, Pang, Zhang, and
+  Karniadakis]{lu2021learning}
+Lu~Lu, Pengzhan Jin, Guofei Pang, Zhongqiang Zhang, and George~Em Karniadakis.
+\newblock Learning nonlinear operators via deeponet based on the universal
+  approximation theorem of operators.
+\newblock \emph{Nature Machine Intelligence}, 3\penalty0 (3):\penalty0
+  218--229, 2021{\natexlab{a}}.
+
+\bibitem[Lu et~al.(2021{\natexlab{b}})Lu, Meng, Cai, Mao, Goswami, Zhang, and
+  Karniadakis]{lu2021comprehensive}
+Lu~Lu, Xuhui Meng, Shengze Cai, Zhiping Mao, Somdatta Goswami, Zhongqiang
+  Zhang, and George~Em Karniadakis.
+\newblock A comprehensive and fair comparison of two neural operators (with
+  practical extensions) based on fair data.
+\newblock \emph{arXiv preprint arXiv:2111.05512}, 2021{\natexlab{b}}.
+
+\bibitem[Mathieu et~al.(2013)Mathieu, Henaff, and LeCun]{mathieu2013fast}
+Michael Mathieu, Mikael Henaff, and Yann LeCun.
+\newblock Fast training of convolutional networks through ffts, 2013.
+
+\bibitem[{Matthews} et~al.(2018){Matthews}, {Rowland}, {Hron}, {Turner}, and
+  {Ghahramani}]{MathewsGP}
+Alexander G. de~G. {Matthews}, Mark {Rowland}, Jiri {Hron}, Richard~E.
+  {Turner}, and Zoubin {Ghahramani}.
+\newblock {Gaussian Process Behaviour in Wide Deep Neural Networks}.
+\newblock Apr 2018.
+
+\bibitem[Mingo et~al.(2004)Mingo, Aslanyan, Castellanos, Diaz, and
+  Riazanov]{mingo2004Fourier}
+Luis Mingo, Levon Aslanyan, Juan Castellanos, Miguel Diaz, and Vladimir
+  Riazanov.
+\newblock Fourier neural networks: An approach with sinusoidal activation
+  functions.
+\newblock 2004.
+
+\bibitem[Murphy et~al.(2018)Murphy, Srinivasan, Rao, and
+  Ribeiro]{murphy2018janossy}
+Ryan~L Murphy, Balasubramaniam Srinivasan, Vinayak Rao, and Bruno Ribeiro.
+\newblock Janossy pooling: Learning deep permutation-invariant functions for
+  variable-size inputs.
+\newblock \emph{arXiv preprint arXiv:1811.01900}, 2018.
+
+\bibitem[Neal(1996)]{Neal}
+Radford~M. Neal.
+\newblock \emph{Bayesian Learning for Neural Networks}.
+\newblock Springer-Verlag, 1996.
+\newblock ISBN 0387947248.
+
+\bibitem[Nelsen and Stuart(2021)]{nelsen2020random}
+Nicholas~H Nelsen and Andrew~M Stuart.
+\newblock The random feature model for input-output maps between banach spaces.
+\newblock \emph{SIAM Journal on Scientific Computing}, 43\penalty0
+  (5):\penalty0 A3212--A3243, 2021.
+
+\bibitem[Nystr{\"o}m(1930)]{nystrom1930praktische}
+Evert~J Nystr{\"o}m.
+\newblock {\"U}ber die praktische aufl{\"o}sung von integralgleichungen mit
+  anwendungen auf randwertaufgaben.
+\newblock \emph{Acta Mathematica}, 1930.
+
+\bibitem[O'Leary-Roseberry et~al.(2020)O'Leary-Roseberry, Villa, Chen, and
+  Ghattas]{o2020derivative}
+Thomas O'Leary-Roseberry, Umberto Villa, Peng Chen, and Omar Ghattas.
+\newblock Derivative-informed projected neural networks for high-dimensional
+  parametric maps governed by pdes.
+\newblock \emph{arXiv preprint arXiv:2011.15110}, 2020.
+
+\bibitem[Opschoor et~al.(2020)Opschoor, Schwab, and Zech]{opschoor2020deep}
+Joost~A.A. Opschoor, Christoph Schwab, and Jakob Zech.
+\newblock Deep learning in high dimension: Relu network expression rates for
+  bayesian {PDE} inversion.
+\newblock \emph{SAM Research Report}, 2020-47, 2020.
+
+\bibitem[Pan and Duraisamy(2020)]{pan2020physics}
+Shaowu Pan and Karthik Duraisamy.
+\newblock Physics-informed probabilistic learning of linear embeddings of
+  nonlinear dynamics with guaranteed stability.
+\newblock \emph{SIAM Journal on Applied Dynamical Systems}, 19\penalty0
+  (1):\penalty0 480--509, 2020.
+
+\bibitem[Pathak et~al.(2020)Pathak, Mustafa, Kashinath, Motheau, Kurth, and
+  Day]{pathak2020using}
+Jaideep Pathak, Mustafa Mustafa, Karthik Kashinath, Emmanuel Motheau, Thorsten
+  Kurth, and Marcus Day.
+\newblock Using machine learning to augment coarse-grid computational fluid
+  dynamics simulations, 2020.
+
+\bibitem[Pełczyński and Wojciechowski(2001)]{pelczynski2001contribution}
+Aleksander Pełczyński and Michał Wojciechowski.
+\newblock Contribution to the isomorphic classification of sobolev spaces
+  lpk(omega).
+\newblock \emph{Recent Progress in Functional Analysis}, 189:\penalty0
+  133--142, 2001.
+
+\bibitem[Pfaff et~al.(2020)Pfaff, Fortunato, Sanchez-Gonzalez, and
+  Battaglia]{pfaff2020learning}
+Tobias Pfaff, Meire Fortunato, Alvaro Sanchez-Gonzalez, and Peter~W. Battaglia.
+\newblock Learning mesh-based simulation with graph networks, 2020.
+
+\bibitem[Pinkus(1985)]{pinkus1985nwidths}
+A.~Pinkus.
+\newblock \emph{N-Widths in Approximation Theory}.
+\newblock Springer-Verlag Berlin Heidelberg, 1985.
+
+\bibitem[Pinkus(1999)]{pinkus1999approximation}
+Allan Pinkus.
+\newblock Approximation theory of the mlp model in neural networks.
+\newblock \emph{Acta Numerica}, 8:\penalty0 143–195, 1999.
+
+\bibitem[Poole et~al.(2016)Poole, Lahiri, Raghu, Sohl-Dickstein, and
+  Ganguli]{poole2016exponential}
+Ben Poole, Subhaneil Lahiri, Maithra Raghu, Jascha Sohl-Dickstein, and Surya
+  Ganguli.
+\newblock Exponential expressivity in deep neural networks through transient
+  chaos.
+\newblock \emph{Advances in neural information processing systems},
+  29:\penalty0 3360--3368, 2016.
+
+\bibitem[Qui\~{n}onero Candela and Rasmussen(2005)]{quinonero2005aunifying}
+Joaquin Qui\~{n}onero Candela and Carl~Edward Rasmussen.
+\newblock A unifying view of sparse approximate gaussian process regression.
+\newblock \emph{J. Mach. Learn. Res.}, 6:\penalty0 1939–1959, 2005.
+
+\bibitem[Rahimi and Recht(2008)]{rahimi2008uniform}
+Ali Rahimi and Benjamin Recht.
+\newblock Uniform approximation of functions with random bases.
+\newblock In \emph{2008 46th Annual Allerton Conference on Communication,
+  Control, and Computing}, pages 555--561. IEEE, 2008.
+
+\bibitem[Raissi et~al.(2019)Raissi, Perdikaris, and
+  Karniadakis]{raissi2019physics}
+Maziar Raissi, Paris Perdikaris, and George~E Karniadakis.
+\newblock Physics-informed neural networks: A deep learning framework for
+  solving forward and inverse problems involving nonlinear partial differential
+  equations.
+\newblock \emph{Journal of Computational Physics}, 378:\penalty0 686--707,
+  2019.
+
+\bibitem[Ronneberger et~al.(2015)Ronneberger, Fischer, and
+  Brox]{ronneberger2015u}
+Olaf Ronneberger, Philipp Fischer, and Thomas Brox.
+\newblock U-net: Convolutional networks for biomedical image segmentation.
+\newblock In \emph{International Conference on Medical image computing and
+  computer-assisted intervention}, pages 234--241. Springer, 2015.
+
+\bibitem[Roux and Bengio(2007)]{BengioLeRoux}
+Nicolas~Le Roux and Yoshua Bengio.
+\newblock Continuous neural networks.
+\newblock In Marina Meila and Xiaotong Shen, editors, \emph{Proceedings of the
+  Eleventh International Conference on Artificial Intelligence and Statistics},
+  2007.
+
+\bibitem[Scarselli et~al.(2008)Scarselli, Gori, Tsoi, Hagenbuchner, and
+  Monfardini]{scarselli2008graph}
+Franco Scarselli, Marco Gori, Ah~Chung Tsoi, Markus Hagenbuchner, and Gabriele
+  Monfardini.
+\newblock The graph neural network model.
+\newblock \emph{IEEE transactions on neural networks}, 20\penalty0
+  (1):\penalty0 61--80, 2008.
+
+\bibitem[Schwab and Zech(2019)]{schwab2019deep}
+Christoph Schwab and Jakob Zech.
+\newblock Deep learning in high dimension: Neural network expression rates for
+  generalized polynomial chaos expansions in {UQ}.
+\newblock \emph{Analysis and Applications}, 17\penalty0 (01):\penalty0 19--55,
+  2019.
+
+\bibitem[Sirignano and Spiliopoulos(2018)]{sirignano2018dgm}
+Justin Sirignano and Konstantinos Spiliopoulos.
+\newblock Dgm: A deep learning algorithm for solving partial differential
+  equations.
+\newblock \emph{Journal of computational physics}, 375:\penalty0 1339--1364,
+  2018.
+
+\bibitem[Sitzmann et~al.(2020)Sitzmann, Martel, Bergman, Lindell, and
+  Wetzstein]{sitzmann2020implicit}
+Vincent Sitzmann, Julien~NP Martel, Alexander~W Bergman, David~B Lindell, and
+  Gordon Wetzstein.
+\newblock Implicit neural representations with periodic activation functions.
+\newblock \emph{arXiv preprint arXiv:2006.09661}, 2020.
+
+\bibitem[Smith et~al.(2020)Smith, Azizzadenesheli, and Ross]{smith2020eikonet}
+Jonathan~D Smith, Kamyar Azizzadenesheli, and Zachary~E Ross.
+\newblock Eikonet: Solving the eikonal equation with deep neural networks.
+\newblock \emph{arXiv preprint arXiv:2004.00361}, 2020.
+
+\bibitem[Stein(1970)]{stein1970singular}
+Elias~M. Stein.
+\newblock \emph{Singular Integrals and Differentiability Properties of
+  Functions}.
+\newblock Princeton University Press, 1970.
+
+\bibitem[Stuart(2010)]{stuart_2010}
+A.~M. Stuart.
+\newblock Inverse problems: A bayesian perspective.
+\newblock \emph{Acta Numerica}, 19:\penalty0 451–559, 2010.
+
+\bibitem[Trefethen(2000)]{trefethen2000spectral}
+Lloyd~N Trefethen.
+\newblock \emph{Spectral methods in MATLAB}, volume~10.
+\newblock Siam, 2000.
+
+\bibitem[Trillos and Slep{\v{c}}ev(2018)]{trillos2018variational}
+Nicolas~Garcia Trillos and Dejan Slep{\v{c}}ev.
+\newblock A variational approach to the consistency of spectral clustering.
+\newblock \emph{Applied and Computational Harmonic Analysis}, 45\penalty0
+  (2):\penalty0 239--281, 2018.
+
+\bibitem[Trillos et~al.(2020)Trillos, Gerlach, Hein, and
+  Slep{\v{c}}ev]{trillos2020error}
+Nicol{\'a}s~Garc{\'\i}a Trillos, Moritz Gerlach, Matthias Hein, and Dejan
+  Slep{\v{c}}ev.
+\newblock Error estimates for spectral convergence of the graph laplacian on
+  random geometric graphs toward the laplace--beltrami operator.
+\newblock \emph{Foundations of Computational Mathematics}, 20\penalty0
+  (4):\penalty0 827--887, 2020.
+
+\bibitem[Um et~al.(2020{\natexlab{a}})Um, Holl, Brand, Thuerey,
+  et~al.]{um2020solver}
+Kiwon Um, Philipp Holl, Robert Brand, Nils Thuerey, et~al.
+\newblock Solver-in-the-loop: Learning from differentiable physics to interact
+  with iterative {PDE}-solvers.
+\newblock \emph{arXiv preprint arXiv:2007.00016}, 2020{\natexlab{a}}.
+
+\bibitem[Um et~al.(2020{\natexlab{b}})Um, Raymond, Fei, Holl, Brand, and
+  Thuerey]{um2020solverintheloop}
+Kiwon Um, Raymond, Fei, Philipp Holl, Robert Brand, and Nils Thuerey.
+\newblock Solver-in-the-loop: Learning from differentiable physics to interact
+  with iterative {PDE}-solvers, 2020{\natexlab{b}}.
+
+\bibitem[Ummenhofer et~al.(2020)Ummenhofer, Prantl, Th{\"u}rey, and
+  Koltun]{ummenhofer2020lagrangian}
+Benjamin Ummenhofer, Lukas Prantl, Nils Th{\"u}rey, and Vladlen Koltun.
+\newblock Lagrangian fluid simulation with continuous convolutions.
+\newblock In \emph{International Conference on Learning Representations}, 2020.
+
+\bibitem[Vapnik(1998)]{Vapnik1998}
+Vladimir~N. Vapnik.
+\newblock \emph{Statistical Learning Theory}.
+\newblock Wiley-Interscience, 1998.
+
+\bibitem[Vaswani et~al.(2017)Vaswani, Shazeer, Parmar, Uszkoreit, Jones, Gomez,
+  Kaiser, and Polosukhin]{vaswani2017attention}
+Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones,
+  Aidan~N Gomez, \L~ukasz Kaiser, and Illia Polosukhin.
+\newblock Attention is all you need.
+\newblock In I.~Guyon, U.~V. Luxburg, S.~Bengio, H.~Wallach, R.~Fergus,
+  S.~Vishwanathan, and R.~Garnett, editors, \emph{Advances in Neural
+  Information Processing Systems}, volume~30. Curran Associates, Inc., 2017.
+
+\bibitem[Veli{\v{c}}kovi{\'c} et~al.(2017)Veli{\v{c}}kovi{\'c}, Cucurull,
+  Casanova, Romero, Lio, and Bengio]{velivckovic2017graph}
+Petar Veli{\v{c}}kovi{\'c}, Guillem Cucurull, Arantxa Casanova, Adriana Romero,
+  Pietro Lio, and Yoshua Bengio.
+\newblock Graph attention networks.
+\newblock 2017.
+
+\bibitem[Von~Luxburg et~al.(2008)Von~Luxburg, Belkin, and
+  Bousquet]{von2008consistency}
+Ulrike Von~Luxburg, Mikhail Belkin, and Olivier Bousquet.
+\newblock Consistency of spectral clustering.
+\newblock \emph{The Annals of Statistics}, pages 555--586, 2008.
+
+\bibitem[Wang et~al.(2020)Wang, Kashinath, Mustafa, Albert, and
+  Yu]{wang2020towards}
+Rui Wang, Karthik Kashinath, Mustafa Mustafa, Adrian Albert, and Rose Yu.
+\newblock Towards physics-informed deep learning for turbulent flow prediction.
+\newblock In \emph{Proceedings of the 26th ACM SIGKDD International Conference
+  on Knowledge Discovery \& Data Mining}, pages 1457--1466, 2020.
+
+\bibitem[Wang et~al.(2021)Wang, Wang, and Perdikaris]{wang2021learning}
+Sifan Wang, Hanwen Wang, and Paris Perdikaris.
+\newblock Learning the solution operator of parametric partial differential
+  equations with physics-informed deeponets.
+\newblock \emph{arXiv preprint arXiv:2103.10974}, 2021.
+
+\bibitem[Wen et~al.(2021)Wen, Li, Azizzadenesheli, Anandkumar, and
+  Benson]{wen2021u}
+Gege Wen, Zongyi Li, Kamyar Azizzadenesheli, Anima Anandkumar, and Sally~M
+  Benson.
+\newblock U-fno--an enhanced fourier neural operator based-deep learning model
+  for multiphase flow.
+\newblock \emph{arXiv preprint arXiv:2109.03697}, 2021.
+
+\bibitem[Whitney(1934)]{whitney1934functions}
+Hassler Whitney.
+\newblock Functions differentiable on the boundaries of regions.
+\newblock \emph{Annals of Mathematics}, 35\penalty0 (3):\penalty0 482--485,
+  1934.
+
+\bibitem[Williams(1996)]{Williams}
+Christopher K.~I. Williams.
+\newblock Computing with infinite networks.
+\newblock In \emph{Proceedings of the 9th International Conference on Neural
+  Information Processing Systems}, Cambridge, MA, USA, 1996. MIT Press.
+
+\bibitem[Zhu et~al.(2021)Zhu, Ping, Xiao, Shoeybi, Goldstein, Anandkumar, and
+  Catanzaro]{zhu2021long}
+Chen Zhu, Wei Ping, Chaowei Xiao, Mohammad Shoeybi, Tom Goldstein, Anima
+  Anandkumar, and Bryan Catanzaro.
+\newblock Long-short transformer: Efficient transformers for language and
+  vision.
+\newblock In \emph{Advances in Neural Information Processing Systems}, 2021.
+
+\bibitem[Zhu and Zabaras(2018)]{Zabaras}
+Yinhao Zhu and Nicholas Zabaras.
+\newblock Bayesian deep convolutional encoder–decoder networks for surrogate
+  modeling and uncertainty quantification.
+\newblock \emph{Journal of Computational Physics}, 2018.
+\newblock ISSN 0021-9991.
+\newblock \doi{https://doi.org/10.1016/j.jcp.2018.04.018}.
+\newblock URL
+  \url{http://www.sciencedirect.com/science/article/pii/S0021999118302341}.
+
+\end{thebibliography}

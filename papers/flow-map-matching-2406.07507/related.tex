@@ -1,0 +1,57 @@
+\section{Related Work}
+\label{sec:related}
+%
+\paragraph{Dynamical transport of measure.}
+Our approach is built upon the modern perspective of generative modeling based on dynamical transport of measure.
+%
+Grounded in the theory of optimal transport~\citep{villani2009optimal, benamou2000computational, santambrogio2015optimal}, these models originate at least with~\citep{tabak_density_2010, tabak2013}, but have been further developed by the machine learning community in recent years~\citep{rezende_variational_2015, dinh_density_2017, grathwohl_ffjord, chen_neural_2019}.
+%
+A breakthrough in this area originated with the appearance of score-based diffusion models~\citep{song2020score, song_improved_2020, song_generative_2020}, along with related denoising diffusion probabilistic models~\citep{ho2020denoising, sohldickstein2015deep}.
+%
+These methods generate samples by learning to time-reverse a stochastic differential equation with stationary density given by a Gaussian.
+%
+More recent approaches such as flow matching~\citep{lipman2022flow}, rectified flow~\citep{liu2022flow, liu2022let}, and stochastic interpolants~\citep{albergo2022building, albergo2023stochastic, ma_sit_2024, chen_probabilistic_2024} similarly construct connections between the base density and the target, but allow for arbitrary base densities and provide a greater degree of flexibility in the construction of the connection.
+
+\paragraph{Reducing simulation costs.}
+%
+There has been significant recent interest in reducing the cost associated with solving an ODE or an SDE for a generative model based on dynamical measure transport.
+%
+One such approach, pioneered by rectification~\citep{liu2022flow, liu2022let}, is to try to straighten the paths of the probability flow, so as to enable more efficient adaptive integration.
+%
+In the limit of optimal transport, the paths become straight lines and the integration can be performed in a single step.
+%
+A second approach is to introduce \textit{couplings} between the base and the target, such as by computing the optimal transport over a minibatch~\citep{pooladian2023multisample, tong_improving_2023}, or by using data-dependent couplings~\citep{albergo_stochastic_dd_2023}, which can simplify both training and sampling.
+%
+A third approach has been to design hand-crafted numerical solvers tailored for diffusion models~\citep{karras_elucidating_2022, zhang_fast_2023, jolicoeur-martineau_gotta_2021, liu_pseudo_2022, lu_dpm-solver_nodate}, or to learn these solvers directly~\citep{watson_learning_2021, watson_learning_2022, nichol_improved_2021} to maximize efficiency.
+%
+\textit{Instead, we propose to learn the flow map directly, which avoids estimating optimal transport maps and can overcome the inherent limitations of numerical integration.}
+
+\paragraph{Consistency models.}
+%
+Most related to our approach are the classes of one-step models based on \textit{distillation} or \textit{consistency}; we give an explicit mapping between these techniques and our own in~\cref{sec:app:relation}.
+%
+Consistency models~\citep{song_consistency_2023} have been introduced as a new class of generative models that can either be distilled from a pre-trained diffusion model or trained directly, and are related to several notions of \textit{consistency} of the score model that have appeared in the literature~\citep{lai_equivalence_2023, lai_improving_2023, shen_self-consistency_2022, boffi_probability_2023, daras_consistent_2023}.
+%
+These models learn a one-step map from noise to data, and can be seen as learning a single-time flow map.
+%
+While they can perform very well, consistency models do not benefit from multistep sampling, and exhibit training difficulties that mandate delicate hyperparameter tuning~\citep{song_improved_2023}.
+%
+By contrast, we learn a two-time flow map, which enables us to smoothly benefit from multistep sampling.
+
+\paragraph{Extensions of consistency models.}
+%
+Consistency trajectory models~\citep{kim_consistency_2024} were later introduced to improve multistep sampling and to enable the student to surpass the performance of the teacher.
+%
+Similar to our approach, these models learn a two-time flow map, but do so using a very different loss that incorporates challenging adversarial training.
+%
+Generalized consistency trajectory models~\citep{kim_generalized_2024} extend this approach to the stochastic interpolant setting, but use the consistency trajectory loss, and do not introduce the Lagrangian perspective considered here.
+%
+Bidirectional consistency models~\citep{li_bidirectional_2024} learn a two-time invertible flow map similar to our method, but do so in the score-based diffusion setting, and do not leverage our Lagrangian approach; all of these existing consistency models can be seen as a special case of our formalism.
+
+\paragraph{Progressive and operator distillation.}
+%
+Neural operator approaches~\citep{zheng_fast_2023} learn a one-time flow map from noise to data, but do so by first generating a dataset of trajectories from the probability flow.
+%
+Progressive distillation~\citep{salimans_progressive_2022} and knowledge distillation~\citep{luhman_knowledge_2021} techniques aim to convert a diffusion model into an equivalent model with fewer samples by matching several steps of the original diffusion model.
+%
+These approaches are related to our flow map distillation scheme, though the object we distill is fundamentally different.

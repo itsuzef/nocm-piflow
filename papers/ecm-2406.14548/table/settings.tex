@@ -1,0 +1,55 @@
+
+\begin{table}[t]
+\centering
+\caption{Model Configurations and Training Details for unconditional and class-conditional ECMs on CIFAR-10, and ECM-S/M/L/XL on \imgnet.}
+\vspace{3pt}
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{lcccccc}
+\toprule
+\multirow{2}{*}{\textbf{Model Setups}} & \multirow{2}{*}{Uncond CIFAR-10}  & \multirow{2}{*}{Cls-Cond CIFAR-10} & \multicolumn{4}{c}{\imgnet} \\
+ \cmidrule(lr){4-7}
+ &  &  & ECM-S & ECM-M & ECM-L & ECM-XL \\
+\midrule
+Model Channels  & $128$ & $128$ & $192$ & $256$ & $320$ & $384$ \\
+Model capacity (Mparams) & $55.7$ & $55.7$ & $280.2$ & $497.8$ & $777.5$ & $1119.3$ \\
+Model complexity (GFLOPs) & $21.3$ & $21.3$ & $101.9$ & $180.8$ & $282.2$ & $405.9$ \\
+\midrule
+\multicolumn{7}{l}{\textbf{Training Details}}\\
+\midrule
+Training Duration (Mimg) & $12.8$ & $12.8$ & $12.8$ & $12.8$ & $12.8$ & $12.8$ \\
+Minibatch size  & $128$   & $128$  & $128$ & $128$   & $128$    & $128$ \\
+Iterations  & $100$k & $100$k  & $100$k & $100$k   & $100$k    & $100$k \\
+Dropout probability & $20\%$ & $20\%$ & $40\%$ & $50\%$ & $50\%$ & $50\%$   \\
+Dropout feature resolution & - & - & $\leq 16\times16$ & $\leq 16\times16$ & $\leq 16\times16$ & $\leq 16\times16$ \\
+Optimizer & RAdam & RAdam & Adam & Adam & Adam & Adam \\
+Learning rate max ($\alpha_{\text{ref}}$) & $0.0001$ & $0.0001$ & $0.0010$ & $0.0009$ & $0.0008$ & $0.0007$ \\
+Learning rate decay ($t_{\text{ref}}$) & - & - & $2000$ & $2000$ & $2000$ & $2000$ \\
+EMA beta    & $0.9999$ & $0.9999$ & - & - & - & - \\
+\midrule
+\multicolumn{7}{l}{\textbf{Training Cost}}\\
+\midrule
+Number of GPUs  & $1$ & $1$ & $4$ & $8$ & $8$ & $8$ \\
+GPU types       & A6000 & A6000 & H100 & H100 & H100 & H100 \\
+Training time (hours) & $24$ & $24$ & $8.5$ & $8.5$ & $12$ & $15$ \\
+\midrule
+\multicolumn{7}{l}{\textbf{Generative Performance}} \\
+\midrule
+$1$-step FID         &  4.54  &  3.81  &  5.51  &  3.67  &  3.55  &  3.35   \\
+$2$-step FID         &  2.20  &  2.02  &  3.18  &  2.35  &  2.14  &  1.96   \\
+\midrule
+\multicolumn{7}{l}{\textbf{ECT Details}} \\
+\midrule
+Regular Weighting ($\Bar{w}(t)$) & $\nicefrac{1}{(t-r)}$ & $\nicefrac{1}{(t-r)}$ & $\nicefrac{1}{t^2}+\nicefrac{1}{\sigma_{\text{data}}^2}$ & $\nicefrac{1}{t^2}+\nicefrac{1}{\sigma_{\text{data}}^2}$ & $\nicefrac{1}{t^2}+\nicefrac{1}{\sigma_{\text{data}}^2}$ & $\nicefrac{1}{t^2}+\nicefrac{1}{\sigma_{\text{data}}^2}$ \\
+Adaptive Weighting ($w(\Delta)$) & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark \\
+Adaptive Weighting Smoothing ($c$) & $0.0$ & $0.0$ & $0.06$ & $0.06$ & $0.06$ & $0.06$ \\
+Noise distribution mean ($P_{\text{mean}}$) & $-1.1$ & $-1.1$ & $-0.8$ & $-0.8$ & $-0.8$ & $-0.8$ \\
+Noise distribution std ($P_{\text{std}}$) & $2.0$ & $2.0$ & $1.6$ & $1.6$ & $1.6$ & $1.6$ \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\label{tab:experimental-config}
+\end{table}
+\vspace{0.3cm}
+
+
+

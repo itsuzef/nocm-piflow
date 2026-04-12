@@ -1,0 +1,157 @@
+\section{Discrete-time Consistency Models with Improved Training Objectives}
+\label{appendix:discrete-trigflow}
+
+Note that the improvements proposed in Sec.~\ref{sec:stabilizing} can also be applied to discrete-time consistency models (CMs). In this section, we discuss the improved version of discrete-time CMs for consistency distillation.
+
+\subsection{Parameterization and Training Objective}
+
+\textbf{Parameterization. }
+We also parameterize the CM by TrigFlow:
+\[
+\f_\theta(\x_t,t) = \cos(t)\x_t - \sigma_d \sin(t) \F_\theta\left(\frac{\x_t}{\sigma_d}, t\right).
+\]
+And we denote the pretrained teacher diffusion model as $\frac{\dm \x_t}{\dm t} = \F_{\text{pretrain}}(\frac{\x_t}{\sigma_d}, t)$.
+
+\textbf{Reference sample by DDIM. }
+Assume we sample $\x_0\sim p_d$, $\z \sim \gN(\vzero, \sigma_d^2\mI)$, and $\x_t = \cos(t)\x_0 + \sin(t)\z$, we need a reference sample $\x_{t'}$ at time $t' < t$ to guide the training of the CM, which can be obtained by one-step DDIM from $t$ to $t'$:
+\[
+\x_{t'} = \cos(t-t')\x_t - \sigma_d\sin(t-t')\Fpre \left( \frac{\x_t}{\sigma_d}, t \right).
+\]
+Thus, the output of the consistency model at time $t'$ is
+\begin{equation}
+\label{eq:appendix:f_t_reference}
+\f_{\theta^-}(\x_{t'},t')=\cos(t')\cos(t-t')\x_t-\sigma_d\cos(t')\sin(t-t')\Fpre\left(\frac{\x_t}{\sigma_d},t\right)-\sigma_d\sin(t')\F_{\theta^-}\left(\frac{\x_{t'}}{\sigma_d},t'\right).
+\end{equation}
+
+\textbf{Original objective of discrete-time CMs. }
+The consistency model at time $t$ can be rewritten into
+\begin{equation}
+\label{eq:appendix:f_t}
+\begin{aligned}
+\f_{\theta^-}(\x_t,t)&=\cos(t)\x_t-\sigma_d\sin(t)\F_{\theta^-}\left(\frac{\x_t}{\sigma_d},t\right)\\
+&=(\cos(t')\cos(t-t')-\sin(t')\sin(t-t'))\x_t\\
+&\quad -\sigma_d(\sin(t-t')\cos(t')+\cos(t-t')\sin(t'))\F_{\theta^-}\left(\frac{\x_t}{\sigma_d},t\right)
+\end{aligned}
+\end{equation}
+Therefore, by computing the difference between \eqref{eq:appendix:f_t_reference} and \eqref{eq:appendix:f_t}, we define
+\begin{equation}
+\label{eq:appendix_delta_trigflow}
+\begin{split}
+    \Delta_{\theta^-}(\x_t,t,t') &\coloneqq \frac{\f_{\theta^-}(\x_t,t) - \f_{\theta^-}(\x_{t'},t')}{\sin(t-t')} \\
+    &= -\cos(t')\Big(\sigma_d \F_{\theta^-}\left(\frac{\x_t}{\sigma_d},t\right)-\underbrace{\sigma_d \Fpre\left(\frac{\x_t}{\sigma_d},t\right)}_{\frac{\dm \x_t}{\dm t}}\Big)\\
+&\quad -\sin(t')\Big(\x_t+\underbrace{\frac{\sigma_d\cos(t-t')\F_{\theta^-}\left(\frac{\x_t}{\sigma_d},t\right)-\sigma_d \F_{\theta^-}\left(\frac{\x_{t'}}{\sigma_d},t'\right)}{\sin(t-t')}}_{\approx \sigma_d\frac{\dm \F_{\theta^{-}}}{\dm t}}\Big).
+\end{split}
+\end{equation}
+Comparing to \eqref{eq:df_dt_trigflow}, it is easy to see that $\lim_{t'\to t}\Delta_{\theta^-}(\x_t,t,t') = \frac{\dm \f_{\theta^-}}{\dm t}(\x_t,t)$. Moreover, when using $d(\x,\y)=\|\x-\y\|_2^2$, and $\Delta t = t -t'$, the training objective of discrete-time CMs in \eqref{eq:consistency_objective} becomes
+\[
+\E_{\x_t,t}\left[
+w(t)\|\f_\theta(\x_t,t) - \f_{\theta^-}(\x_{t-\Delta t}, t-\Delta t)\|_2^2
+\right],
+\]
+which has the gradient of
+\begin{equation}
+\label{eq:appendix:discrete_objective_original}
+\begin{aligned}
+&\phantom{{}={}}\E_{\x_t,t}\left[
+w(t)\nabla_\theta \f^\top_\theta(\x_t,t)\left(\f_{\theta^-}(\x_t,t) - \f_{\theta^-}(\x_{t-\Delta t}, t-\Delta t)\right)
+\right] \\
+&= \nabla_{\theta}\E_{\x_t,t}\left[
+-w(t)\sin(t-t')\f^\top_\theta(\x_t,t) \Delta_{\theta^-}(\x_t, t,t')
+\right] \\
+&= \nabla_{\theta}\E_{\x_t,t}\left[
+w(t)\sin(t-t')\sin(t)\F^\top_\theta(\x_t,t) \Delta_{\theta^-}(\x_t, t,t')
+\right]
+\end{aligned}
+\end{equation}
+
+\textbf{Adaptive weighting for discrete-time CMs. }
+Inspired by the continuous-time consistency models, we can also apply the adaptive weighting technique into discrete-time training objectives in \eqref{eq:appendix:discrete_objective_original}. Specifically, since $\Delta_{\theta^-}(\x_t,t,t')$ is a first-order approximation of $\frac{\dm\f_{\theta^-}}{\dm t}(\x_t,t)$, we can directly replace the tangent in \eqref{eq:objective_ctcm} with $\Delta_{\theta^-}(\x_t,t,t')$, and obtain the improved objective of discrete-time CMs by:
+\begin{equation}
+\label{eq:appendix:discrete_adaptive_weighting}
+    \mathcal{L}_{\text{sCM}}(\theta,\phi) \!\coloneqq\! \E_{\x_t,t}\left[\!
+    \frac{e^{w_\phi(t)}}{D}\left\|
+        \F_\theta\left(\frac{\x_t}{\sigma_d},t\right) - \F_{\theta^-}\left(\frac{\x_t}{\sigma_d},t\right)
+        - \cos(t)\Delta_{\theta^-}(\x_t,t,t')
+    \right\|_2^2 - w_\phi(t)
+    \right],
+\end{equation}
+where $w_\phi(t)$ is the adaptive weighting network.
+
+\textbf{Tangent normalization for discrete-time CMs. }
+We apply the simliar tangent normalization method as continuous-time CMs by defining
+\[
+\vg_{\theta^-}(\x_t,t,t') \coloneqq \frac{\cos(t)\Delta_{\theta^-}(\x_t,t,t')}{\|\cos(t)\Delta_{\theta^-}(\x_t,t,t')\| + c},
+\]
+where $c>0$ is a hyperparameter, and then the objective in \eqref{eq:appendix:discrete_adaptive_weighting} becomes
+\[
+    \mathcal{L}_{\text{sCM}}(\theta,\phi) \!\coloneqq\! \E_{\x_t,t}\left[\!
+    \frac{e^{w_\phi(t)}}{D}\left\|
+        \F_\theta\left(\frac{\x_t}{\sigma_d},t\right) - \F_{\theta^-}\left(\frac{\x_t}{\sigma_d},t\right)
+        - \vg_{\theta^-}(\x_t,t,t')
+    \right\|_2^2 - w_\phi(t)
+    \right],
+\]
+
+\textbf{Tangent warmup for discrete-time CMs. }
+We replace the $\Delta_{\theta^-}(\x_t,t,t')$ with the warmup version:
+\begin{equation*}
+\begin{split}
+    \Delta_{\theta^-}(\x_t,t,t',r) &= -\cos(t')\left(\sigma_d \F_{\theta^-}\left(\frac{\x_t}{\sigma_d},t\right)-\sigma_d \Fpre\left(\frac{\x_t}{\sigma_d},t\right)\right)\\
+&\quad -r\cdot \sin(t')\left(\x_t+\frac{\sigma_d\cos(t-t')\F_{\theta^-}\left(\frac{\x_t}{\sigma_d},t\right)-\sigma_d \F_{\theta^-}\left(\frac{\x_{t'}}{\sigma_d},t'\right)}{\sin(t-t')}\right),
+\end{split}
+\end{equation*}
+where $r$ linearly increases from $0$ to $1$ over the first 10k training iterations.
+
+We provide the detailed algorithm of discrete-time sCM (\textbf{dsCM}) in \Cref{alg:discrete-sCM}, where we refer to consistency distillation of discrete-time sCM as \textbf{dsCD}.
+
+\begin{algorithm}[H]
+\caption{Simplified and Stabilized Discrete-time Consistency Distillation (dsCD).}\label{alg:discrete-sCM}
+\centering
+\begin{algorithmic}
+\State \textbf{Input:} dataset $\gD$ with std. $\sigma_d$, pretrained diffusion model $\F_{\text{pretrain}}$ with parameter $\theta_{\text{pretrain}}$, model $\F_\theta$, weighting $w_\phi$, learning rate $\eta$, proposal ($P_{\text{mean}}, P_{\text{std}}$), constant $c$, warmup iteration $H$.
+\State \textbf{Init:} $\theta \gets \theta_{\text{pretrain}}$, $\text{Iters}\gets 0$.
+\Repeat
+    \State $\x_0\sim \gD$, $\z\sim \gN(\vzero,\sigma_d^2\mI)$, $\tau \sim \gN(P_{\text{mean}}, P^2_{\text{std}})$, $t \gets \arctan(\frac{e^\tau}{\sigma_d})$, $\x_t \gets \cos(t)\x_0 + \sin(t)\z$
+    \State $\x_{t'} \gets \cos(t-t')\x_t - \sigma_d\sin(t-t')\Fpre \left( \frac{\x_t}{\sigma_d}, t \right)$
+    \State $r \gets \min(1, \text{Iters} / H)$ \Comment{Tangent warmup}
+    \State $\vg \gets \cos(t)\Delta_{\theta^-}(\x_t,t,t',r)$  \Comment{JVP rearrangement}
+    \State $\vg \gets \vg / (\|\vg\| + c)$ \Comment{Tangent normalization}
+    \State $\gL(\theta,\phi) \gets \frac{e^{w_\phi(t)}}{D}\|
+        \F_\theta(\frac{\x_t}{\sigma_d},t) - \F_{\theta^-}(\frac{\x_t}{\sigma_d},t)
+        - \vg
+    \|_2^2 - w_\phi(t)$ \Comment{Adaptive weighting}
+    \State $(\theta, \phi) \gets (\theta, \phi) - \eta \nabla_{\theta,\phi}\gL(\theta,\phi)$
+    \State $\text{Iters}\gets \text{Iters} + 1$
+\Until convergence
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Experiments of Discrete-time sCM}
+We use the algorithm in \Cref{alg:discrete-sCM} to train discrete-time sCM, where we split $[0, \frac{\pi}{2}]$ into $N$ intervals by EDM sampling spacing. Specifically, we first obtain the EDM time step by $\sigma_i = (\sigma_{\text{min}}^{1/\rho} + \frac{i}{M}(\sigma_{\text{max}}^{1/\rho} - \sigma_{\text{min}}^{1/\rho}))^\rho$ with $\rho=7,\sigma_{\text{min}}=0.002$ and $\sigma_{\text{max}}=80$, and then obtain $t_i = \arctan(\sigma_i/\sigma_d)$ and set $t_0=0$. During training, we sample $t$ with a discrete categorical distribution that splits the log-normal proposal distribution as used in continuous-time sCM, similar to \citet{song2023ict}. 
+
+As demonstrated in \figref{fig:main:ablations}(c), increasing the number of discretization steps $N$ in discrete-time CMs improves sample quality by reducing discretization errors, but obviously degrades once $N$ becomes too large (after $N>1024$) to suffer from numerical precision issues. By contrast, continuous-time CMs significantly outperform discrete-time CMs across all $N$'s which provides strong justification for choosing continuous-time CMs over discrete-time counterparts. 
+
+
+\subsection{Comparison with ECT}
+
+We compare the 1-step sampling FID scores at different training iterations between ECT~\citep{geng2024ect} and sCT on CIFAR-10. As shown in \Cref{tab:appendix:result_ect}, our proposed sCT significantly outperforms ECT during the training, demonstrating the effectiveness of the compute efficiency and faster convergence of sCT.
+
+For fair comparison, we use the same network architecture with ECT on CIFAR-10, which is the DDPM++ network proposed by \citet{ho2020ddpm} and does not have AdaGN layer, and use the same dropout rate of 0.20 as ECT, and use the same batch size (128) as ECT (which is different from our default setting of 512 in our reported results in \Cref{tab:cifar_in64}). We choose $P_{\text{mean}}=-1.0$ and $P_{\text{std}}=1.8$ for sCT, and use TrigFlow parameterization (with $c_{\text{noise}}=t$). All the other hyperparameters are the same as the experiments in \Cref{tab:cifar_in64}.
+
+\begin{table}[ht]
+    \centering
+    \caption{\small{Sample quality measured by FID score ($\downarrow$) of ECT~\citep{geng2024ect} and sCT at different training iterations on CIFAR-10.}}
+    \label{tab:appendix:result_ect}
+    \small{
+    \begin{tabular}{|l|ccc|} %
+        \hline %
+         Training Iterations & 100k & 200k & 400k \\
+        \hline
+        ECT & 4.54 & 3.86 & 3.60 \\
+        \hline
+        sCT (ours) & \textbf{3.97} & \textbf{3.51} & \textbf{3.09} \\
+        \hline
+        
+    \end{tabular}%
+    }
+\end{table}

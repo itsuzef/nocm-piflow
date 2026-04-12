@@ -1,0 +1,312 @@
+\section{Experiment Settings and Results}
+\label{appendix:exp}
+
+
+\subsection{TrigFlow for Diffusion Models}
+\label{appendix:exp:trigflow_diffusion}
+
+We train the teacher diffusion models on CIFAR-10, ImageNet 64$\times$64 and ImageNet 512$\times$512 with the proposed improvements of parameterization and architecture, including TrigFlow parameterization, positional time embedding and adaptive double normalization layer. We list the detailed settings below.
+
+\textbf{CIFAR-10. }
+Our architecture is based on the Score SDE~\citep{song2020score} architecture (DDPM++). We use the same settings of EDM~\citep{karras2022edm}: dropout rate is 0.13, batch size is 512, number of training iterations is 400k, learning rate is 0.001, Adam $\epsilon=10^{-8}$, $\beta_1=0.9$, $\beta_2=0.999$. We use 2nd-order single-step DPM-Solver~\citep{lu2022dpm} (DPM-Solver-2S) with Heun's intermediate time step with 18 steps (NFE=35), which is exactly equivalent to EDM Heun's sampler. We obtain FID of 2.15 for the teacher model.
+
+\textbf{ImageNet 64$\times$64. }
+We preprocess the ImageNet dataset following \citet{diffusion_beat_gan} by
+\begin{enumerate}
+    \item Resize the shorter width / height to $64\times64$ resolution with bicubic interpolation.
+    \item Center crop the image.
+    \item Disable data augmentation such as horizontal flipping.
+\end{enumerate}
+Except for the TrigFlow parameterization, positional time embedding and adaptive double normalization layer, we follow exactly the same setting in EDM2 config G~\citep{karras2024edm2} to train models with sizes of S, M, L, and XL, while the only difference is that we use Adam $\epsilon=10^{-11}$.
+
+\textbf{ImageNet 512$\times$512. }
+We preprocess the ImageNet dataset following \citet{diffusion_beat_gan} and \citet{karras2024edm2} by
+\begin{enumerate}
+    \item Resize the shorter width / height to $512\times512$ resolution with bicubic interpolation.
+    \item Center crop the image.
+    \item Disable data augmentation such as horizontal flipping.
+    \item Encode the images into latents by stable diffusion VAE\footnote{\url{https://huggingface.co/stabilityai/sd-vae-ft-mse}}~\citep{rombach2022high,diffuser}, and rescale the latents by channel mean $\mu_c=[1.56, -0.695, 0.483, 0.729]$ and channel std $\sigma_c=[5.27, 5.91, 4.21, 4.31]$. We keep the $\sigma_d=0.5$ as in EDM2~\citep{karras2024edm2}, so for each latent we substract $\mu_c$ and multiply it by $\sigma_d / \sigma_c$.
+\end{enumerate}
+When sampling from the model, we redo the scaling of the generated latents and then run the VAE decoder. Notably, our channel mean and channel std are different from those in EDM2~\citep{karras2024edm2}. It is because when training the VAE, the images are normalized to $[-1, 1]$ before passing to the encoder. However, the channel mean and std used in EDM2 assumes the input images are in $[0, 1]$ range, which mismatches the training phase of the VAE. We empirically find that it is hard to distinguish the reconstructed samples by human eyes of these two different normalization, while it has non-ignorable influence for training diffusion models evaluated by FID. After fixing this mismatch, our diffusion model slightly outperforms the results of EDM2 at larger scales (XL and XXL). More results are provided in \Cref{tab:appendix:result_in512}.
+
+Except for the TrigFlow parameterization, positional time embedding and adaptive double normalization layer, we follow exactly the same setting in EDM2 config G~\citep{karras2024edm2} to train models with sizes of S, M, L, XL and XXL, while the only difference is that we use Adam $\epsilon=10^{-11}$. We enable label dropout with rate $0.1$ to support classifier-free guidance. We use 2nd-order single-step DPM-Solver~\citep{lu2022dpm} (DPM-Solver-2S) with Heun's intermediate time step with 32 steps (NFE=63), which is exactly equivalent to EDM Heun's sampler. We find that the optimal guidance scale for classifier-free guidance and the optimal EMA rate are also the same as EDM2 for all model sizes.
+
+
+\subsection{Continuous-time Consistency Models}
+In all experiments, we use $c=0.1$ for tangent normalization, and use $H=10000$ for tangent warmup. We always use the same batch size as the teacher diffusion training, which is different from \citet{song2023ict}. During sampling, we start at $t_{\text{max}}=\arctan\left(\frac{\sigma_{\text{max}}}{\sigma_d}\right)$ with $\sigma_{\text{max}}=80$ such that it matches the starting time of EDM~\citep{karras2022edm} and EDM2~\citep{karras2024edm2}. For 2-step sampling, we use the algorithm in \citet{song2023cm} with an intermediate $t=1.1$ for all the experiments. We always initialize the CM from the EMA parameters of the teacher diffusion model. For sCD, we always use the $\F_{\text{pretrain}}$ of the teacher diffusion model with its EMA parameters during distillation.
+
+We empirically find that the proposal distribution should have small $P_{\text{mean}}$, i.e. close to the clean data, to ensure the training stability and improve the final performance. Intuitively, this is because the training signal of CMs only come from the clean data, so we need to reduce the training error for $t$ near to $0$ to further reduce the accumulation errors.
+
+\textbf{CIFAR-10. }
+For both sCT and sCD, we initialize from the teacher diffusion model trained with the settings in \Cref{appendix:exp:trigflow_diffusion}, and use RAdam optimizer~\citep{liu2019radam} with learning rate of $0.0001$, $\beta_1=0.9$, $\beta_2=0.99$, $\epsilon=10^{-8}$, and without learning rate schedulers.  proposal distribution of $P_{\text{mean}}=-1.0, P_{\text{std}}=1.4$. For the attention layers, we use the implementation in \citep{karras2022edm} which naturally supports JVP by PyTorch~\citep{paszke2019pytorch} auto-grad. We use EMA half-life of $0.5$ Mimg~\citep{karras2022edm}. We use dropout rate of $0.20$ for sCT and disable dropout for sCD.
+
+\textbf{ImageNet 64$\times$64. }
+We only enable dropout at the resolutions equal to or less than $16$, following Simple Diffusion~\citep{hoogeboom2023simple} and iCT~\citep{song2023ict}. We multiply the learning rate of the teacher diffusion model by $0.01$ for both sCT and sCD. We train the model with half precision (FP16), and use the flash attention jvp proposed in \Cref{appendix:flash_attn_jvp} for computing the tangents of flash attention layers. Other training settings are the same as the teacher diffusion models. More details of training and sampling are provided in \Cref{tab:appendix:setting_in64} and \Cref{tab:appendix:result_in64}. During sampling, we always use EMA length $\sigma_{\text{rel}}=0.05$ for sampling from CMs.
+
+\textbf{ImageNet 512$\times$512. }
+We only enable dropout at the resolutions equal to or less than $16$, following Simple Diffusion~\citep{hoogeboom2023simple} and iCT~\citep{song2023ict}. We multiply the learning rate of the teacher diffusion model by $0.01$ for both sCT and sCD. We train the model with half precision (FP16), and use the flash attention jvp proposed in \Cref{appendix:flash_attn_jvp} for computing the tangents of flash attention layers. Other training settings are the same as the teacher diffusion models. More details of training and sampling are provided in \Cref{tab:appendix:setting_in512} and \Cref{tab:appendix:result_in512}. During sampling, we always use EMA length $\sigma_{\text{rel}}=0.05$ for sampling from CMs.
+
+We add an additional input in $\F_\theta(\frac{\x_t}{\sigma_d},t,s)$ where $s$ represents the CFG guidance scale of the teacher model, where $s$ is embedded by positioinal embedding layer and an additional linear layer, and the embedding is added to the embedding of $t$, similar to the label conditioning. During training, we uniformly sample $s\in[1,2]$ and apply CFG with guidance scale $s$ to the teacher diffusion model to get $\Fpre$.
+
+\textbf{VSD experiments. }
+We do not use EMA for $\F_\phi$ in VSD, instead we always use the original model for $\F_\phi$ for stabilizing the training. The learning rate of $\F_\phi$ is the same as the learning rate of CMs. More details and results are provided in \Cref{tab:appendix:setting_in512,tab:appendix:result_in512,tab:apppendix:ablation_vsd}.
+
+
+\begin{table}[t]
+    \centering
+    \caption{\small{Training settings of all models and training algorithms on ImageNet 64$\times$64 dataset.}}
+    \label{tab:appendix:setting_in64}
+    \small{
+    \begin{tabular}{|l|cccc|} %
+        \hline %
+         & \multicolumn{4}{c|}{Model Size} \\
+         & S & M & L & XL \\
+        \hline
+        \multicolumn{1}{|l@{}}{\textbf{Model details}} & & & & \\
+        \hline
+        Batch size & 2048 & 2048 & 2048 & 2048 \\ 
+        Channel multiplier & 192 & 256 & 320 & 384 \\ 
+        Time embedding layer & positional& positional& positional& positional \\
+        noise conditioning $\cnoise(t)$ & $t$& $t$& $t$& $t$\\
+        adaptive double normalization & \checkmark& \checkmark& \checkmark& \checkmark\\
+        Learning rate decay ($t_{\text{ref}}$) & 35000 & 35000 & 35000 & 35000 \\
+        Adam $\beta_1$ & 0.9& 0.9& 0.9& 0.9 \\
+        Adam $\beta_2$ & 0.99& 0.99& 0.99& 0.99\\
+        Adam $\epsilon$ & 1.0e-11 & 1.0e-11 & 1.0e-11 & 1.0e-11 \\
+        Model capacity (Mparams) & 280.2 & 497.8 & 777.6 & 1119.4 \\ 
+        \hline
+        \multicolumn{2}{|l@{}}{\textbf{Training details of diffusion models (TrigFlow) }} & & &  \\ \hline
+        Training iterations & 1048k & 1486k & 761k & 540k \\
+        Learning rate max ($\alpha_{\text{ref}}$) & 1.0e-2 & 9.0e-3 & 8.0e-3 & 7.0e-3 \\
+        Dropout probability & 0\% & 10\% & 10\% & 10\% \\
+        Proposal $P_{\text{mean}}$ & -0.8 & -0.8 & -0.8 & -0.8 \\
+        Proposal $P_{\text{std}}$. & 1.6 & 1.6 & 1.6 & 1.6 \\
+        \hline
+        \multicolumn{1}{|l@{}}{\textbf{Shared details of consistency models}} & & & &  \\ \hline
+        Learning rate max ($\alpha_{\text{ref}}$) & 1.0e-4 & 9.0e-5 & 8.0e-5 & 7.0e-5 \\
+        Proposal $P_{\text{mean}}$ & -1.0 & -1.0& -1.0& -1.0\\
+        Proposal $P_{\text{std}}$. & 1.6& 1.6& 1.6& 1.6\\
+        Tangent normalization constant ($c$) & 0.1& 0.1& 0.1& 0.1\\
+        Tangent warm up iterations & 10k & 10k& 10k& 10k\\
+        EMA length ($\sigma_{\text{rel}}$) of pretrained diffusion & 0.075 & 0.06 & 0.04 & 0.04 \\ 
+        \hline
+        \multicolumn{5}{|l@{}}{\textbf{Training details of {\ct}}}  \\ \hline
+        Training iterations & 400k & 400k& 400k& 400k\\
+        Dropout probability for resolution $\leq 16$ & 45\% & 45\% & 45\% & 45\% \\
+        \hline
+        \multicolumn{2}{|l@{}}{\textbf{Training details of {\cd}}} & &  &  \\ \hline
+        Training iterations & 400k & 400k& 400k& 400k\\
+        Dropout probability for resolution $\leq 16$ & 0\%& 0\%& 0\%& 0\%\\
+        \hline
+    \end{tabular}%
+    }
+\end{table}
+
+
+\begin{table}[t]
+    \centering
+    \caption{\small{Training settings of all models and training algorithms on ImageNet 512$\times$512 dataset.}}
+    \label{tab:appendix:setting_in512}
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{|l|ccccc|} %
+        \hline %
+         & \multicolumn{5}{c|}{Model Size} \\
+         & S & M & L & XL & XXL \\
+        \hline
+        \multicolumn{1}{|l@{}}{\textbf{Model details}} & & & & & \\
+        \hline
+        Batch size & 2048 & 2048 & 2048 & 2048 & 2048 \\ 
+        Channel multiplier & 192 & 256 & 320 & 384 & 448 \\ 
+        Time embedding layer & positional& positional& positional& positional& positional \\
+        noise conditioning $\cnoise(t)$ & $t$& $t$& $t$& $t$& $t$\\
+        adaptive double normalization & \checkmark& \checkmark& \checkmark& \checkmark& \checkmark\\
+        Learning rate decay ($t_{\text{ref}}$) & 70000 & 70000 & 70000 & 70000 & 70000 \\
+        Adam $\beta_1$ & 0.9& 0.9& 0.9& 0.9& 0.9 \\
+        Adam $\beta_2$ & 0.99& 0.99& 0.99& 0.99& 0.99 \\
+        Adam $\epsilon$ & 1.0e-11 & 1.0e-11 & 1.0e-11 & 1.0e-11 & 1.0e-11 \\
+        Model capacity (Mparams) & 280.2 & 497.8 & 777.6 & 1119.4 & 1523.4 \\ 
+        \hline
+        \multicolumn{2}{|l@{}}{\textbf{Training details of diffusion models (TrigFlow) }} & & & &  \\ \hline
+        Training iterations & 1048k & 1048k & 696k & 598k & 376k \\
+        Learning rate max ($\alpha_{\text{ref}}$) & 1.0e-2 & 9.0e-3 & 8.0e-3 & 7.0e-3 & 6.5e-3 \\
+        Dropout probability & 0\% & 10\% & 10\% & 10\% & 10\% \\
+        Proposal $P_{\text{mean}}$ & -0.4 & -0.4 & -0.4 & -0.4 & -0.4 \\
+        Proposal $P_{\text{std}}$. & 1.0 & 1.0 & 1.0 & 1.0 & 1.0 \\
+        \hline
+        \multicolumn{1}{|l@{}}{\textbf{Shared details of consistency models}} & & & & &  \\ \hline
+        Learning rate max ($\alpha_{\text{ref}}$) & 1.0e-4 & 9.0e-5 & 8.0e-5 & 7.0e-5 & 6.5e-5 \\
+        Proposal $P_{\text{mean}}$ & -0.8 & -0.8& -0.8& -0.8& -0.8 \\
+        Proposal $P_{\text{std}}$. & 1.6& 1.6& 1.6& 1.6& 1.6\\
+        Tangent normalization constant ($c$) & 0.1& 0.1& 0.1& 0.1& 0.1\\
+        Tangent warm up iterations & 10k & 10k& 10k& 10k& 10k\\
+        EMA length ($\sigma_{\text{rel}}$) of pretrained diffusion & 0.025 & 0.03 & 0.015 & 0.02 & 0.015\\ 
+        \hline
+        \multicolumn{5}{|l@{}}{\textbf{Training details of {\ct}}} &  \\ \hline
+        Training iterations & 100k & 100k& 100k& 100k& 100k \\
+        Dropout probability for resolution $\leq 16$ & 25\% & 35\% & 35\% & 35\% & 35\% \\
+        \hline
+        \multicolumn{2}{|l@{}}{\textbf{Training details of {\cd}}} & & & &  \\ \hline
+        Training iterations & 200k & 200k& 200k& 200k& 200k \\
+        Dropout probability for resolution $\leq 16$ & 0\%& 10\%& 10\%& 10\%& 10\%\\
+        Maximum of CFG scale & 2.0 & 2.0 & 2.0 & 2.0 & 2.0 \\
+        \hline
+        \multicolumn{2}{|l@{}}{\textbf{Training details of {\cd} with adaptive VSD}} & & & &  \\ \hline
+        Training iterations & 20k & 20k & 20k & 20k & 20k \\
+        Learning rate max ($\alpha_{\text{ref}}$) for $\F_\phi$ & 1.0e-4 & 9.0e-5 & 8.0e-5 & 7.0e-5 & 6.5e-5 \\
+        Dropout probability for $\F_\phi$ & 0\% & 10\% & 10\% & 10\% & 10\% \\
+        Proposal $P_{\text{mean}}$ for $\mathcal{L}_{\text{Diff}}(\phi)$ & -0.8 & -0.8& -0.8& -0.8& -0.8 \\
+        Proposal $P_{\text{std}}$. for $\mathcal{L}_{\text{Diff}}(\phi)$ & 1.6& 1.6& 1.6& 1.6& 1.6\\
+        Number of updating of $\phi$ per updating of $\theta$ & 1 & 1& 1& 1& 1\\
+        One-step sampling starting time $t_{\text{max}}$ & $\arctan(\frac{80}{\sigma_d})$ & $\arctan(\frac{80}{\sigma_d})$ & $\arctan(\frac{80}{\sigma_d})$ & $\arctan(\frac{80}{\sigma_d})$ & $\arctan(\frac{80}{\sigma_d})$\\
+        Proposal $P_{\text{mean}}$ for $\mathcal{L}_{\text{VSD}}(\theta)$ & 0.4& 0.4& 0.4& 0.4& 0.4\\
+        Proposal $P_{\text{std}}$. for $\mathcal{L}_{\text{VSD}}(\theta)$ & 2.0& 2.0& 2.0& 2.0& 2.0\\
+        Loss weighting $\lambda_{\text{VSD}}$ for $\mathcal{L}_{\text{VSD}}$ & 1.0 & 1.0& 1.0& 1.0& 1.0\\
+        \hline
+    \end{tabular}%
+    }
+\end{table}
+
+
+
+
+
+\begin{table}[t]
+    \centering
+    \caption{\small{Evaluation of sample quality of different models on ImageNet 512$\times$512 dataset. Results of EDM2~\citep{karras2024edm2} are with EDM parameterization and the original AdaGN layer. $^\dagger$The \fdino in EDM2 are obtained by tuned EMA rate, which is different from our EMA rates that are tuned for FID scores.}}
+    \label{tab:appendix:result_in512}
+    \small{
+    \begin{tabular}{|l|ccccc|} %
+        \hline %
+         & \multicolumn{5}{c|}{Model Size} \\
+         & S & M & L & XL & XXL \\
+         \hline
+        \multicolumn{5}{|l@{}}{\textbf{Sampling by diffusion models (NFE = 126) }} & \\
+        \hline
+        EMA length ($\sigma_{\text{rel}}$) & 0.025 & 0.030 & 0.015 & 0.020 & 0.015 \\
+        Guidance scale for FID & 1.4 & 1.2 & 1.2 & 1.2 & 1.2 \\
+        $^\dagger$Guidance scale for \fdino & 2.0 & 1.8 & 1.8 & 1.8 & 1.8 \\
+        \hline 
+        FID (TrigFlow) & 2.29 & 2.00 & 1.87 & 1.80 & 1.73 \\
+        FID (EDM2) & 2.23 & 2.01 & 1.88 & 1.85 & 1.81 \\
+        \fdino (TrigFlow) & 52.08 & 43.33 & 39.23 & 36.73  & 35.93 \\
+        $^\dagger$\fdino (EDM2) with $\sigma_{\text{rel}}$ for \fdino & 52.32 & 41.98 & 38.20 & 35.67 & 33.09  \\
+        \hline
+        \multicolumn{1}{|l@{}}{\textbf{Sampling by consistency models trained with {\ct}}} & & & & &  \\ \hline
+        Intermediate time $t_{\text{mid}}$ in 2-step sampling & 1.1 & 1.1 & 1.1 & 1.1 & 1.1 \\
+        \hline
+        1-step FID & 10.13 & 5.84 & 5.15 & 4.33 & 4.29 \\
+        2-step FID & 9.86 & 5.53 & 4.65 & 3.73 & 3.76 \\
+        1-step \fdino & 278.35 & 192.13 & 169.98 & 147.06 & 146.31 \\
+        2-step \fdino & 244.41 & 160.66 & 135.80 & 114.65 & 112.69  \\
+        \hline
+        \multicolumn{1}{|l@{}}{\textbf{Sampling by consistency models trained with {\cd}}} & & & & &  \\ \hline
+        Intermediate time $t_{\text{mid}}$ in 2-step sampling & 1.1 & 1.1 & 1.1 & 1.1 & 1.1 \\
+        Guidance scale for FID, 1-step sampling & 1.5 & 1.3 & 1.3 & 1.3 & 1.3 \\
+        Guidance scale for FID, 2-step sampling & 1.4 & 1.2 & 1.2 & 1.2 & 1.2 \\
+        Guidance scale for \fdino, 1-step sampling & 2.0  & 2.0 & 2.0 & 2.0 & 2.0\\
+        Guidance scale for \fdino, 2-step sampling & 2.0  & 2.0 & 1.9 & 1.9 & 1.9 \\
+        \hline
+        1-step FID & 3.07 & 2.75 & 2.55 & 2.40 & 2.28 \\
+        2-step FID & 2.50 & 2.26 & 2.04  & 1.93 & 1.88 \\
+        1-step \fdino & 104.22 & 83.78 & 76.10 & 70.30 & 67.80 \\
+        2-step \fdino & 71.15 & 55.70  & 50.63 & 46.66 & 44.97 \\
+        \hline
+        \multicolumn{3}{|l@{}}{\textbf{Sampling by consistency models trained with multistep {\cd}}} & & &  \\ \hline
+        Guidance scale for FID & 1.4 & 1.2 & 1.2 & 1.15 & 1.15 \\
+        Guidance scale for \fdino & 2.0 & 2.0 & 2.0 & 1.9 & 1.9 \\
+        \hline
+        FID, $M=2$ & 2.79 & 2.51 & 2.32 & 2.29 & 2.16 \\
+        FID, $M=4$ & 2.78 & 2.46 & 2.28 & 2.22 & 2.10\\
+        FID, $M=8$ & 2.49 & 2.24 & 2.04 & 2.02 & 1.90 \\
+        FID, $M=16$ & 2.34 & 2.18 & 1.99 & 1.90 & 1.82 \\
+        \fdino, $M=2$ & 76.29 & 60.47 & 54.91 & 51.91 & 50.70 \\
+        \fdino, $M=4$ & 72.01 & 56.38 & 50.99 & 47.61 & 46.78 \\
+        \fdino, $M=8$ & 60.13 & 49.46 & 44.87 & 41.26 & 40.56 \\
+        \fdino, $M=16$ & 55.89 & 46.94 & 42.55 & 39.30 & 38.55\\
+        \hline
+        \multicolumn{4}{|l@{}}{\textbf{Sampling by consistency models trained with {\cd} + adaptive VSD}} & &  \\ \hline
+        Intermediate time $t_{\text{mid}}$ in 2-step sampling & 1.1 & 1.1 & 1.1 & 1.1 & 1.1 \\
+        Guidance scale for FID, 1-step sampling & 1.2 & 1.0 & 1.0 & 1.0 & 1.0\\
+        Guidance scale for FID, 2-step sampling & 1.2 & 1.0 & 1.0 & 1.0 & 1.0 \\
+        Guidance scale for \fdino, 1-step sampling & 1.7 & 1.5 & 1.6 & 1.5 & 1.5 \\
+        Guidance scale for \fdino, 2-step sampling & 1.7 & 1.5 & 1.6 & 1.5 & 1.5 \\
+        \hline
+        1-step FID & 3.37 & 2.67 & 2.26 & 2.39 & 2.16 \\
+        2-step FID & 2.70 & 2.29 & 1.99 & 2.01 & 1.89 \\
+        1-step \fdino & 72.12 & 54.81 & 50.46 & 48.11 & 45.54 \\
+        2-step \fdino & 69.00 & 53.53 & 48.54 & 46.61 & 43.93 \\
+        \hline
+        
+    \end{tabular}%
+    }
+\end{table}
+
+
+\begin{table}[t]
+    \centering
+    \caption{\small{Ablation of adaptive VSD and {\cd} on ImageNet 512$\times$512 dataset with model size M.}}
+    \label{tab:apppendix:ablation_vsd}
+    \small{
+    \begin{tabular}{|l|ccc|} %
+        \hline %
+         & \multicolumn{3}{c|}{Method} \\
+         & VSD & {\cd} & {\cd} + VSD \\
+        \hline
+        EMA length ($\sigma_{\text{rel}}$) & 0.05 & 0.05 & 0.05 \\
+        Guidance scale for FID, 1-step sampling & 1.1 & 1.3 & 1.0 \\
+        Guidance scale for FID, 2-step sampling & $\backslash$ & 1.2 & 1.0 \\
+        Guidance scale for \fdino, 1-step sampling & 1.4 & 2.0 & 1.5 \\
+        Guidance scale for \fdino, 2-step sampling & $\backslash$ & 2.0 & 1.5 \\
+        \hline
+        1-step FID & 3.02 & 2.75 & \textbf{2.67} \\
+        2-step FID & $\backslash$ & \textbf{2.26} & 2.29 \\
+        1-step \fdino & 57.19 & 83.78 & \textbf{54.81} \\
+        2-step \fdino & $\backslash$ & 55.70 & \textbf{53.53} \\
+        \hline
+    \end{tabular}%
+    }
+\end{table}
+
+
+
+
+
+
+        
+
+
+
+\begin{table}[t]
+    \centering
+    \caption{\small{Evaluation of sample quality of different models on ImageNet 64$\times$64 dataset.}}
+    \label{tab:appendix:result_in64}
+    \small{
+    \begin{tabular}{|l|cccc|} %
+        \hline %
+         & \multicolumn{4}{c|}{Model Size} \\
+         & S & M & L & XL \\
+        \hline
+        \multicolumn{4}{|l@{}}{\textbf{Sampling by diffusion models (NFE=63) }} & \\
+        \hline
+        EMA length ($\sigma_{\text{rel}}$) & 0.075 & 0.06 & 0.04 & 0.04 \\
+        \hline 
+        FID (TrigFlow) & 1.70 & 1.55 & 1.44 & 1.38 \\
+        \hline
+        \multicolumn{1}{|l@{}}{\textbf{Sampling by consistency models trained with {\ct}}} & & & &  \\ \hline
+        Intermediate time $t_{\text{mid}}$ in 2-step sampling & 1.1 & 1.1 & 1.1 & 1.1 \\
+        \hline
+        1-step FID & 3.23 & 2.25 & 2.08 & 2.04 \\
+        2-step FID & 2.93 & 1.81 & 1.57 & 1.48 \\
+        \hline
+        \multicolumn{1}{|l@{}}{\textbf{Sampling by consistency models trained with {\cd}}} & & & &  \\ \hline
+        Intermediate time $t_{\text{mid}}$ in 2-step sampling & 1.1 & 1.1 & 1.1 & 1.1 \\
+        \hline
+        1-step FID & 2.97 & 2.79 & 2.43 & 2.44 \\
+        2-step FID & 2.07 & 1.89 & 1.70 & 1.66 \\
+        \hline
+        
+    \end{tabular}%
+    }
+\end{table}
+
+\clearpage

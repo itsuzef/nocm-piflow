@@ -1,0 +1,110 @@
+\section{Literature Review}
+\label{ssec:related-work}
+
+We outline the major neural network-based approaches for the solution of PDEs. 
+\paragraph{Finite-dimensional Operators.}
+An immediate approach to approximate \(\G^\dagger\) is to parameterize it as a deep convolutional neural network (CNN) between the finite-dimensional Euclidean spaces on which the data is discretized i.e. \(\F : \R^K \times \Theta \to \R^K\) \citep{guo2016convolutional, Zabaras, Adler2017, bhatnagar2019prediction,kutyniok2022atheoretical}.  \citet{khoo2017solving}
+concerns a similar setting, but with output space $\R$. Such approaches are, by definition, not mesh independent and need modifications to the architecture for different resolution and discretization of \(D\) in order to achieve consistent error (if at all possible). We demonstrate this issue numerically in Section \ref{sec:numerics}. Furthermore, these approaches are limited to the discretization size and geometry of the training data and hence it is not possible to query solutions at new points in the domain. In contrast for our method, we show in Section \ref{sec:numerics}, both invariance of the error to grid resolution, and the ability to transfer the solution between meshes.
+The work \citet{ummenhofer2020lagrangian} proposed a continuous convolution network for fluid problems, where off-grid points are sampled and linearly interpolated. However the continuous convolution method is still constrained by the underlying grid which prevents generalization to higher resolutions. Similarly, to get finer resolution solution, \citet{jiang2020meshfreeflownet} proposed learning super-resolution with a U-Net structure for fluid mechanics problems. However fine-resolution data is needed for training, while neural operators are capable of zero-shot super-resolution with no new data.
+
+\paragraph{DeepONet}
+A novel operator regression architecture, named DeepONet, was recently proposed by \cite{lu2019deeponet, lu2021learning}; it builds an iterated or deep structure on top
+of the shallow architecture proposed in \cite{chen1995universal}. The architecture consists of two neural networks: a branch net applied on the input functions and a trunk net applied on the querying locations in the output space. The original work of \cite{chen1995universal}
+provides a universal approximation theorem, and more recently \cite{lanthaler2021error} developed an error estimate for DeepONet itself.
+The standard DeepONet structure is a linear approximation of the target operator, where the trunk net and branch net learn the coefficients and basis. On the other hand, the neural operator setting is heavily inspired by the advances in deep learning and is a non-linear approximation, which makes it constructively more expressive. A detailed discussion of DeepONet is provided in Section \ref{sec:deeponets} and as well as a numerical comparison to DeepONet in Section \ref{ssec:darcyburgers}.
+
+\paragraph{Physics Informed Neural Networks (PINNs), Deep Ritz Method (DRM), and Deep Galerkin Method (DGM).}
+A different approach is to directly parameterize the solution \(u\) as a neural network \(u : \bar{D} \times \Theta \to \R\) 
+\citep{Weinan, raissi2019physics,sirignano2018dgm,bar2019unsupervised,smith2020eikonet,pan2020physics,beck2021solving}. This approach is designed to model one specific instance of the PDE, not the solution operator. It is mesh-independent, but for any given  new parameter coefficient function \(a \in \A\), one would need to train a new neural network \(u_a\) which is computationally costly and time consuming. Such an approach closely resembles classical methods such as finite elements, replacing the linear span of a finite set of local basis functions with the space of neural networks. 
+
+\paragraph{ML-based Hybrid Solvers}
+Similarly, another line of work proposes to enhance existing numerical solvers with neural networks by building hybrid models \citep{pathak2020using, um2020solver, greenfeld2019learning}
+These approaches suffer from the same computational issue as classical methods: one needs to solve an optimization problem for every new parameter similarly to the PINNs setting. Furthermore, the approaches are limited to a setting in which the underlying PDE is known. Purely data-driven learning of a map between spaces of functions is not possible. 
+
+
+\paragraph{Reduced Basis Methods.}
+Our methodology most closely
+resembles the classical reduced basis method (RBM) \citep{DeVoreReducedBasis} or the method of \citet{cohendevore}. 
+The method introduced here, along with the contemporaneous work introduced
+in the papers \citep{ Kovachki,nelsen2020random,opschoor2020deep, schwab2019deep, o2020derivative, lu2019deeponet,fresca2022poddlrom}, are, to the best of our knowledge, 
+amongst the first practical supervised learning methods designed to learn maps between infinite-dimensional spaces. Our methodology 
+addresses the mesh-dependent nature of the approach in the papers~\citep{guo2016convolutional, Zabaras, Adler2017, bhatnagar2019prediction} by producing a single set of network
+parameters that can be used with different discretizations. 
+Furthermore, it has the ability to transfer solutions between meshes and indeed
+between different discretization methods. Moreover, it needs only to be trained once on the equation set  \(\{a_j, u_j\}_{j=1}^N\). Then, obtaining a solution for a new \(a \sim \mu\) only requires a forward pass of the network, alleviating the major computational issues incurred in \citep{Weinan, raissi2019physics, herrmann2020deep, bar2019unsupervised}
+where a different network would need to be trained for each input
+parameter. Lastly, 
+our method requires no knowledge of the underlying PDE: it is purely
+data-driven and therefore non-intrusive. Indeed the true map can be treated as a black-box, perhaps to be learned from experimental data or from the output of a costly computer simulation, not necessarily from a PDE. \done{I think we should be citing DeepOnet -- the original
+"practice" paper and the "theory" paper of Sid/Samuel.}
+
+
+\paragraph{Continuous Neural Networks.}
+Using continuity as a tool to design and interpret neural networks is gaining currency in the machine learning community, and the
+formulation of ResNet as a continuous time process over the depth parameter is a powerful example of this
+\citep{haber2017stable,weinan2017proposal}. The concept of defining neural networks in infinite-dimensional spaces is a central problem that has long been studied \citep{Williams, Neal, BengioLeRoux, GlobersonLivni, Guss}. The general idea is to take the infinite-width limit which yields a non-parametric method and has connections to Gaussian Process Regression \citep{Neal, MathewsGP, Garriga-AlonsoGP}, leading to the introduction of
+deep Gaussian processes \citep{damianou2013deep,aretha}. Thus far, such methods have not yielded efficient numerical algorithms that can parallel the success of convolutional or recurrent neural networks for the problem of approximating mappings between finite dimensional spaces. Despite the superficial similarity with our proposed
+work, this body of work differs substantially from what we
+are proposing: in our work we are motivated by the continuous dependence
+of the data, in the input or output spaces, in spatial or spatio-temporal variables;
+in contrast the work outlined in this paragraph uses continuity in an artificial
+algorithmic depth or width parameter to study the network architecture when the depth or width approaches
+infinity, but the input and output spaces remain of fixed finite dimension.
+
+
+
+\iffalse
+Another idea is to simply define a sequence of compositions where each layer is a map between infinite-dimensional spaces with a finite-dimensional parametric dependence. This is the approach we take in this work, going a step further by sharing parameters between each layer.
+\fi
+
+\paragraph{Nystr\"om Approximation, GNNs, and Graph Neural Operators (GNOs).} 
+The graph neural operators (Section \ref{sec:graphneuraloperator}) has an underlying Nystr\"om approximation formulation \citep{nystrom1930praktische} which links different grids to a single set of network parameters. This perspective relates our continuum approach to Graph Neural Networks (GNNs). GNNs are a recently developed class of neural networks that apply to graph-structured data; they
+have been used in a variety of applications. Graph networks incorporate an array of techniques from neural network design such as graph convolution, edge convolution, attention, and graph pooling  \citep{kipf2016semi,hamilton2017inductive,gilmer2017neural,velivckovic2017graph,murphy2018janossy}. 
+GNNs have also been applied to the modeling of physical phenomena such as molecules \citep{chen2019graph} and rigid body systems \citep{battaglia2018relational} since these problems exhibit a natural graph interpretation: the particles are the nodes and the interactions are the edges. The work \citep{pmlr-v97-alet19a} performs an initial study that employs graph networks on the problem of learning solutions to Poisson's equation, among other physical applications. They propose an encoder-decoder setting, constructing graphs in the latent space, and utilizing message passing between the encoder and decoder. However, their model uses a nearest neighbor structure that is unable to capture non-local dependencies as the mesh size is increased.
+In contrast, we directly construct a graph in which the nodes are located on the spatial domain of the output function. Through message passing, we are then able to directly learn the kernel of the network
+which approximates the PDE solution. When querying a new location, we simply add a new node to our spatial graph and connect it to the existing nodes, avoiding interpolation error by leveraging the power of the Nystr\"om extension for integral operators.
+
+\paragraph{Low-rank Kernel Decomposition and Low-rank Neural Operators (LNOs).}
+Low-rank decomposition is a popular method used in kernel methods and Gaussian process
+\citep{kulis2006learning, bach2013sharp, lan2017low, gardner2018product}.
+We present the low-rank neural operator in Section \ref{sec:lowrank} where we structure the kernel network as a product of two factor networks inspired by Fredholm theory. The low-rank method, while simple, is very efficient and easy to train especially when the target operator is close to linear.
+\citet{khoo2019switchnet} proposed a related neural network with low-rank structure to approximate the inverse of differential operators.
+The framework of two factor networks is also similar to the trunk and branch network used in DeepONet \citep{lu2019deeponet}. But in our work, the factor networks are defined on the physical domain and non-local information is accumulated through integration with respect to the Lebesgue measure. 
+In contrast, DeepONet(s) integrate against delta measures at a set of pre-defined nodal points that are usually taken to be the grid on which the data is given. See section \ref{sec:deeponets} for further discussion.
+
+\paragraph{Multipole, Multi-resolution Methods, and Multipole Graph Neural Operators (MGNOs).}
+To efficiently capture long-range interaction,   multi-scale methods such as the classical fast multipole methods (FMM) have been developed \citep{greengard1997new}. Based on the assumption that long-range interactions decay quickly, FMM decomposes the kernel matrix into different ranges and hierarchically imposes low-rank structures on the long-range components (hierarchical matrices) \citep{borm2003hierarchical}. This decomposition can be viewed as a specific form of the multi-resolution matrix factorization of the kernel \citep{kondor2014multiresolution, borm2003hierarchical}.
+For example, the works of \citet{fan2019multiscale,fan2019multiscale2, he2019mgnet} propose a similar multipole expansion for solving parametric PDEs on structured grids.  
+However, the classical FMM requires nested grids as well as the explicit form of the PDEs. In Section \ref{sec:multipole}, 
+we propose the multipole graph neural operator (MGNO) by generalizing this idea to arbitrary graphs in the data-driven setting, so that the corresponding graph neural networks can learn discretization-invariant solution operators which are fast and can work on complex geometries.
+
+
+
+\paragraph{Fourier Transform, Spectral Methods, and Fourier Neural Operators (FNOs).}
+The Fourier transform is frequently used in spectral methods for solving differential equations since differentiation is equivalent to multiplication in the Fourier domain.
+Fourier transforms have also played an important role in the development of deep learning. 
+They are used in theoretical work, such as the proof of the neural network
+universal approximation theorem \citep{hornik1989multilayer} and related
+results for random feature methods \citep{rahimi2008uniform}; empirically, they have been used to speed up convolutional neural networks \citep{mathieu2013fast}.
+Neural network architectures involving the Fourier transform or the use of sinusoidal activation functions have also been proposed and studied \citep{bengio2007scaling,mingo2004Fourier, sitzmann2020implicit}.
+Recently, some spectral methods for PDEs have been extended to neural networks \citep{fan2019bcr, fan2019multiscale, kashinath2020enforcing}. In Section \ref{sec:fourier}, we build on these works by proposing the Fourier neural operator architecture defined directly in Fourier space with quasi-linear time complexity and state-of-the-art approximation capabilities. 
+
+\paragraph{Sources of Error}
+
+In this paper we will study the error resulting from approximating
+an operator (mapping between Banach spaces) from within a class of
+finitely-parameterized operators. We show that the resulting error,
+expressed in terms of universal approximation of operators over
+a compact set or in terms of a resulting risk,
+can be driven to zero by increasing the number of parameters, and 
+refining the approximations inherent in the neural operator architecture.
+In practice there will be two other sources of approximation error: firstly from the
+discretization of the data; and secondly from the use of empirical
+risk minimization over a finite data set to determine the parameters. 
+Balancing all three sources of error is key to making algorithms efficient.
+However we do not study these other two sources of error in this work. Furthermore we do not study how the number of parameters in our approximation grows as the error tolerance is refined. Generally, this growth may be super-exponential as shown in \citep{kovachki2021universal}. However, for certain classes of operators and related approximation methods, it is possible to beat the curse of dimensionality; 
+we refer the reader to the works 
+\citep{lanthaler2021error,kovachki2021universal} for detailed analyses
+demonstrating this. Finally we also emphasize that there
+is a potential source of error from the optimization procedure which attempts to minimize the empirical risk: it may not achieve the global minumum. Analysis of this error
+in the context of operator approximation has not been undertaken.

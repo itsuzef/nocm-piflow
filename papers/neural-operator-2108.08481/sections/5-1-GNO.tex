@@ -1,0 +1,113 @@
+
+\iffalse
+\begin{table}[ht]
+\begin{center}
+\begin{tabular}{|l|l|}
+\multicolumn{1}{c}{\bf Notation} 
+&\multicolumn{1}{c}{\bf Meaning}\\
+\hline 
+{\bf Nystr\"om  method} &\\
+$n \in \N$ & The total number of points.\\
+$m \in \N$ & The number of points sampled.\\
+$r \in \R$  & The radius of the truncation\\
+\hline 
+{\bf Low-rank method} &\\
+$r \in \N$ & The rank of the low-rank decomposition.\\
+$\phi, \psi$ & The two factor neural networks in the low-rank decomposition.\\
+\hline 
+{\bf Multipole method} &\\
+$l \in [1, \ldots, L] $ &  The level, $l=1$ is the finest level and $l=L$ the coarsest. \\
+$\cK_{l,l}$  &  The integral operator for level-$l$ subgraph. \\
+$\cK_{l+1,l}$  & The transition integral operator $\cK_{l+1,l}: v_l \mapsto v_{l+1}$.\\
+$\cK_{l,l+1}$  &  The transition integral operator $\cK_{l,l+1}: v_{l+1} \mapsto v_{l}$.\\
+$\vdown$  & The representation $v$ in the downward pass. \\
+$\vup$  &  The representation $v$ in the up pass. \\
+\hline 
+{\bf Fourier operator} &\\
+$\cG, \cG^{-1}$ & Fourier transformation and its inverse.\\
+$R$ & The linear transformation applied on the lower Fourier modes.\\
+$k$ & Fourier modes / wave numbers.\\
+$k_{max}$ & The max Fourier modes used in the Fourier layer.\\
+\hline
+\end{tabular}\\
+\small{We will use lowercase letters such as $v, u$ to represent vectors and functions; uppercase letters such as $W, K$ to represent matrices or discretized transformations; and calligraphic letters such as $\cF, \cG$ to represent operators.
+}
+\end{center}
+\caption{Table of notations}
+\label{table:notations2}
+\end{table}
+
+\subsection{Kernel integral operator, kernel matrix, and kernel network}
+Given a $n$-points discretization $D_j$, the integration transformation \ref{eq:K} can be written as a sum:
+\begin{equation}
+    \label{eq:K_sum}
+    v_{t+1}(x) = \sigma\bigl( W v_t(x) + \frac{1}{n} \sum_y \kappa\big(x,y,a(x),a(y);\phi\big) v_t(y) \bigr)
+\end{equation}
+which is equivalent to matrix-vector multiplications, 
+\begin{equation}
+    \label{eq:K_matrix}
+    v_{t+1} = \sigma( w v_t + K v_t)
+\end{equation}
+When $d_v=1$, we can visualize $v$ as an $n$-dimensional vectors, $w$ as a scalar, and $K$, the discretized version of $\cK(a,\phi)$, as an $(n, n)$-matrix.
+In general, if $v(x) \in \R^{d_v}$, then $v$ is a $(n, d_v)$-matrix, $w$ is a $(d_v,d_v)$-matrix and $\cK(a;\phi)$ is a $(n,n,d_v,d_v)$-tensor. Denote the tensor version of $\cK$ as $K$. 
+Now we have an equivalent between the kernel function $\kappa$, kernel matrix $K$ and the integration operator $\cK$.
+\begin{align*}
+\label{eq:K_define}
+    &K = \cK(a,\phi) |_{D_j}\\
+    &K_{xy} \coloneqq \kappa_{\phi}(x,y,a(x),a(y)) 
+\end{align*}
+For better understanding, we will carry the discretized matrix-vector formulation to demonstrate our methods. For convenience, we will oftentimes omit the feature dimension (to assume $d_v = 1$) and take the tensor $K$ as a matrix.
+
+\begin{remark}
+The integration operator $\cK$ is defined by the neural network kernel function $\kappa$. The kernel operator $\cK$ induces the kernel matrix (tensor) $K$ on a given discretization. On the other hand, if we take the limit of the discretization to continuum, we can recover kernel operator $\cK$. There is an equivalence among $\cK$, $\kappa$, and $K$.
+\[\kappa \Longleftrightarrow \cK \Longleftrightarrow K\]
+\end{remark}
+
+\subsection{Complexity} 
+The main computation in the integration transformation is to evaluate the kernel $K_{x,y} = \cK(a, \phi)_{x,y} = \kappa\big(x,y,a(x),a(y);\phi\big)$ for each pair $(x,y)$. To evaluate all the $O(n^2)$ pairs, the complexity of this integration transformation is $O(n^2)$, quadratically depending on the number of the points / the resolutions, which could be forbidden in practice. Therefore we introduce four approximation schemes to reduce the computational complexity.
+
+\begin{definition}[Complexity]
+In this paper, the complexity means the number of times we evaluate the kernel function $\kappa(x,y)$. It is equivalent to the sparsity of the kernel matrix $K$.
+\end{definition}
+
+In the following sections we will impose several low-rank and sparse structures to the kernel operator $\cK$ and subsequently matrix $K$ to achieve linear or quasi-linear complexity.
+
+\paragraph{Truncation to a ball} \kamyar{maybe a dot or comma}
+One naive approximation is to truncate the integration to a ball with radius $r$
+\begin{equation}
+\label{eq:truncation}
+\bigl(\cK(a;\phi)v\bigr)(x)=   
+\int_{B(x,r)} \kappa\big(x,y,a(x),a(y);\phi\big) \mathrm{d}y. 
+\end{equation}
+Assuming $D$ is a unit cube (torus) $[0,1]^d$ with measure $1$, then the ball $B(x,r)$ with $r<1$ has measure $O(r^d)$. Therefore it can be easily seen that truncation will reduce the complexity to $O(n^2 r^d)$. Truncation is a simple and effective way to accelerate the computation. It works well when the kernel $\cK$ has a fast decay with respect to the distance, i.e. $\cK(a;\phi)$
+
+In the discretized case $v_{t+1} = K v_t$, truncation to a ball is to enforce a sparse structure on the kernel matrix $K$. For index $x,y$, $K_{x,y} \neq 0 $ iff $y \in B(x,r)$ (here we abuse notation $x,y$ for both the indices and the corresponding points). To visualize it, if $d=1$ and the index is ordered by its spatial location, then $K$ is non-zero around its diagonal and zero on its upper and lower triangular.
+\fi 
+
+\iffalse
+\subsection{Nystr\"om approximation method (GNO)}
+\label{sec:nystrom}
+The first approximation method is Nystr\"om sampling. 
+It is first documented in the paper by \cite{li2020neural}, referred as Graph neural operator (GNO).
+Intuitively, instead of using all $n$ given points, we sub-sample $m$ points, and approximate the kernel $\cK$ based on these $m$ points. 
+Formally, The sampling is equivalent to define a probability measure $\nu_x$ to be the Lebesgue measure used in the integration. For a simple example, we can define a discrete measure that has value $\nu_x(\mathrm{d}y) = \mathrm{d}y$ when the point is sampled, and $0$ otherwise. In this work, we simply choose the sampling probability to be uniform. In general, the measure $\nu_x$ can be weighted as usually used in Nystr\"om Approximation. 
+\begin{equation}
+\label{eq:R=int}
+\bigl(\cK(a;\phi)v\bigr)(x)=   
+\int_{D} \kappa\big(x,y,a(x),a(y);\phi\big)
+v(y)\: \nu_x(\mathrm{d}y). 
+\end{equation}
+
+Nystr\"om sampling can be viewed as a low-rank approximation of the kernel matrix $K$. Given an $n$-points discretization $D_j$, the kernel matrix $K$ of these $n$ points is an $(n,n)$ matrix. Denote it as $K_{nn}$. By subsampling $m$ points, we approximate $K_{nn}$ with the kernel matrix of these $m$-points. Denote it as $K_{mm}$. The Nystr\"om approximation can be written as
+\begin{equation}
+\label{eq:nystrom_matrix}
+ K_{nn} \approx K_{nm} K_{mm} K_{mn}
+\end{equation}
+where $K_{nm}$ and $K_{mn}$ are implicitly set as interpolation matrix.
+
+\paragraph{Quadratic complexity.}
+It can be seen that evaluating the original kernel matrix $K_{nn}$ has complexity $O(n^2)$ and evaluating the subsampled kernel matrix $K_{mm}$ has complexity $O(m^2)$. If we further use truncation, we get $O(m^2 r^d)$.
+
+The Nystr\"om approximation is a simple but effective approximation scheme. It has good performance when the desire kernel is smooth and can be approximated by samples. Its accuracy depends on the number of points sampled. However the complexity is still quadratic on the number of points.
+
+\fi

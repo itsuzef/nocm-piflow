@@ -1,0 +1,63 @@
+\section{Background}
+\paragraph{Score-based generative models.} We consider the general class of score-based generative models in a unified continuous-time framework proposed by \citet{song2020score}, which includes different variants of diffusion models \cite{sohl2015deep, ho2020denoising}. In this paper, we will use the word score-based models interchangeably with diffusion models. Suppose the data distribution is $p_{\mathrm{data}}$. The forward pass is a diffusion process $\{\rvx(t)\}$ starting from $0$ to $T$ which can be expressed as
+\begin{equation}
+    \df \rvx = f(\rvx, t) \df t + g(t) \df \rvw_t,
+\end{equation}
+where $\rvw_t$ is the standard Wiener process, and $f(\cdot,t): \mathbb{R}^d \rightarrow \mathbb{R}^d$ and $g(\cdot): \mathbb{R}\rightarrow \mathbb{R}$ are the drift and diffusion coefficients respectively. Diffusion models choose $f$ and $g$ such that $\rvx(0)\sim p_{\mathrm{data}}$ and $\rvx(T) \sim \mathcal{N}(0, \textbf{I})$. 
+ \citet{song2020score} show that the following probability flow ODE produces the same marginal distributions $p_t(\rvx)$ as that of the diffusion process:
+\begin{equation}
+    \df \rvx = f(\rvx, t) \df t  - \frac{1}{2}g(t)^2 \nabla_{\rvx}\log p_t(\rvx) \df t.
+    \label{eq:prob_ode}
+\end{equation}
+The sampling process eventually becomes solving the probability flow ODE~\ref{eq:prob_ode} from $T$ to $0$ given the initial condition $\rvx(T)$. Furthermore, $f(\rvx, t)$ often has the affine form $f(\rvx,t) = h(t) \rvx$, where $h: \mathbb{R} \rightarrow \mathbb{R}$. We can simplify the equation~\ref{eq:prob_ode} into a semi-linear ODE. Integrating both sides over time gives the explicit form of solution for any $t<s$:
+\begin{equation}
+    \rvx(t) = \phi(t, s) \rvx(s) - \int_{s}^{t} \phi(t, \tau) \frac{g(\tau)^2}{2} \nabla_{\rvx}\log p_{\tau}(\rvx) \df \tau, 
+    \label{eq:ode_soln}
+\end{equation}
+where $\phi(t, s) = \exp\left(\int_{s}^{t} h(\tau) \df \tau \right)$. The ODE can be solved using numerical solvers such as Euler's method, multistep methods, and Heun's 2\textsuperscript{nd} method. 
+The score function $\nabla_{\rvx} \log p_t(\rvx) $ is usually parameterized by $
+    \hat{\epsilon}_{\theta}(\rvx_t) \approx - \sigma_t \nabla_{\rvx} \log p_t(\rvx)$, where $\sigma_t$ is the noise schedule~\cite{song2020score, ho2020denoising}.
+    
+
+
+
+% \paragraph{Fourier neural operator.}
+% Let $D$ be a bounded domain. Given an integrable function $u: D\rightarrow \mathbb{R}^{\din}$, the Fourier transform operator $\mathcal{F}$ is defined as
+% \begin{equation}
+%     \left(\mathcal{F} u\right)_{j}(k) = \int_{D} u_j(t) \exp\left(- 2\pi i \langle t, k \rangle \right) \df t,
+% \end{equation}
+% for $j=1,\dots, \din$, where $i$ is the imaginary unit, $k$ is the frequency. The inverse Fourier transform of $u$ reads
+% \begin{equation}
+%      \left(\mathcal{F}^{-1} f\right)_{j}(t) = \int_{D} u_j(k) \exp\left(2\pi i \langle k, t \rangle \right) \df k,
+% \end{equation}
+% for $j=1,\dots, \din$. Fourier neural operator \cite{li2020fourier} is one of the state-of-the-art data-driven methods for solving PDEs, which has shown great speedup over conventional PDE solvers in many scientific problems by learning a parametric map between two Banach spaces from data. They are constructed as a stack of kernel integration layers where the kernel function is parameterized by learnable weights. The Fourier neural operator $\gG_{\theta}$ with $L$ layers is defined as 
+% \begin{equation}
+%     \gG_{\theta} \coloneqq \gQ \circ \sigma(\gW_{L} + \gK_{L})\circ \dots \circ \sigma(\gW_{1} + \gK_{1}) \circ \gP,
+%     \label{eq:fno_layers}
+% \end{equation}
+% where $\gP$, $\gQ$, and $\gW_{i}, i\in \{1, \dots, L\}$ are pointwise operators, $\sigma$ is a fixed nonlinear activation function. $\gK_{i}$ is an integral kernel operator parameterized in Fourier space defined as:
+% \begin{align}
+%     (\gK u)(t) & = \gF^{-1}\left(R \cdot (\gF u)\right)(t), \forall t\in D \label{eq:fourier_conv} \\
+%     & = \int_{D} (\mathcal{F}^{-1}R)(t)u(t) \df t, \forall x\in D,
+%     \label{eq:fourier_int}
+% \end{align}
+% where $\gF$ and $\gF^{-1}$ are the Fourier transform and inverse Fourier transform, $D$ is a bounded domain, and $v_i$ is the output function of the $(i-1)$\textsuperscript{th} Fourier layer, $R$ is a trainable parameter that parameterizes a kernel function in Fourier space. The second equality~\ref{eq:fourier_int} holds by the convolution theorem and reveals the kernel integration form. 
+
+\vspace{-0.1in}
+\paragraph{Fourier neural operator.}
+Fourier neural operator \cite{li2020fourier} is one of the state-of-the-art data-driven methods for solving PDEs, which has shown great speedup over conventional PDE solvers in many scientific problems by learning a parametric map between two Banach spaces from data. They are constructed as a stack of kernel integration layers where the kernel function is parameterized by learnable weights. Let $D$ be a bounded domain, e.g., $[0,T]$ and $a: D\rightarrow \mathbb{R}^{\din}$ denote an input function. A Fourier neural operator $\gG_{\theta}$, parameterized with learnable parameters $\theta$, is an $L$ layered neural operator of the following form,
+\begin{equation}
+    \gG_{\theta} \coloneqq \gQ \circ \sigma(\gW_{L} + \gK_{L})\circ \dots \circ \sigma(\gW_{1} + \gK_{1}) \circ \gP,
+    \label{eq:fno_layers}
+\end{equation}
+where the lifting operator $\gP$, projection operator $\gQ$, and residual connections $\gW_{i}, i\in \{1, \dots, L\}$ are pointwise operators parameterized with neural networks, and $\sigma$ is a fixed nonlinear activation function. $\gK_{i}$ is an integral kernel operator parameterized in Fourier space such that for a given $v_i$, an input function to the $i$'th layer, we have,
+\begin{equation}
+    (\gK v_i)(t) = \gF^{-1}\left(R_i \cdot (\gF v_i)\right)(t), \forall t\in D 
+    \label{eq:fourier_conv}
+\end{equation}
+where $\gF$ and $\gF^{-1}$ are the Fourier transform and inverse Fourier transform on $D$, $R_i$ is a trainable parameter that parameterizes a kernel function in Fourier space. Given an input function $a$, we first apply the lifting point-wise operator $\gP$ that expands the co-dimension of the input function $a$, followed by $L$ layers of global integral operators accompanied with pointwise non-linearity operation $\sigma$. The result of the global integration layers is passed to the local and pointwise projection layer $\gQ$ to compute the output function. This architecture is shown to possess the crucial discretization invariance and universal approximation properties of universal operators~\citep{kovachki2021universal,kovachki2021neural}. 
+
+
+
+
+

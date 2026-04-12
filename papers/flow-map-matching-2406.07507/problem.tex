@@ -1,0 +1,510 @@
+\section{Flow Map Matching}
+\label{sec:theory}
+
+The central object in our method is the \textit{flow map}, which maps points along trajectories of solutions to an ordinary differential equation (ODE).
+%
+Our focus in this work is primarily on probability flow ODEs that arise in generative models, such as those constructed using flow matching via stochastic interpolants or score-based diffusion models (see~\cref{app:si_diff} for a concise, self-contained review of these approaches).
+%
+While many of our results apply more generally to other ODEs, we present our definitions and theoretical results in this specific context to highlight their relevance to generative modeling.
+%
+All proofs of the statements made in this section are provided in~\cref{app:theory}, with some additional theoretical results and connections to existing consistency and distillation techniques given in~\Cref{sec:app:relation}.
+
+\subsection{Stochastic interpolants and probability flows}
+\label{sec:si:prob:flow}
+
+We first recall the main components of the stochastic interpolant framework~\citep{albergo2022building,albergo2023stochastic}, which we use to construct the probability flow ODEs central to our study.
+%
+We begin by giving the definition of a stochastic interpolant.
+%
+\begin{restatable}[Stochastic Interpolant]{definition}{sidef}
+	\label{def:stoch_interp}
+	The stochastic interpolant $I_t$ between probability densities~$\rho_0$ and~$\rho_1$ is the stochastic process given by
+	\begin{align}
+		\label{eq:stoch:interp}
+		I_t = \alpha_t x_0 + \beta_t x_1 + \gamma_t z,
+	\end{align}
+	where $\alpha, \beta, \gamma^2 \in C^1([0, 1])$ satisfy $\alpha_0 = \beta_1 = 1$, $\alpha_1 = \beta_0 = 0$, and $\gamma_0 = \gamma_1 = 0$.
+	%
+	In~\eqref{eq:stoch:interp}, $(x_0, x_1)$ is drawn from a coupling $(x_0, x_1) \sim \rho(x_0, x_1)$ that satisfies the marginal constraints $\int_{\R^d}\rho(x_0, x_1) dx_0 = \rho_1(x_1)$ and $\int_{\R^d}\rho(x_0, x_1) dx_1 = \rho_0(x_0)$.
+	%
+	Moreover, $z \sim \mathsf{N}(0, \text{Id})$ with $z\perp(x_0,x_1)$.
+\end{restatable}
+%
+\noindent
+%
+Theorem 3.6 of~\cite{albergo2023stochastic} shows that the stochastic interpolant given in~\cref{def:stoch_interp} specifies an underlying probability flow ODE, as we now recall.
+%
+\begin{restatable}[Probability Flow]{proposition}{pflow}
+	\label{thm:stoch_interp}
+	For all $t\in[0,1]$, the probability density of $I_t$ is the same as the probability density of the solution to
+	\begin{equation}
+		\label{eqn:ode}
+		\dot{x}_t = b_t(x_t), \qquad x_{t=0} = x_0 \sim \rho_0,
+	\end{equation}
+	where $b: [0,1]\times \R^d\rightarrow\R^d$ is the time-dependent velocity field (or drift)  given by
+	\begin{equation}
+		\label{eqn:b:def}
+		b_t(x) = \E[\dot{I}_t | I_t = x].
+	\end{equation}
+	In~\eqref{eqn:b:def}, $\E[\:\:\cdot\:\:|I_t = x]$ denotes an expectation over the coupling $(x_0, x_1) \sim \rho(x_0, x_1)$ and $z \sim \mathsf N(0, \Id)$ conditioned on the event $I_t=x$.
+\end{restatable}
+%
+Although \eqref{eqn:ode} is deterministic for any single trajectory, taken together, its solutions are random because the initial conditions are sampled from $\rho_0$.
+%
+We denote by $\rho_t=\text{Law}(x_t)$ the density of these solutions at time $t$.
+%
+The drift  $b$ can be learned efficiently in practice by solving a square loss regression problem~\citep{albergo2023stochastic}
+\begin{equation}
+	\label{eq:loss:b}
+	b = \argmin_{\hat b} \int_0^1 \E \big[ | \hat b_t(I_t) - \dot I_t|^2 \big] dt,
+\end{equation}
+where $\E$ denotes an expectation over the coupling $(x_0, x_1) \sim \rho(x_0, x_1)$ and $z \sim \mathsf N(0, \Id)$.
+
+A canonical choice when $\rho_0 = \mathsf{N}(0, \Id)$ considered in~\citet{albergo2022building} corresponds to $\alpha_t = 1-t$, $\beta_t = t$, and $\gamma_t = 0$, which recovers flow matching~\citep{lipman2022flow} and rectified flow~\citep{liu2022flow}.
+%
+The choice $\alpha_t = 0$, $\beta_t = t$ and $\gamma_t = \sqrt{1-t^2}$ corresponds to a variance-preserving diffusion model with the time-rescaling $t = -\log\tau$ where $\tau \in [0, \infty)$ is the usual diffusion time\footnote{Note that $\gamma_0=1$ in this case, so that $I_0=z$}.
+A variance-exploding diffusion model may be obtained by taking $\alpha_t = 0$, $\beta_t = 1$, and $\gamma_t = T-t$ with $t \in [0, 1]$ and where $\tau = T-t$ is the usual diffusion time, though this violates the boundary conditions in~\cref{def:stoch_interp}. For more details about the connection between stochastic interpolants and diffusion models, we again refer the reader to~\cref{{app:si_diff}}.
+
+
+\subsection{Flow map: definition and characterizations}
+\label{ssec:setup}
+%
+To generate a sample from the target density $\rho_1$, we can draw an initial point from $\rho_0$ and numerically integrate the probability flow ODE~\eqref{eqn:ode} over the interval $t\in[0,1]$.
+%
+While this approach produces high-quality samples, it typically requires numerous integration steps, making inference computationally expensive---particularly when $b_t$ is parameterized by a complex neural network.
+%
+Here, we bypass this numerical integration by estimating the two-time flow map, which lets us take jumps of arbitrary size.
+%
+To do so, we require the following regularity assumption, which ensures~\eqref{eqn:ode} has solutions that exist and are unique~\citep{hartman2002ordinary}.
+
+\begin{assumption}
+	\label{as:one-sided}
+	The drift satisfies the one-sided Lipschitz condition
+	\begin{equation}
+		\label{eq:one:sided:lip}
+		\exists \:\: C_t \in L^1[0,1] \ : \quad (b_t(x)-b_t(y))\cdot (x-y) \le C_t |x-y|^2 \quad \text{for all} \:\: (t,x,y) \in [0,1]\times \R^d \times \R^d.
+	\end{equation}
+\end{assumption}
+%
+With~\cref{as:one-sided} in hand, we may now define the central object of our study.
+%
+\begin{definition}[Flow Map]
+	\label{def:flow_map}
+	The flow map $X_{s, t}:\R^d\rightarrow\R^d$ for~\eqref{eqn:ode} is the unique map such that
+	\begin{equation}
+		\label{eqn:flow_map}
+		%\forall \:\: (s,t) \in [0,1]^2\  : \quad X_{s, t}(x_s) = x_t.
+		X_{s, t}(x_s) = x_t \:\: \text{for all} \:\: (s,t) \in [0,1]^2,
+	\end{equation}
+	where $(x_t)_{t\in[0,1]}$ is any solution to the ODE~\eqref{eqn:ode}.
+\end{definition}
+The flow map in~\cref{def:flow_map} can be seen as an integrator for~\eqref{eqn:ode} where the step size $t-s$ may be chosen arbitrarily.
+%
+In addition to the defining condition~\eqref{eqn:flow_map}, we now highlight some of its useful properties.
+%
+\begin{restatable}{proposition}{flowmap}
+	\label{prop:flow_map}
+	The flow map $X_{s, t}(x)$ is the unique solution to the Lagrangian equation
+	\begin{equation}
+		\label{eqn:flow_map_dyn:L}
+		\partial_t X_{s, t}(x) = b_t(X_{s, t}(x)), \qquad X_{s,s}(x) = x,
+	\end{equation}
+	for all $(s,t,x) \in [0,1]^2\times \R^d$. In addition, it satisfies
+	\begin{equation}
+		\label{eq:semigroup}
+		X_{t,\tau}(X_{s,t}(x)) = X_{s,\tau}(x)
+	\end{equation}
+	for all $(s,t,\tau,x) \in [0,1]^3\times \R^d$.
+	%
+	In particular $X_{s,t} (X_{t,s}(x)) = x$ for all $(s,t,x) \in [0,1]^2\times \R^d$, i.e. the flow map is invertible.
+\end{restatable}
+%
+\cref{prop:flow_map} shows that, given an $x_0\sim\rho_0$, we can use the flow map to generate samples from $\rho_t$ for any $t\in[0,1]$ in one step via $x_t=X_{0,t}(x_0)\sim \rho_t$.
+%
+The composition relation~\eqref{eq:semigroup} is the \emph{consistency property}, here stated over two times, that gives consistency models their name~\citep{song_consistency_2023}.
+%
+This relation shows that we can also generate samples in multiple steps using $x_{t_k} = X_{t_{k-1},t_k}(x_{t_{k-1}})\sim\rho_{t_k}$ for any set of discretization points $(t_0,\ldots, t_K)$ with $t_k \in [0,1]$ and $K \in \N$.
+%
+We refer to~\eqref{eqn:flow_map_dyn:L} as the \emph{Lagrangian equation} because it is defined in a frame of reference that moves with  $X_{s, t}(x)$.
+
+The flow map $X_{s, t}$ also obeys an alternative \emph{Eulerian equation} that is defined at any fixed point $x \in \R^d$ and which involves a derivative with respect to $s$. To derive this equation, note that since $X_{s,t}(x_s) = x_t$ by \eqref{eqn:flow_map} we have $(d/ds)X_{s,t}(x_s) =0$, which by the chain rule can be written as
+%
+\begin{equation}
+	\label{eqn:backward:2}
+	\frac{d}{ds} X_{s,t} (x_s) = \partial_s X_{s, t}(x_s) + b_s(x_s)\cdot \nabla X_{s, t}(x_s) = 0
+\end{equation}
+%
+where we used \cref{eqn:ode} to set $\dot x_s = b_s(x_s)$.
+Evaluating this equation at $x_s=x$ gives the announced result.
+\begin{restatable}{proposition}{euleq}
+	\label{prop:prop_backwards}
+	The flow map $X_{s, t}$ is the unique solution of the Eulerian equation,
+	%
+	\begin{equation}
+		\label{eqn:backward}
+		\partial_s X_{s, t}(x) + b_s(x)\cdot \nabla X_{s, t}(x) = 0, \qquad X_{t,t} (x) = x,
+	\end{equation}
+	%
+	for all $(s,t,x) \in [0,1]^2\times \R^d$.
+\end{restatable}
+%
+\subsection{Distillation of a known velocity field}
+\label{ssec:distill}
+%
+The Lagrangian equation~\eqref{eqn:flow_map_dyn:L} in~\Cref{prop:flow_map} leads to a distillation loss that can be used to learn a flow map for a probability flow with known right-hand side~$b$, as we now show.
+
+\begin{restatable}[Lagrangian map distillation]{corollary}{lagdistill}
+	\label{prop:distill}
+	%
+	Let $w_{s,t} \in L^1([0,1]^2)$ be a weight function satisfying $w_{s, t} > 0$ and let $I_s$ be the stochastic interpolant defined in~\cref{eq:stoch:interp}.
+	%
+	Then the flow map is the global minimizer over $\hat{X}$ of the loss
+	\begin{equation}
+		\label{eqn:distillation_loss}
+		\calL_{\lmd}(\hat{X}) = \int_{[0,1]^2}  w_{s,t} \E \big[ |\partial_t \hat{X}_{s, t}(I_s) - b_t(\hat{X}_{s, t}(I_s)|^2\big] dsdt,
+	\end{equation}
+	subject to the boundary condition that $\hat{X}_{s, s}(x) = x$ for all $x \in \R^d$ and $s \in [0,1]$. In~\eqref{eqn:distillation_loss}, $\E$ denotes an expectation over the coupling $(x_0, x_1) \sim \rho(x_0, x_1)$ and $z \sim \mathsf N(0, \Id)$.
+\end{restatable}
+%
+The time integrals in~\eqref{eqn:distillation_loss} can also be written as an expectation over $(s,t) \sim w_{s,t}$ (properly normalized):
+%
+\begin{equation}
+	\label{eqn:distillation_loss:2}
+	\calL_{\lmd}(\hat{X}) = \E_{(s,t)\sim w_{s,t}} \E\big[|\partial_t \hat{X}_{s, t}(I_s) - b_t(\hat{X}_{s, t}(I_s))|^2\big].
+\end{equation}
+%
+We also note that the result of \Cref{prop:distill} remains true if we replace $I_s$ by any process $\hat x_s$ with density $\hat \rho_s \not= \rho_s$, as long as it is strictly positive everywhere.
+%
+In practice, it is convenient to use $I_s$ as it guarantees that we learn the flow map where we typically need to evaluate it.
+%
+Moreover, using $I_s$ avoids the need to generate a dataset from a pre-trained model, so that the objective~\eqref{eqn:distillation_loss} can be evaluated empirically in a simulation-free fashion.
+
+When applied to a pre-trained flow model,~\Cref{prop:distill} can be used to train a new, few-step generative model with performance that matches the performance of the teacher.
+%
+When $\hat{X}_{s, t}$ is parameterized by a neural network, the partial derivative with respect to $t$ can be computed efficiently at the same time as the computation of $\hat{X}_{s, t
+	}$ using forward-mode automatic differentiation.
+%
+This procedure is summarized in~\cref{alg:lagrange_distill}.
+
+For simplicity, \cref{prop:distill} is stated for $w_{s,t}>0$ (e.g. $w_{s,t}=1$), so that we can estimate the map $X_{s,t}$ and its inverse $X_{t,s}$ for all $(s,t)\in[0,1]$.
+%
+Nevertheless, this weight can also be adjusted to learn the map for different pairs $(s,t)$ of interest.
+For example, if we only want to estimate the forward map with $s\le t$, then we can set $w_{s,t} = 1$ if  $s\le t$ and $w_{s,t} = 0$ otherwise.
+
+By squaring the left hand-side of the Eulerian equation~\eqref{eqn:backward} in \Cref{prop:prop_backwards}, we may construct a second loss function for distillation.\footnote{In~\eqref{eqn:backward}, the term
+%
+$\left(b_s(x)\cdot\nabla X_{s, t}(x)\right)_i = \sum_{j=1}^d [b_s(x)]_j \partial_{x_j}\left[X_{s, t}(x)\right]_i = \left[\nabla X_{s, t}(x)\cdot b_s(x)\right]_i$
+%
+corresponds to a Jacobian-vector product that can be computed efficiently using forward-mode automatic differentiation.}
+\begin{restatable}[Eulerian map distillation]{corollary}{euldistill}
+	\label{prop:backward_loss}
+	Let $w_{s,t}$ and $I_s$ be as in \cref{prop:distill}. Then the flow map is the global minimizer over $\hat{X}$ of the loss
+	\begin{equation}
+		\label{eqn:L_backward}
+		\calL_{\emd}(\hat{X}) = \int_{[0,1]^2}w_{s,t} \E\big[|\partial_s \hat{X}_{s, t}(I_s) + b_s(I_s) \cdot \nabla \hat{X}_{s, t}(I_s)|^2\big] dsdt,
+	\end{equation}
+	subject to the boundary condition $\hat{X}_{s, s}(x) = x$ for all $x \in \R^d$ and for all $s \in \R$.
+\end{restatable}
+%
+As in the discussion after~\cref{prop:distill}, here we may also replace $I_s$ by any process $\hat x_s$ with a strictly positive density.
+%
+Writing the time integrals in~\eqref{eqn:L_backward} as an expectation over $(s,t) \sim w_{s,t}$ gives
+%
+\begin{equation}
+	\label{eqn:L_backward:b}
+	\calL_{\lmd}(\hat{X}) = \E_{(s,t)\sim w_{s,t}} \E\big[ \big|\partial_s \hat{X}_{s, t}(I_s) + b_s(I_s) \cdot \nabla \hat{X}_{s, t}(I_s)\big|^2\big].
+\end{equation}
+%
+%
+We summarize a training procedure based on~\cref{prop:backward_loss} in~\cref{alg:euler_distill}.
+
+In~\Cref{sec:app:relation}, we demonstrate how the preceding results connect with existing distillation-based approaches.
+%
+In particular, when $b_t(x)$ is the velocity of the probability flow ODE associated with a diffusion model, \Cref{prop:backward_loss} recovers the continuous-time limit of consistency distillation~\citep{song_consistency_2023, song_improved_2023} and consistency trajectory models~\citep{kim_consistency_2024}, while~\cref{prop:distill} is new.
+
+\begin{algorithm}[t]
+	\caption{Lagrangian map distillation (LMD)}
+	\label{alg:lagrange_distill}
+	%
+	\SetAlgoLined
+	%
+	\SetKwInput{Input}{input}
+	%
+	\Input{Interpolant coefficients $\alpha_t, \beta_t, \gamma_t$; pre-trained velocity $b_t$, weight function $w_{s, t}$, batch size $M$.}
+	%
+	\Repeat{converged}{
+		%
+		Draw batch $(s_i, t_i, x_0^i, x_1^i, z_i)_{i=1}^M$ from $w_{s,t} \times \rho(x_0,x_1) \times \mathsf N(z; 0, \Id)$.\\
+		%
+		Compute $I_{t_i} = \alpha_{t_i} x_0^i + \beta_{t_i} x_1^i + \gamma_{t_i} z_i$ and $\dot I_{t_i} = \dot\alpha_{t_i} x_0^i + \dot\beta_{t_i} x_1^i + \dot\gamma_{t_i} z_i$.\\
+		%
+		Compute $\hat{\calL}_{\lmd} = \frac{1}{M}\sum_{i=1}^M |\partial_t \hat{X}_{s_i, t_i}(I_{s_i}) - b_{t_i}(\hat{X}_{s_i, t_i}(I_{s_i}))|^2$.\\
+		%
+		Take gradient step on $\hat{\calL}_{\lmd}$ to update $\hat X$.
+	}
+	\SetKwInput{Output}{output}
+	\Output{Flow map $\hat{X}$.}
+\end{algorithm}
+
+\begin{algorithm}[t]
+	\caption{Eulerian map distillation (EMD)}
+	\label{alg:euler_distill}
+	%
+	\SetAlgoLined
+	%
+	\SetKwInput{Input}{input}
+	%
+	\Input{Interpolant coefficients $\alpha_t, \beta_t, \gamma_t$; pre-trained velocity $b_t$, weight function $w_{s, t}$, batch size $M$.}
+	%
+	\Repeat{converged}{
+		%
+		Draw batch $(s_i, t_i, x_0^i, x_1^i, z_i)_{i=1}^M$ from $w_{s,t} \times \rho(x_0,x_1) \times \mathsf N(z; 0, \Id)$.\\
+		%
+		Compute $I_{t_i} = \alpha_{t_i} x_0^i + \beta_{t_i} x_1^i + \gamma_{t_i} z_i$ and $\dot I_{t_i} = \dot\alpha_{t_i} x_0^i + \dot\beta_{t_i} x_1^i + \dot\gamma_{t_i} z_i$.\\
+		%
+		Compute $\hat{\calL}_{\emd} = \frac{1}{M}\sum_{i=1}^M |\partial_s \hat{X}_{s_i, t_i}(I_{s_i}) + \nabla\hat{X}_{s_i, t_i}(I_{s_i}) b_{s_i}(I_{s_i})|^2$.\\
+		%
+		Take gradient step on $\hat{\calL}_{\emd}$ to update $\hat X$.
+	}
+	\SetKwInput{Output}{output}
+	\Output{Flow map $\hat{X}$.}
+\end{algorithm}
+
+\subsection{Wasserstein control}
+\label{ssec:wasserstein}
+%
+In this section, we show that the Lagrangian and Eulerian distillation losses~\eqref{eqn:distillation_loss} and~\eqref{eqn:L_backward} control the Wasserstein distance between the density $\rho_t$ of the teacher flow model and the density $\hat{\rho}_t = \hat{X}_{0,t}\:\sharp\:\rho_0$ of the pushforward of $\rho_0$ under the learned flow map (that is, $\hat \rho_t$ is the density of $\hat X_{0,t}(x_0)$ with $x_0 \sim \rho_0$).
+%
+When combined with the Wasserstein bound in~\citet{albergo2022building}, the following results also imply a bound on the Wasserstein distance between the data density and the pushforward density for the learned flow map in the case where $b$ is a pre-trained stochastic interpolant or diffusion model.
+%
+We begin by stating our result for Lagrangian distillation.
+\begin{restatable}[Lagrangian error bound]{proposition}{lagrangianerr}
+	\label{prop:lagrange_wasserstein}
+	Let $X_{s, t}: \R^d\rightarrow \R^d$ denote the flow map for $b$, and let $\hat{X}_{s, t}: \R^d \rightarrow \R^d$ denote an approximate flow map.
+	%
+	Given $x_0\sim\rho_0$, let $\hat{\rho}_1$ be the density of $\hat X_{0,1}(x_0)$ and let $\rho_1$ be the target density of $X_{0,1}(x_0)$.
+	%
+	Then,
+	\begin{equation}
+		\label{eq:W2:1}
+		W_2^2(\rho_1, \hat{\rho}_1) \leq e^{1+2\int_0^1|C_t|dt}\calL_{\lmd}(\hat{X}).
+	\end{equation}
+	where $C_t$ is the constant that appears in Assumption~\ref{as:one-sided}.
+\end{restatable}
+The proof is given in~\cref{app:theory}.
+%
+We now state an analogous result for the Eulerian case.
+\begin{restatable}[Eulerian error bound]{proposition}{eulerianerr}
+	\label{prop:euler_wasserstein}
+	%
+	Let $X_{s, t}: \R^d\rightarrow \R^d$ denote the flow map for $b$, and let $\hat{X}_{s, t}: \R^d \rightarrow \R^d$ denote an approximate flow map.
+	%
+	Given $x_0\sim\rho_0$, let $\hat{\rho}_1$ be the density of $\hat X_{0,1}(x_0)$ and let $\rho_1$ be the target density of $X_{0,1}(x_0)$.
+	%
+	Then,
+	\begin{equation}
+		\label{eq:W2:2}
+		W_2^2(\rho_1, \hat{\rho}_1) \leq e^1 \calL_{\emd}(\hat{X}).
+	\end{equation}
+\end{restatable}
+
+The proof is also given in~\cref{app:theory}.
+%
+The result in~\cref{prop:euler_wasserstein} appears stronger than the result in~\cref{prop:lagrange_wasserstein}, because it is independent of any Lipschitz constant.
+%
+Notice, however, that unlike~\eqref{eq:W2:1} the bound~\eqref{eq:W2:2} involves the spatial gradient of the map $X_{s,t}$, which may be more difficult to control.
+%
+In our numerical experiments, we found the best performance when using the Lagrangian distillation loss, rather than the Eulerian distillation loss.
+%
+We hypothesize and provide numerical evidence that this originates from avoiding the spatial gradient present in the Eulerian distillation loss; in several cases of interest, the learned map can be singular or nearly singular, so that the spatial gradient is not well defined everywhere.
+%
+This leads to training difficulties that manifest themselves as fuzzy boundaries on the checkerboard dataset and blurry images on image datasets.
+
+\subsection{Direct training with flow map matching (FMM)}
+\label{ssec:direct}
+%
+We now give a loss function for \emph{direct} training of the flow map that does not require a pre-trained $b$.
+
+\begin{restatable}[Flow map matching]{proposition}{fmm}
+	\label{prop:fmm}
+	The flow map is the global minimizer over $\hat{X}$ of the loss
+	\begin{align}
+		\label{eq:obj:match}
+		\calL_{\mathsf{FMM}}(\hat X) = \int_{[0,1]^2} w_{s,t} \left(\E \big [| \partial_t \hat X_{s,t} (\hat X_{t,s}(I_t)) - \dot{I}_t|^2\big] + \E \big [| \hat X_{s,t} (\hat X_{t,s}(I_t)) - I_t|^2 \big]\right) ds dt,
+	\end{align}
+	subject to the boundary condition $\hat{X}_{s, s}(x) = x$ for all $x \in \R^d$ and for all $s \in \R$.
+	In~\eqref{eq:obj:match}, $w_{s,t} > 0$ and $\E$ is taken over the coupling $(x_0, x_1) \sim \rho(x_0, x_1)$ and $z \sim \mathsf N(0, \Id)$.
+\end{restatable}
+
+\begin{algorithm}[t]
+	\caption{Flow map matching (FMM)}
+	\label{alg:fmm}
+	%
+	\SetAlgoLined
+	%
+	\SetKwInput{Input}{input}
+	%
+	\Input{Interpolant coefficients $\alpha_t, \beta_t, \gamma_t$; weight function $w_{s, t}$; batch size $M$.}
+	%
+	\Repeat{converged}{
+	%
+	Draw batch $(s_i, t_i, x_0^i, x_1^i, z_i)_{i=1}^M$ from $w_{s,t} \times \rho(x_0,x_1) \times \mathsf N(z; 0, \Id)$.\\
+	%
+	Compute $I_{t_i} = \alpha_{t_i} x_0^i + \beta_{t_i} x_1^i + \gamma_{t_i} z_i$ and $\dot I_{t_i} = \dot\alpha_{t_i} x_0^i + \dot\beta_{t_i} x_1^i + \dot\gamma_{t_i} z_i$.\\
+	%
+	Compute $\hat{\calL}_{\text{FMM}} = \frac{1}{M}\sum_{i=1}^M \left(|\partial_t \hat{X}_{s_i, t_i}(\hat{X}_{t_i, s_i}(I_{t_i})) - \dot{I}_{t_i}|^2 + |\hat{X}_{s_i, t_i}(\hat{X}_{t_i, s_i}(I_{t_i})) - I_{t_i}|^2\right)$.\\
+	%
+	Take gradient step on $\hat{\calL}_{\text{FMM}}$ to update $\hat X$.
+	}
+	\SetKwInput{Output}{output}
+	\Output{Flow map $\hat{X}$.}
+\end{algorithm}
+
+
+\begin{wrapfigure}[14]{r}{0.32\textwidth}
+	\centering
+	\includegraphics[width=0.30\textwidth]{figs/cartoon_flow3.pdf}
+	\caption{Schematic illustrating the weight $w_{s, t}$ in the FMM loss, which can be tuned to arrive at different learning schemes.}
+	\label{fig:cartoon}
+\end{wrapfigure}
+%
+In the loss~\eqref{eq:obj:match}, we are free to adjust the weight factor $w_{s,t}$, as illustrated in \cref{fig:cartoon}.
+%
+However, since we need to learn both the map $X_{s,t}$ and its inverse $X_{t,s}$, it is necessary to enforce the symmetry property $w_{t,s} = w_{s,t}$.
+%
+If we learn the map for all $(s,t) \in [0,1]^2$ using, for example, $w_{s,t} = 1$, then we can generate samples from~$\rho_1$ in one step via $X_{0,1}(x_0)$ with $x_0\sim\rho_0$.
+%
+If we learn the map in a strip, as shown in \cref{fig:cartoon}, the learning becomes simpler but we need to use multiple steps to generate samples from $\rho_1$; the number of steps then depends of the width of the strip.
+%
+We note that the second term enforcing invertibility in \cref{eq:obj:match} comes at no additional cost on the forward pass, because $\hat{X}_{s, t}(\hat{X}_{t, s}(I_t))$ can be computed at the same time as $\partial_t \hat{X}_{s, t}(\hat{X}_{t, s}(I_t))$ with standard Jacobian-vector product functionality in modern deep learning packages.
+%
+A summary of the flow map matching procedure is given in~\cref{alg:fmm}.
+
+\subsection{Eulerian estimation or Eulerian distillation?}
+\label{sec:eul:est}
+%
+In light of~\Cref{prop:fmm}, the reader may wonder whether we could also perform direct estimation in the Eulerian setup, using for example the objective
+%
+\begin{equation}
+	\label{eqn:L_backward:2}
+	\int_{[0,1]^2} w_{s,t} \E\Big[\big|\partial_s \hat{X}_{s, t}(I_s) + \dot I_s  \cdot \nabla \hat{X}_{s, t}(I_s)\big|^2\Big] dsdt.
+\end{equation}
+%
+The above loss may be obtained from~\eqref{eqn:L_backward} by replacing the appearance of $b_s(I_s)$ with $\dot I_s$.
+%
+Unfortunately, \eqref{eqn:L_backward:2} is not equivalent to~\eqref{eqn:L_backward}. To see why, we can expand the expectation in \eqref{eqn:L_backward:2}:
+\begin{equation}
+	\label{eq:expand}
+	\begin{aligned}
+		 & \E\Big[\big|\partial_s \hat{X}_{s, t}(I_s) + \dot I_s  \cdot \nabla \hat{X}_{s, t}(I_s)\big|^2\Big]                                                                                                     \\
+		 & = \E\Big[\big|\partial_s \hat{X}_{s, t}(I_s)\big|^2 + 2 (\dot I_s  \cdot \nabla \hat{X}_{s, t}(I_s))\cdot \partial_s \hat{X}_{s, t}(I_s) + \big|\dot I_s  \cdot \nabla \hat{X}_{s, t}(I_s)\big|^2\Big].
+	\end{aligned}
+\end{equation}
+%
+The cross term is linear in $\dot I_s$, so that we can use the tower property of the conditional expectation to see
+%
+\begin{equation}
+	\label{eq:cterm}
+	\begin{aligned}
+		\E\big[(\dot I_s  \cdot \nabla \hat{X}_{s, t}(I_s))\cdot \partial_s \hat{X}_{s, t}(I_s)\big] & = \E\big[(\E[\dot I_s|I_s]  \cdot \nabla \hat{X}_{s, t}(I_s))\cdot \partial_s \hat{X}_{s, t}(I_s)\big], \\
+		%
+		                                                                                             & = \E\big[(b_s(I_s)  \cdot \nabla \hat{X}_{s, t}(I_s))\cdot \partial_s \hat{X}_{s, t}(I_s)\big] .
+	\end{aligned}
+\end{equation}
+%
+However, the tower property cannot be applied to the last term in~\eqref{eq:expand} since it is quadratic in $\dot I_s$, i.e.
+%
+\begin{equation}
+	\label{eq:lterm}
+	\begin{aligned}
+		\E\Big[ \big|\dot I_s  \cdot \nabla \hat{X}_{s, t}(I_s)\big|^2\Big]\not= \E\Big[ \big|b_s(I_s)  \cdot \nabla \hat{X}_{s, t}(I_s)\big|^2\Big].
+	\end{aligned}
+\end{equation}
+%
+Since this term depends on $\hat X$, it cannot be neglected in the minimization, and the minimizer of~\eqref{eqn:L_backward:2} is not the same as that of~\eqref{eqn:L_backward}.
+%
+Recognizing this difficulty, consistency models~\citep{song_consistency_2023, song_improved_2023, kim_consistency_2024} place a $\stopgrad{\cdot}$ on the term  $\dot I_s  \cdot \nabla \hat{X}_{s, t}(I_s)$ when computing the gradient of the loss~\eqref{eqn:L_backward:2}.
+%
+The resulting iterative scheme used to update $\hat X$ then has the correct fixed point at $\hat X = X$, as summarized in the following proposition.
+%
+\begin{restatable}[Eulerian estimation]{proposition}{emm}
+	\label{prop:emm}
+	%
+	The flow map $X_{s, t}$ is a critical point of the loss
+	%
+	\begin{align}
+		\label{eq:obj:eul:match}
+		\calL_{\ee}(\hat{X}) = \int_{[0,1]^2} w_{s,t} \E \big [| \partial_s \hat X_{s,t} (I_s) - \stopgrad{\dot{I}_s \cdot \nabla \hat X_{s,t} (I_s)}|^2\big]  ds dt,
+	\end{align}
+	%
+	subject to the boundary condition $\hat{X}_{s, s}(x) = x$ for all $x \in \R^d$ and for all $s \in \R$.
+	%
+	In~\eqref{eq:obj:eul:match}, $w_{s,t} > 0$ and $\E$ is taken over the coupling $(x_0, x_1) \sim \rho(x_0, x_1)$, $z \sim \mathsf N(0, \Id)$.
+	%
+	The operator $\stopgrad{\cdot}$ indicates that the argument is ignored when computing the gradient.
+	%
+\end{restatable}
+%
+We note that it is challenging to guarantee that the critical point described in~\cref{prop:emm} is stable and attractive for an iterative gradient-based scheme, as the objective function is not guaranteed to decrease due to the appearance of the $\stopgrad{\cdot}$ operator.
+%
+Nonetheless, some works have found success with related approaches on large-scale image generation problems \citep{song_consistency_2023}.
+
+\begin{algorithm}[t]
+	\caption{Progressive flow map matching (PFMM)}
+	\label{alg:pfmm}
+	%
+	\SetAlgoLined
+	%
+	\SetKwInput{Input}{input}
+	%
+	\Input{Interpolant coefficients $\alpha_t, \beta_t, \gamma_t$; weight $w_{s, t}$; $K$-step flow map $\hat{X}$; batch size $M$.}
+	%
+	\Repeat{converged}{
+		%
+		Draw batch $(s_i, t_i, I_{s_i})_{i=1}^M$ and compute $t_k^i = s_i + (k-1)(t_i - s_i)$ for $k = 1, \hdots, K$.\\
+		%
+		Compute $\hat{\calL}_{\pfmm} = \frac{1}{M}\sum_{i=1}^M \left(|\check{X}_{s_i, t_i}(I_{s_i}) - \big(\hat{X}_{t_{K-1}^i, t_K^i}\circ \cdots \circ \hat{X}_{t_1^i, t_2^i}\big)(I_{s_i})|^2\right)$.\\
+		%
+		Take gradient step on $\hat{\calL}_{\pfmm}$ to update $\check X$.
+	}
+	\SetKwInput{Output}{output}
+	\Output{One-step flow map $\check {X}$.}
+\end{algorithm}
+
+\subsection{Progressive distillation}
+\label{sec:progress}
+
+Empirically, we found directly learning a one-step map to be challenging in practice.
+%
+Convergence was significantly improved  by taking $w_{s,t} = w_{t,s} = \mathbb{I}\left(|t-s| \leq 1/K\right)$ for some $K \in \mathbb{N}$ where $\mathbb{I}$ denotes an indicator function.
+Given such a $K$-step model, it can be converted into a one-step model using a map distillation loss that is similar to progressive distillation~\citep{salimans_progressive_2022} and neural operator approaches~\citep{zheng_fast_2023}.
+
+
+\begin{restatable}[Progressive flow map matching]{lemma}{fmmd}
+	\label{prop:fmmd}
+	Let $\hat X$ be a two-time flow map. Given $K\in \N$, let $t_k = s + \frac{k-1}{K-1}(t-s)$ for $k=1, \ldots, K$. Then the unique minimizer over $\check X$ of the objective
+	\begin{align}
+		\label{eq:obj:match:D}
+		\calL_{\pfmm}(\check X) = \int_{[0,1]^2} w_{s,t}  \E \Big[\big| \check X_{s,t} (I_s) - \big(\hat{X}_{t_{K-1}, t_K}\circ \cdots \circ \hat{X}_{t_1, t_2}\big)(I_s)\big|^2\Big] ds dt,
+	\end{align}
+	produces the same output in one step as the $K$-step iterated map $\hat X$. Here $w_{s,t}> 0$, and $\E$ is taken over the coupling $(x_0, x_1) \sim \rho(x_0, x_1)$ and $z \sim \mathsf N(0, \Id)$.
+	%
+\end{restatable}
+%
+We note that $\hat X$ is fixed in~\eqref{eq:obj:match:D} and serves as the teacher, so we only need to compute the gradient with respect to the parameters of $\check X$.
+%
+In practice, we may train $\hat{X}$ using~\eqref{eq:obj:match} over a class of neural networks and then freeze its parameters.
+%
+We may then use~\eqref{eq:obj:match:D} to distill $\hat{X}$ into a more efficient model $\check{X}$, which can be initialized from the parameters of $\hat{X}$ for an efficient warm start.
+%
+Alternatively, we can add \eqref{eq:obj:match:D} to \eqref{eq:obj:match} and train a single network $\hat X$ by setting $\check X = \hat X$ in \eqref{eq:obj:match:D} and placing a $\stopgrad{\cdot}$ on the multistep term.
+
+If $K$ evaluations of $\hat{X}$ are expensive, we may iteratively minimize~\eqref{eq:obj:match:D} with some number $M < K$ evaluations of $\hat{X}$ and then replace $\hat{X}$ by $\check{X}$, similar to progressive distillation~\citep{salimans_progressive_2022}.
+%
+For example, we may take $M = 2$ and then minimize~\eqref{eq:obj:match:D} $\ceil{\log_2 K}$ times to obtain a one-step map.
+%
+Alternatively, we can first generate a dataset of $(s, t, I_s, (\hat{X}_{t_{K-1}, t_K}\circ \cdots \circ \hat{X}_{t_1, t_2})(I_s))$ in a parallel offline phase, which converts~\eqref{eq:obj:match:D} into a simple least-squares problem.
+% 
+Finally, if we are only interested in using the map forward in time, we can set $w_{s,t}=1$ if $s\le t$ and $w_{s,t}=0$ otherwise.
+%
+The resulting procedure is summarized in~\cref{alg:pfmm}.

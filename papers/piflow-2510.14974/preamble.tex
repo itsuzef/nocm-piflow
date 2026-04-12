@@ -1,0 +1,103 @@
+\PassOptionsToPackage{dvipsnames,table}{xcolor}
+
+\usepackage{iclr2026_conference,times}
+
+% Optional math commands from https://github.com/goodfeli/dlbook_notation.
+\input{math_commands.tex}
+
+\usepackage{hyperref}
+\usepackage{url}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{amsthm}
+\usepackage{braket}
+\usepackage{caption}
+\usepackage[linesnumbered,ruled,vlined]{algorithm2e}
+\usepackage{tabularray}
+\UseTblrLibrary{booktabs}
+\usepackage{makecell}
+\usepackage{multirow}
+
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{float}
+% \usepackage{tablefootnote}
+
+% \setlength{\abovecaptionskip}{1.5ex}
+\captionsetup[table]{skip=0.8ex}
+\captionsetup[figure]{skip=1.5ex}
+
+\newlength\itemparskip
+\setlength{\itemparskip}{0.5\parskip}
+\setlist{nosep, leftmargin=1em, itemsep=0pt, parsep=0pt, before={\parskip=\itemparskip}, after=\vspace{-\itemparskip}}%
+
+\newtheoremstyle{custom}
+{\parskip} % Space above
+{0}
+{} % Body font
+{} % Indent amount
+{\bfseries} % Theorem head font
+{.} % Punctuation after theorem head
+{.5em} % Space after theorem head
+{} % Theorem head spec (can be left empty, meaning `normal')
+\theoremstyle{custom}
+% \newtheorem{theorem}{Theorem}[section]
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}[theorem]{Proposition}
+% \newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{assumption}[theorem]{Assumption}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\let\originalleft\left
+\let\originalright\right
+\renewcommand{\left}{\mathopen{}\mathclose\bgroup\originalleft}
+\renewcommand{\right}{\aftergroup\egroup\originalright}
+
+\newcommand{\diff}{\mathop{}\!\mathrm{d}}
+\let\originalpartial\partial
+\renewcommand{\partial}{\mathop{}\!\mathrm{\originalpartial}}
+\newcommand{\equivto}{\llap{$\Leftrightarrow$ \qquad}}
+
+\makeatletter
+% Remove right hand margin in algorithm
+\patchcmd{\@algocf@start}% <cmd>
+  {-1.5em}% <search>
+  {-0.5em}% <replace>
+  {}{}% <success><failure>
+\makeatother
+\newcommand\mycommfont[1]{\footnotesize\itshape\textcolor{gray}{#1}}
+\SetCommentSty{mycommfont}
+
+% fixed grey numbers
+\colorlet{lnum}{black!60}
+\newcommand{\nlnumstyle}[1]{\textcolor{lnum}{\normalsize #1}}
+\SetNlSty{nlnumstyle}{}{}
+\SetAlgoNlRelativeSize{-1}
+
+\definecolor{teacher}{RGB}{78,167,46}
+\definecolor{student}{RGB}{21,96,130}
+\definecolor{detached}{RGB}{140,140,140}
+
+
+\newcommand{\methodname}{\texorpdfstring{$\pi$}{pi}-Flow}
+
+\newcommand{\edit}[1]{%
+  \ificlrfinal
+    #1%
+  \else
+    \textcolor{blue}{#1}%
+  \fi
+}
+
+% \newcommand{\tablefootnotemark}[1]{%
+%   \hyperref[#1]{\textsuperscript{\getrefnumber{#1}}}%
+% }

@@ -1,0 +1,523 @@
+\documentclass{article}
+
+
+% if you need to pass options to natbib, use, e.g.:
+\PassOptionsToPackage{numbers,sort,compress}{natbib}
+% before loading neurips_2023
+
+% ready for submission
+% \usepackage{neurips_2024}
+
+% to compile a preprint version, e.g., for submission to arXiv, add add the
+% [preprint] option:
+% \usepackage[preprint]{open_neurips}
+
+\usepackage{open_iclr,times}
+
+
+% to compile a camera-ready version, add the [final] option, e.g.:
+% \usepackage[final]{open_neurips}
+
+% to avoid loading the natbib package, add option nonatbib:
+%    \usepackage[nonatbib]{open_neurips}
+\usepackage{tikz} % draw timeline
+\usepackage{adjustbox}
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{microtype}      % microtypography        
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{listings}
+\usepackage{overpic}
+\usepackage{wrapfig}
+\usepackage{graphicx}
+\usepackage{colortbl}
+\usepackage{makecell}
+\usepackage{multirow}
+\usepackage{tabularx}
+\usepackage{verbatim}
+\usepackage{nicefrac}
+\usepackage{empheq}         % For the boxed equations
+\usepackage{adjustbox}
+
+% \usepackage{minted}
+% \usemintedstyle{vim}
+
+\usepackage[pagebackref=true,breaklinks=true,colorlinks,bookmarks=false,citecolor=blue,linkcolor=blue]{hyperref}
+
+% For theorems and such
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2.
+\usepackage{mathtools}
+
+\input{macro}
+
+\title{Consistency Models Made Easy}
+
+\author{%
+    Zhengyang Geng$^1$
+    \And
+    Ashwini Pokle$^1$
+    \And
+    William Luo$^2$
+    \And
+    Justin Lin$^1$
+    \And
+    J. Zico Kolter$^1$
+    \And
+    \vspace{-0.4cm} \\
+    $^1$CMU \quad $^2$Westlake University
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+
+Consistency models (CMs) offer faster sampling than traditional diffusion models, but their training is resource-intensive. For example, as of 2024, training a state-of-the-art CM on CIFAR-10 takes one week on 8 GPUs. In this work, we propose an effective scheme for training CMs that largely improves the efficiency of building such models. Specifically, by expressing CM trajectories via a particular differential equation, we argue that diffusion models can be viewed as a special case of CMs. We can thus fine-tune a consistency model starting from a pretrained diffusion model and progressively approximate the full consistency condition to stronger degrees over the training process. Our resulting method, which we term Easy Consistency Tuning (ECT), achieves vastly reduced training times while improving upon the quality of previous methods: for example, ECT achieves a 2-step FID of 2.73 on CIFAR10 within 1 hour on a single A100 GPU, matching Consistency Distillation trained for hundreds of GPU hours. Owing to this computational efficiency, we investigate the scaling laws of CMs under ECT, showing that they obey the classic power law scaling, hinting at their ability to improve efficiency and performance at larger scales. Our \href{https://github.com/locuslab/ect}{code} is publicly available, making CMs more accessible to the broader community.
+
+\end{abstract}
+\section{Introduction}
+Diffusion Models (DMs)~\citep{ho2020denoising,ddim}, or Score-based Generative Models (SGMs)~\citep{song2020score,scoresde}, have vastly changed the landscape of visual content generation with applications in images~\citep{rombach2021high,saharia2022image,ho2022cascaded,dhariwal2021diffusion,hatamizadeh2023diffit,ramesh2021zero}, videos~\citep{videoworldsimulators2024,blattmann2023stable,bar2024lumiere,ho2022imagen,gupta2023photorealistic}, and 3D objects~\citep{poole2022dreamfusion,wang2024prolificdreamer,lee2024dreamflow,chen2024vp3d,babu2023hyperfields}. 
+DMs progressively transform a data distribution to a known prior distribution (e.g. Gaussian noise) according to a stochastic differential equation (SDE)~\citep{scoresde} and train a model to denoise noisy observations. 
+Samples can be generated via a reverse-time SDE that starts from noise and uses the trained model to progressively denoise it.
+However, sampling from a DM naively requires hundreds to thousands of model evaluations due to the curvature of the diffusion sampling trajectory~\citep{Karras2022edm}, making the entire generative process slow. 
+Many approaches have been proposed to address this issue,  
+including training-based techniques such as  distillation~\citep{Luhman2021KnowledgeDI,salimans2022progressive,di,gu2023boot,sauer2023adversarial,geng2024one,yin2023one,nguyen2023swiftbrush}, adaptive compute architectures for the backbone model~\citep{moon2023early,tang2023deediff}, as well as training-free methods such as fast samplers~\citep{kong2021fast,lu2022dpm,zhang2022fast,zhou2023fast,xue2024sa} or interleaving small and large backbone models during sampling~\citep{pan2024t}.
+However, the speedup achieved by these sampling techniques usually comes at the expense of the quality of generated samples.
+
+Consistency Models (CMs)~\citep{cm} are a new family of generative models, closely related to diffusion models, that have demonstrated promising results as faster generative models. 
+These models learn a mapping between noise and data, and all the points of the sampling trajectory map to the same initial data point.
+Owing to this condition, consistency models are capable of generating high-quality samples in 1-2 model evaluations.
+The best such models so far, built using improved Consistency Training (iCT)~\citep{ict}, have pushed the quality of images generated by 1-step CMs trained from scratch to a level comparable with SoTA DMs using thousands of steps for sampling.   
+Unfortunately, CMs remain time-consuming and practically challenging to train: the best practice takes many times longer than similar-quality DMs while involving complex hyperparameter choices in the training process.  
+In total, this has substantially limited the uptake of CMs within the community.
+
+In this work, we introduce a differential perspective on consistency models, leading to the formulation of the differential consistency condition in continuous time. This insight reveals the link between diffusion models and consistency models, viewing DMs as a special case of CMs with loose discretization.
+This observation motivates us to smoothly interpolate from DM to CM by progressively tightening the consistency condition, bootstrapping pretrained DMs to 1-step CMs w/o using extra frozen teachers.
+We term this strategy as \emph{Easy Consistency Tuning (ECT)}, which includes diffusion pretraining as a special stage of the continuous time training schedule.
+
+ECT significantly improves both training efficiency and performance. On \imgnet~\citep{imagenet}, ECT achieves superior 1-step and 2-step sample quality compared to the prior art. Similarly, on CIFAR-10~\citep{cifar} 2-step sample quality of ECT surpasses previous methods.  The total cost of the pretraining and tuning scheme requires only $\nicefrac{1}{4} \sim \nicefrac{1}{3}$ of the computational resources (FLOPs) used by the current \sota method, iCT~\citep{ict}, while the tuning stage can be remarkably lightweight, typically accounting for $10\%$ or less of the overall cost and further benefiting from scaling.
+
+Leveraging ECT's computational efficiency, we conduct the first study into the scaling behaviors of CMs, revealing the classic power law scaling for model size, FLOPs, and training compute. 
+The scaling also suggests a sweet spot of using smaller few-step CMs over larger 1-step CMs in certain scenarios. 
+This computational efficiency enables us to explore the design space of CMs by using the tuning stage as a proxy. Notably, tuning findings, such as weighting functions, can improve the pretraining stage and, in turn, enhance the overall pretraining + tuning pipeline for CMs.
+
+In short, we summarize our contributions as follows:
+\begin{itemize}
+    \item  We develop Easy Consistency Tuning (ECT), a pretraining + tuning scheme for training CMs in continuous time, demonstrating significant efficiency and performance gains compared to the current best practices for training CMs.
+    \item We investigate CMs' scaling behaviors for the first time and reveal the classic power law.
+    \item We explore the design space of CMs through ECT, introducing the continuous-time schedule and better weighting functions for CMs.
+\end{itemize}
+
+\section{Preliminaries}\label{sec:preliminaries}
+
+\paragraph{Diffusion Models.} Let $p_{\text{data}}(\rvx_0)$ denote the data distribution. Diffusion models (DMs) perturb this distribution by adding monotonically increasing i.i.d. Gaussian noise with standard deviation $\sigma(t)$ from $t=0$ to $T$ such that $p_t(\rvx_t | \rvx_0) = \gN(\rvx_0, \sigma^2(t)\mI)$, and $\sigma(t)$ is chosen such that $\sigma(0) = \sigma_{\text{min}}$ and $\sigma(T) = \sigma_{\text{max}}$.
+This process is described by the following SDE~\citep{scoresde}
+\begin{equation}
+    \d \rvx_t = \mathbf{f}(\rvx_t, t) \d t + g(t) \d \mathbf{w}_t \label{eqn:ito-sde},
+\end{equation}
+where $\mathbf{w}$ is the standard Wiener process, $\mathbf{f}(\cdot, t): \R^d \rightarrow \R^d$ is the drift coefficient, and $g(\cdot): \R \rightarrow \R$  is the diffusion coefficient. 
+Samples can be generated by solving the reverse-time SDE starting from $t=T$ to $0$ and sampling $\rvx_T \sim \gN(0, \sigma^2_\text{max}\mI)$.
+\citep{scoresde} show that this SDE has a corresponding ODE, called the probability flow ODE (PF-ODE), whose trajectories share the same marginal probability densities as the SDE. We follow the notation in \citep{Karras2022edm} to describe the ODE as
+\begin{equation}
+    \d\rvx_t = -\dot{\sigma}(t) \sigma(t) \nabla_{\rvx_t} \log p_t(\rvx_t)\d t,
+\end{equation}
+where $\nabla_{\rvx_t} \log p_t(\rvx_t)$ denotes the score function. Prior works~\citep{Karras2022edm,cm} set $\sigma(t) = t$ which yields
+\begin{equation}
+    \dfrac{\d \rvx_t}{\d t} =  -t \nabla_{\rvx_t} \log p_t(\rvx_t) = \dfrac{(\rvx_t - f(\rvx_t,t))}{t},\label{eq:karras-ode}
+\end{equation}
+where $f(\rvx_t,t)$ denotes a denoising function that predicts clean image $\rvx_0$ given noisy image $\rvx_t$. We will follow this parametrization in the rest of this paper. Note that time is same as noise level with this parametrization, and we will use these two terms interchangeably.
+
+\paragraph{Consistency Models.} CMs are built upon the PF-ODE in \cref{eq:karras-ode}, which establishes a bijective mapping between data distribution and noise distribution. 
+%
+CMs learn a \textit{consistency function} $f(\x_t,t)$ that maps the noisy image $\x_t$ back to the clean image $\x_0$
+\begin{equation}
+f(\x_t,t) = \x_0.
+\end{equation}
+Note that the consistency function needs to satisfy the boundary condition at $t = 0$. Prior works \citep{cm,ict,Karras2022edm} impose this boundary condition by parametrizing the CM as
+\begin{equation}
+f_\theta(\x_t, t) = c_{\text{skip}}(t) \, \x_t + c_{\text{out}}(t) \, F_\theta (\x_t, t),
+\end{equation}
+where $\theta$ is the model parameter, $F_\theta$ is the network to train, and $c_{\text{skip}}(t)$ and $c_{\text{out}}(t)$ are time-dependent scaling factors such that $c_{\text{skip}}(0) = 1$, $c_{\text{out}}(0) = 0$. 
+This parameterization guarantees the boundary condition by design. 
+We discuss specific choices of $c_{\text{skip}}(t)$ and $c_{\text{out}}(t)$ in \cref{sec:experiment-details}. 
+
+During training, CMs first discretize the PF-ODE into $N-1$ subintervals with boundaries given by  $t_{\text{min}} = t_1 < t_2 < \hdots < t_N = T$. 
+The model is trained on the following CM loss, which minimizes a metric between adjacent points on the sampling trajectory
+% 
+\begin{equation}
+    \argmin_{\theta} \E\left[w(t_i) d(f_\theta(\rvx_{t_{i+1}}, t_{i+1}), f_{\theta^-}(\tilde{\rvx}_{t_{i}}, t_{i}))\right].
+\end{equation}
+Here, $d(\cdot, \cdot)$ is a metric function, the $f_\theta$ indicates a trainable neural network that is used to learn the consistency function, $f_{\theta^-}$ indicates an exponential moving average (EMA) of the past values of $f_\theta$, and $\tilde{\rvx}_{t_{i}} = \rvx_{t_{i+1}} - (t_{i} - t_{i+1}) t_{i+1} \nabla_{\rvx_{t_{i+1}}} \log p_{t_{i+1}}(\rvx_{t_{i+1}})$. 
+Further, the discretization curriculum $N$ should be adaptive and tuned during training to achieve good performance.
+
+In the seminal work, \citep{cm} use Learned Perceptual Similarity Score (LPIPS)~\citep{lpips} as a metric function, set $w(t_i) = 1$ for all  $t_i$, and sample $t_i$ according to the sampling scheduler by ~\citep{Karras2022edm}:
+$t_i = \left(t_{\text{max}}^{1/\rho} + \frac{i}{N-1}(t_{\text{min}}^{1/\rho} - t_{\text{max}}^{1/\rho})\right)^\rho$ for $i \in \gU[1, N-1]$ and $\rho=0.7$. Further, the score function 
+$\nabla_{\x_{t}} \log p(\x_t)$
+ can either be estimated from a pretrained diffusion model,
+%
+which results in Consistency Distillation (CD), 
+or can be estimated with an unbiased score estimator 
+\begin{equation}
+\label{score-est}
+\nabla_{\x_{t}} \log p(\x_{t})
+= \E\left[\nabla_{\x_{t}} \log p(\rvx_{t} | \rvx_{0}) \bigg\vert \rvx_t\right]
+= \E\left[- \frac{\rvx_t - \rvx_0}{t^2} \bigg\vert \rvx_t\right],
+\end{equation}
+%
+which results in consistency training (CT).
+
+The follow-up work, iCT~\citep{ict}, introduces several improvements that significantly improve training efficiency as well as the performance of CMs. 
+%
+First, the LPIPS metric, which introduces undesirable bias in generative modeling, is replaced with a Pseudo-Huber metric. 
+%
+Second, the network  $f_{\theta^-}$ does not maintain an EMA of the past values of $f_\theta$. Third, iCT replaces the uniform weighting scheme $w(t_i) = 1$ with $w(t_i) = \frac{1}{t_{i+1} - t_i}$. 
+%
+Further, the scaling factors of noise embeddings and dropout are carefully selected. 
+%
+Fourth, iCT introduces a complex discretization curriculum during training:
+%
+\begin{equation}
+\label{schedule}
+\begin{aligned}
+& N(m) = \min(s_0 2^{\left\lfloor \frac{m}{M'} \right\rfloor}, s_1) + 1, \quad M' = \left\lfloor \frac{ M }{\log_2 \left\lfloor \frac{s_1}{s_0} \right\rfloor + 1} \right\rfloor,
+\end{aligned}
+\end{equation}
+%
+where $m$ is the current number of iterations, $M$ is the total number of iterations, $\sigma_{\max}$ and $\sigma_{\min}$ is the largest and smallest noise level for training, $s_0 = 10$ and $s_1 = 1280$ are hyperparameters.
+Finally, during training, iCT samples $i \sim p(i) \propto
+\text{erf} \left( \frac{\log(t_{i+1}) - P_{\text{mean}}}{\sqrt{2} P_{\text{std}}} \right) -
+\text{erf} \left( \frac{\log(t_i) - P_{\text{mean}}}{\sqrt{2} P_{\text{std}}} \right)$ from a discrete Lognormal distribution, where $P_{\text{mean}} = -1.1$ and $P_{\text{std}}=2.0$. 
+
+\section{Probing consistency models}
+We will first introduce the differential consistency condition and the loss objective based on this condition. 
+Next, we will analyze this loss objective and highlight the challenges of training CMs with it.
+Based on this analysis, we present our method, Easy Consistency Tuning (ECT).
+ECT is a simple, principled approach to efficiently train CMs to meet the (differential) consistency condition. 
+The resulting CMs can generate high-quality samples in 1 or 2 sampling steps.
+
+\subsection{Differential Consistency Condition}
+
+As stated in \cref{sec:preliminaries}, CMs learn a \textit{consistency function} $f(\x_t,t)$ that maps the noisy image $\x_t$ back to the clean image $\x_0$:  $f(\x_t,t)=\x_0$.
+Instead, by taking the time derivative of both sides, given by the differential form
+%
+\begin{equation}
+    \frac{\mathrm{d}f}{\mathrm{d}t} = \frac{\mathrm{d}}{\mathrm{d}t} \x_0 = 0. \label{eq:differential-form}
+\end{equation}
+
+However, the differential form $\frac{\mathrm{d}f}{\mathrm{d}t}=0$ alone is not sufficient to guarantee that the model output will match the clean image, 
+as there exist trivial solutions where the model maps all the inputs to a constant value, such as 
+$f(\x_t, t) \equiv 0$. 
+To eliminate these collapsed solutions, \citep{cm,ict} impose the boundary condition for $f(\x_t, t) = \x_0$ via model parameterization:
+
+\begin{empheq}[box=\fbox]{align}
+f(\x_t, t) = \x_0 
+\Leftrightarrow 
+\frac{\mathrm{d}f}{\mathrm{d}t} = 0, f(\x_0, 0) = \x_0. \label{eq:boundary-cond}
+\end{empheq}
+
+This boundary condition $f(\x_0, 0) = \x_0$ ensures that the model output matches the clean image when the noise level is zero. Together, the differential form in \cref{eq:differential-form} and the boundary condition define the \textit{differential consistency condition} in \cref{eq:boundary-cond}, or \textbf{\textit{consistency condition}} in short.
+
+\paragraph{Finite Difference Approximation.}
+To learn the consistency condition, we discretize the differential form $\frac{\mathrm{d}f}{\mathrm{d}t} = 0$ using a finite-difference approximation:
+\begin{equation}
+0 = \frac{\mathrm{d}f}{\mathrm{d}t} \approx \frac{f_\theta(\x_t) - f_\theta(\x_r)}{t - r} 
+\end{equation}
+where $\mathrm{d}t \approx \Delta t = t - r$, $t > r >= 0$, and $f_\theta(\x_t)$ denotes $f_\theta(\x_t, t)$. 
+For a given clean image $\x_0$, we produce two perturbed images $\x_t$ and $\x_r$ using the same perturbation direction $\boldsymbol{\epsilon} \sim p(\boldsymbol{\epsilon})$ at two noise levels $t$ and $r$.
+Specifically,
+we compute $t$ and $r$ according to the forward process of CMs i.e., $\x_t = \x_0 + t \cdot \boldsymbol{\epsilon}$ and $\x_r = \x_0 + r \cdot \boldsymbol{\epsilon}$.
+
+To satisfy the consistency condition, we minimize the distance between $f_\theta(\x_t)$ and $f_\theta(\x_r)$. For the boundary condition, we optimize $f_\theta(\x_t)$ to align with the clean image $\x_0$. For noise levels $t > r > 0$, we freeze $f_{\operatorname{sg}(\theta)}(\x_r)$ using the stop-gradient operator $\operatorname{sg}$ and optimize $f_\theta(\x_t)$ on higher variance inputs to align with self teacher's prediction $f_{\operatorname{sg}(\theta)}(\x_r)$ on lower variance inputs~\citep{chen2021exploring}.
+%
+%
+\paragraph{Loss Function.} Given the discretization, the training objective for CMs can be formulated as:
+\begin{equation}\label{eq:CMcost}
+\underset{\theta}{\arg \min} \; \mathbb{E}_{\x_0,\boldsymbol{\epsilon},t}\left[w(t, r)\dist(f_\theta(\x_t), f_{\operatorname{sg}(\theta)}(\x_r))
+\right],
+\end{equation}
+%
+%
+where we can extract a weighting function $w(t, r) = \frac{1}{t-r}$, $\x_t = \x_0 + t \cdot \boldsymbol{\epsilon}$, $\x_r = \x_0 + r \cdot \boldsymbol{\epsilon}$ using a \textit{shared noise direction} $\boldsymbol{\epsilon} \sim p(\boldsymbol{\epsilon})$, and $\dist(\cdot, \cdot)$ is a metric function.
+%
+% In practice, we set $\dist(\cdot, \cdot)$ to the squared $L_2$ metric. Further, we discuss an interesting relation between the Pseudo-Huber metric proposed in \citep{ict} and the weighting function in ~\cref{sec:ect}.
+This formulation generalizes \citet{cm}'s discrete training schedule to continuous time.
+To regularize the model, dropout masks should also be consistent across $f_\theta(\x_t)$ and $f_\theta(\x_r)$ by setting a shared random seed, ensuring that the noise levels $t$ and $r$ are the only varying factors.
+
+\subsection{The "Curse of Consistency" and its Implications}
+\label{sec:curse-of-consistency}
+The objective in \cref{eq:CMcost} can be challenging to optimize when $\Delta t \to 0$. This is because the prediction errors from each discretization interval accumulate, leading to slow training convergence or, in the worst case, divergence. 
+To further elaborate, consider a large noise level $T$. We first follow the notation of CT~\citep{cm} and split the noise horizon $[0,T]$ into $N$ smaller consecutive subintervals. We can error bound the error of $1$-step prediction as
+%
+\begin{equation}\label{eq:consistency-error}
+\| f_\theta(\x_T) - \x_0\| 
+\leq 
+\sum_i^N\| f_\theta(\x_{t_i}) - f_\theta(\x_{r_i}) \|
+\leq 
+N e_{\max},
+\end{equation}
+%
+\begin{wrapfigure}{r}{0.4\textwidth}
+    \centering
+    \vspace{-5pt}
+    \includegraphics[width=0.4\textwidth]{fig/delta_t.png}
+    \vspace{-10pt}
+    \caption{The "Curse of Consistency": The consistency condition holds at $\Delta t = \mathrm{d}t$. However, the training dynamics converges more slowly and is less stable as $\Delta t \to \d t$ (\ie $N \to \infty$).}
+    \label{fig:curse}
+    \vspace{-3pt}
+\end{wrapfigure}
+%
+where $r_1 = 0 < t_1 = r_2 < \cdots < t_{N-2} = r_N < t_N = T $, and $e_{\max} = \max_i \| f_\theta(\x_{t_i}) - f_\theta(\x_{r_i}) \|$, for $i = 1, \cdots, N$. 
+Ideally, we want both $N$ and $e_{\max}$ to be small so that this upper bound is small. But in practice, there is a trade-off between these two terms.
+%
+As $\Delta t_i = (t_i - r_i) \to 0$, $e_{\max}$ decreases because $\x_{t_i}$ and $\x_{r_i}$ will be close, and it is easier to predict both $f_\theta(\x_{r_i})$ and  $f_\theta(\x_{t_i})$. 
+However, $N$ will increase as $\Delta t_i \to 0$. 
+In contrast, for a large $\Delta t_i$, vice-versa holds true. 
+It is difficult to theoretically estimate the rate at which $e_{\max}$ decreases when $\Delta t_i = t_i - r_i \to 0$, as it depends on the optimization process---specifically, how effectively we train the model to minimize the consistency error in each interval. 
+If $e_{\max}$ decreases more slowly than $N$, the product of the two can increase instead, resulting in a worse prediction error $\| f_\theta(\x_T) - \x_0\|$.
+
+
+The insight from the above observation is that when training from scratch by strictly following the differential form $\nicefrac{\mathrm{d}f}{\mathrm{d}t} = 0$ with a tiny $\Delta t_i \approx 0$, the resulting model might converge slowly due to accumulated consistency errors from each interval $\Delta t_i$. 
+To investigate this hypothesis, we conducted experiments training a series of CMs using different fixed numbers of intervals $N$, and corresponding $\Delta t$ values for the consistency condition, as illustrated in \cref{fig:curse}. 
+%
+Our observations align with \citet{ict}, with the key distinction that we use a fixed $N$ for this analysis, as this approach provides better insight on how much the precise approximation of the differential consistency condition matters and isolates the effect of discretization errors.
+
+\subsection{Easy Consistency Tuning (ECT)}
+\label{sec:ect}
+%
+The discussion in \cref{sec:curse-of-consistency} highlighted the training instability issue that can arise when we naively train CMs from scratch and directly optimize for the differential consistency condition with the loss objective in \cref{eq:CMcost} while directly following $\Delta t \approx 0$.
+%
+In this section, we propose several strategies that largely alleviate the aforementioned training issues and improve the efficiency of CMs. We term this approach Easy Consistency Tuning (ECT), as it effectively balances training stability and model performance while simplifying the CM training process. ECT follows a two-stage approach: diffusion pretraining, followed by consistency tuning, which we will detail in the following subsections.
+
+\paragraph{Diffusion Pretraining + Consistency Tuning.} Drawing inspiration from iCT's adaptive discrete-time schedule~\citep{ict}, we start ECT with a large $\Delta t$, and gradually shrink $\Delta t \to 0$. In our problem setup, Since $t > r \geq 0$, we have the largest possible $\Delta t = t$ with $r=0$, which yields
+%
+\begin{equation}
+\underset{\theta}{\arg \min} \; \| f_\theta(\x_t) - f_{\operatorname{sg}(\theta)}(\x_r) \| 
+= \| f_\theta(\x_t) - f_{\operatorname{sg}(\theta)}(\x_0) \| 
+= \| f_\theta(\x_t) -\x_0 \|.
+\end{equation}
+Training a model with this loss is \emph{identical} to diffusion model/Score SDE~\citep{ho2020denoising,scoresde}. This observation suggests a learning scheme that smoothly interpolates from DMs $\Delta t = t$ to CMs $\Delta t = \mathrm{d}t$ by gradually shrinking $\Delta t \to \mathrm{d}t$ during training by gradually tightening the consistency condition.
+With this reasoning, diffusion pretraining can be considered as a special case of consistency training with a loose discretization of the consistency condition. 
+%
+Therefore, in practice, we start ECT with a pretrained diffusion model, resulting in a training scheme of pretraining+tuning.
+%
+Another benefit of this initialization is that during training, especially in the initial stages, it ensures good targets $f_{\operatorname{sg}(\theta)}(\x_r)$ in the loss objective, avoiding trivial solutions.
+%
+% Update later
+% \asp{We note that iCT begins training with a small $N$, such as $N$=$10$. 
+% Morever, extrapolating to $N$=$1$ leads to predicting the solution of the MMSE estimator, which results in suboptimal performance. 
+% This is precisely where the advantage of the training strategies proposed in ECT will become evident, as ECT smoothly interpolates from DMs to CMs. 
+% Please see the results in [Add FID DINO table] in the appendix. - TODO: Why does starting from N=1 not harm ECT but harms iCT? Give a short justification too.}
+
+We highlight two advantages of this learning scheme: 
+1. The pretraining+tuning scheme of ECT outperforms iCT's training-from-scratch approach with lower overall computational cost (see \cref{sec:comparison-of-training-schemes}).
+2. Tuning serves as an efficient proxy for exploring the CM design space. Given a pretrained diffusion model, insights gained during tuning can be applied to improve the pretraining stage, resulting in a more refined overall CM training pipeline.
+Please refer to \cref{sec:additional-experimental-results} for more details.
+
+\paragraph{Continuous-time Training Schedule.}
+
+\begin{algorithm}
+\caption{Easy Consistency Tuning (ECT)}
+\label{alg:ect}
+\begin{algorithmic}[t]
+\State \textbf{Input:} Dataset $\gD$, a pretrained diffusion model $\phi$, mapping function $p(r \mid t, \mathrm{Iters})$, weighting function $w(t)$.
+\State \textbf{Init:} $\theta \leftarrow \theta_{\phi}$, $\mathrm{Iters} = 0$.
+\Repeat
+    \State $\mathrm{Sample}$ $\x_0 \sim \mathcal{D}$, $\boldsymbol{\epsilon} \sim p(\boldsymbol{\epsilon})$, $t \sim p(t)$, $r \sim p(r \mid t, \mathrm{Iters})$
+    \State $\mathrm{Compute}$ $\x_t = \x_0 + t \cdot \boldsymbol{\epsilon}$, $\x_r = \x_0 + r \cdot \boldsymbol{\epsilon}$, $\Delta t = t-r$
+    \State $L(\theta) = w(t) \cdot \dist(f_\theta(\x_t), f_{\operatorname{sg}(\theta)}(\x_r))$ \Comment{$\mathrm{sg}$ is stop-gradient operator}
+    \State $\theta \leftarrow \theta - \eta \nabla_\theta L(\theta)$
+    \State $\mathrm{Iters} = \mathrm{Iters} + 1$
+\Until{$\Delta t \to \mathrm{d}t$}
+\Return $\theta$ \Comment{ECM}
+\end{algorithmic}
+\end{algorithm}
+\vspace{-5pt}
+%
+We investigate the design principles of a continuous-time schedule whose "boundary" condition yields standard diffusion pretraining, \ie constructing training pairs of $r=0$ for all $t$ at the beginning. Note that this is unlike the discrete-time schedule used in iCT (See \cref{sec:preliminaries} and \cref{sec:design-choices}). 
+% 
+We consider overlapped intervals for consistency models, which allows for factoring $p(t, r) = p(t) \, p(r|t)$ and continuous sampling of infinite $t$ from noise distribution $p(t)$, for instance, $\mathrm{LogNormal}(P_{\text{mean}}, P_{\text{std}})$, and $r \sim p(r | t)$. 
+
+We refer to $p(r | t)$ as the mapping function. 
+Since we need to shrink $\Delta t \to \d t$ as the training progresses, we augment the mapping function to depend on training iterations, $p(r|t, \text{iters})$, to control $\Delta t = (t - r) \to \d t$.
+We parametrize the mapping function $p(r|t, \text{iters})$ as
+%
+\begin{equation}  
+\frac{r}{t}  
+= 1 - \frac{1}{q^a} n(t)
+= 1 - \frac{1}{q^{\lfloor\mathrm{iters}/d\rfloor}} n(t),
+\label{eq:mapping-fn}
+\end{equation}
+%
+where we take $n(t) = 1 + k \,\sigma(-bt) = 1 + \frac{k}{1 + e^{bt}}$ with $\sigma(\cdot)$ as the sigmoid function, $\mathrm{iters}$ refers to training iterations. In general, we set $q > 1$, $k=8$ and $b=1$. 
+Since $r\geq0$, we also clamp $r$ to satisfy this constraint.
+At the beginning of training, this mapping function produces $\nicefrac{r}{t} = 0$, which recovers the diffusion pretraining.
+%
+We discuss design choices of this function in \cref{sec:design-choices}.
+
+\vspace{-3pt}
+\paragraph{Choice of metric.} iCT uses the Pseudo-Huber metric~\citep{huber} to mitigate the perceptual bias caused by the LPIPS metric~\citep{lpips}. 
+When taking a careful look at this metric, we reveal that this metric offers adaptive per-sample scaling of the gradients, which reduces the variance of gradients during training.
+Specifically, the differential of the Pseudo-Huber loss can be decomposed into two terms: an adaptive scaling factor $w(\Delta)$ and the differential of the squared $L_2$ loss. We discuss this in more detail in \cref{sec:design-choices}. 
+Thus, we disentangle the weighting function from the loss metric as it provides greater flexibility. In our experiments, we retain the squared $L_2$ metric used in DMs and explore alternate choices of adaptive weighting terms that reduce the variance of gradients during training. Please refer to \cref{sec:additional-experimental-results} for further discussions.
+
+\vspace{-3pt}
+\paragraph{Weighting function.} 
+Weighting functions usually lead to a substantial difference in performance in DMs, and the same holds true for CMs. 
+Substituting the mapping function $p(r|t)$ in \cref{eq:mapping-fn} into the weighting function in \cref{eq:CMcost}, we get $w(t, r) = \nicefrac{1}{(t - r)} = q^a \cdot \nicefrac{1}{tn(t)}$, where $q^a$ is the scaling factor to maintain the loss scales when $\Delta t \to 0$, and $\nicefrac{1}{tn(t)}$ is the weighting akin to DMs. 
+This couples the weighting function with the mapping function $p(r|t)$. Instead, we consider decoupled weighting functions without relying on $p(r|t)$.
+Motivated by the adaptive scaling factor that appears in Pseudo-Huber loss (See \cref{sec:design-choices} for more details), we rewrite the weighting function as 
+%
+\begin{equation}
+w(t) = \Bar{w}(t) \cdot w(\Delta) = \Bar{w}(t) \cdot \frac{1}{(\|\Delta \|_2^2 + c^2)^{\nicefrac{1}{2}}},
+\end{equation}
+%
+where $\Delta = f(\rvx_t) - f(\rvx_r)$. We define $\Bar{w}(t)$ as timestep weighting, while $w(\Delta)$ as adaptive weighting.
+The adaptive weighting improves training efficiency with the $L_2$ metric because, as $\Delta \to 0$ (usually happens when $t \to 0$), this weighting $ w(\Delta)$ upscales gradients to avoid vanishing gradient during learning of fine-grained features, while $c$ mitigates potential numerical issues when $\Delta \approx 0$.
+%
+We direct the reader to \cref{tab:wt-imgnet} in \cref{sec:additional-experimental-results} for a detailed overview of various choices of $\Bar{w}(t)$ and $w(\Delta)$ considered in this work.
+In general, we notice that CMs' generative capability greatly benefits from weighting functions that control the variance of the gradients across different noise levels. 
+We provide a brief summary of the core steps of ECT in \cref{alg:ect}.
+
+\vspace{-5pt}
+\section{Experiments} \label{sec:experiments}
+
+This section compares different learning schemes and investigates scaling laws of ECT, while more experiments on design choices and scaling are shown in \cref{sec:additional-experimental-results}. We evaluate the efficiency and scalability of ECT on two datasets: CIFAR-10~\citep{cifar} and ImageNet $64 \times 64$~\citep{imagenet}.
+We measure the sample quality using Fréchet Inception Distance (FID)~\citep{fid} and Fréchet Distance under the DINOv2 model~\citep{oquab2023dinov2} (\dino)~\citep{fd_dino} and sampling efficiency using the number of function evaluations (NFEs). We also indicate the relative training costs of each of these methods. Implementation details can be found in \cref{sec:experiment-details}.
+
+\subsection{Comparison of Training Schemes}
+\label{sec:comparison-of-training-schemes}
+%
+We compare CMs trained with ECT (denoted as ECM) against state-of-the-art diffusion models, advanced samplers for diffusion models, distillation methods such as consistency distillation (CD)~\citep{cm}, and improved Consistency Training (iCT)~\citep{ict}. 
+The key results are summarized in \cref{fig:efficiency}. We show the training FLOPs, inference cost, and generative performance of the four training schemes. 
+
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=\linewidth]{fig/learning_cost_cifar10.pdf}
+    \caption{Comparison of training schemes for the diffusion-consistency family on CIFAR-10. Without relying on distillation from frozen diffusion teachers or extra adversarial supervision, ECT surpasses Consistency Distillation (CD)~\citep{cm} and Consistency Models trained from scratch (iCT)~\citep{ict} using $\nicefrac{1}{4}$ of the total training cost. ECT also significantly reduces the inference cost to $\nicefrac{1}{1000}$ compared to Diffusion Pretraining (Score SDE/DMs) while maintaining comparable sample quality.}
+    \label{fig:efficiency}
+    \vspace{-10pt}
+\end{figure}
+%
+\begin{figure}[t!]
+    \vspace{10pt}
+    \centering
+    \includegraphics[scale=0.68]{fig/scaling.png}
+    \caption{Scaling up training compute and model sizes results in improved sample quality on \imgnet. Each triplet (left-to-right) has $2$-step samples from ECM-S trained with $12.8\mathrm{M}$ images, ECM-S trained with $102.4\mathrm{M}$ images, and ECM-XL trained with $102.4\mathrm{M}$ images.}
+    \label{fig:imgnet-scaling-samples}
+    \vspace{-10pt}
+\end{figure}
+
+\paragraph{Score SDE/Diffusion Models.}
+% 
+We compare ECMs against Score SDE~\citep{scoresde}, EDM ~\citep{Karras2022edm}, and EDM with DPM-Solver-v3~\citep{zheng2024dpm}. 
+$2$-step ECM, which has been fine-tuned for only $100$k iterations, matches Score SDE-deep, with $2\times$ model depth and $2000$ NFEs, in terms of FID. 
+As noted in \cref{fig:efficiency}, ECM only requires $\nicefrac{1}{1000}$ of its inference cost and latency to achieve the same sample quality.
+$2$-step ECM fine-tuned for $100$k iterations outperforms EDM with advanced DPM-Solver-v3 (NFE=$10$). 
+
+\paragraph{Diffusion Distillation.}
+%
+We compare ECT against Consistency Distillation (CD) \citep{cm}, a SoTA approach that distills a pretrained DM into a CM. As shown in \cref{table:ect-cifar10-imagenet64}, ECM significantly outperforms CD on both CIFAR-10 and \imgnet. We note that ECT is free from the errors of teacher DM and does not incur any additional cost of running teacher DM. 
+$2$-step ECM outperforms $2$-step CD (with LPIPS~\citep{lpips}) in terms of FID ($2.20$ vs $2.93$) on CIFAR-10 while using around $\nicefrac{1}{3}$ of training compute of CD.
+%
+\paragraph{Consistency training from scratch.} Improved Consistency Training (iCT)~\citep{ict} is the SoTA recipe for training a consistency model from scratch without inferring the diffusion teacher. 
+Compared to training from scratch, ECT rivals iCT-deep using $\nicefrac{1}{4}$ of the overall training compute ($\nicefrac{1}{8}$ in the tuning stage) and $\nicefrac{1}{2}$ of the model size as shown in \cref{fig:efficiency} and \cref{table:ect-cifar10-imagenet64}.
+
+\input{table/performance}
+
+% ECT unlocks state-of-the-art few-step generative abilities through a simple yet principled approach.
+% With a negligible tuning cost, ECT demonstrates strong results while benefiting from the scaling in training FLOPs to enhance its few-step generation capability. 
+
+\subsection{Scaling Laws of ECT}
+%
+We leverage efficiency of ECT to examine the scaling behavior of CMs, including training compute, model size, and model FLOPs.
+We find that when computational resources are not a bottleneck, ECT scales well and follows the classic power law.
+%
+\vspace{-5pt}
+\paragraph{Training Compute.} 
+%
+Initializing from the weights of EDM~\citep{Karras2022edm}, we fine-tune ECMs across six compute scales on CIFAR-10~\citep{cifar} and plot the trend of \dino\ against training compute in \cref{fig:imgnet-scaling} (Left). The largest compute reaches $2\times$ the diffusion pretraining budget. As we scale up the training budget, we observe a classic power-law decay in \dino, indicating that increased computational investment in ECT leads to substantial improvements in generative performance. Intriguingly, the gap between 1-step and 2-step generation becomes \textit{narrower} when scaling up training compute, even while using the same $\Delta t \to \mathrm{d}t$ schedule. We further fit the power-law $\text{FD}_{\text{DINOv2}} = K \cdot C^\alpha$, where $C$ is the normalized training FLOPs. The Pearson correlation coefficient between $\log(\text{Training Compute})$ and $\log(\text{FD}_{\text{DINOv2}})$ for 1-step and 2-step generation is $-0.9940$ and $-0.9996$, respectively, both with statistical significance ($p$-values $< 10^{-4}$).
+%
+\vspace{-5pt}
+\paragraph{Model Size \& FLOPs.} Initialized from EDM2~\citep{Karras2024edm2} pretraining, we train ECM-S/M/L/XL models with parameters from $280\mathrm{M}$ to $1.1\mathrm{B}$ and model FLOPs from $102\mathrm{G}$ to $406\mathrm{G}$. As demonstrated in \cref{fig:imgnet-scaling}, both 1-step and 2-step generation capabilities exhibit log-linear scaling for model FLOPs and parameters. This scaling behavior confirms that ECT effectively leverages increased model sizes and computational power to improve 1-step and 2-step generative capabilities. 
+
+Notably, ECT achieves \textit{better} 2-step generation performance than \sota CMs, while utilizing only \textcolor{tomato}{$\mathbf{33\%}$} of the overall computational budget compared to iCT~\citep{ict} ($\text{batch size } 4096 \times 800\text{k}$). This significant efficiency is achieved through a two-stage process: pretraining and tuning. While the pretraining stage utilizes the EDM2 pipeline, the tuning stage of ECT requires a remarkably modest budget of $12.8\mathrm{M}$ training images ($\text{batch size } 128 \times 100\text{k}$), ranging from \textcolor{tomato}{$\mathbf{0.60\%}$ to $\mathbf{1.91\%}$} of the pretraining budget, depending on the model sizes. 
+%
+\vspace{-5pt}
+\paragraph{Inference.} Our scaling study also indicates a sweet spot for the inference of CMs. On both CIFAR-10 and \imgnet, there are 2-step inferences of smaller models surpassing 1-step inferences of larger models, \textit{e.g.}, $498\mathrm{M}$ ECM-M against $1.1\mathrm{B}$ ECM-XL. This calls for further studies of inference-optimal scaling and test-time compute scaling for visual generation.
+
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=0.48\linewidth]{fig/CIFAR_compute_scaling.pdf}
+    \hfill
+    \includegraphics[width=0.48\linewidth]{fig/ImgNet_model_size.pdf}
+    \vspace{-5pt}
+    \caption{(Left): Scaling up training compute yields the classic power-law between $\mathrm{FD}_{\text{DINOv2}}\downarrow$ and training compute, with $K=263$, $\alpha=-0.060$ for 1-step inference, and $K=164$, $\alpha=-0.028$ for 2-step inference,
+    (Right): Given the same batch size and iterations, scaling up model sizes and model FLOPs strongly correlates with $\mathrm{FID}\downarrow$ improvements on ImageNet $64 \times 64$. The diameter is proportional to the model size.}
+    \label{fig:imgnet-scaling}
+    \vspace{-10pt}
+\end{figure}
+%
+%
+\input{sections/related_works}
+
+\section{Conclusion}
+We propose Easy Consistency Tuning (ECT), a simple yet efficient scheme for training consistency models. 
+The resulting models, ECMs, unlock \sota few-step generative capabilities at a minimal tuning cost and are able to benefit from scaling.
+We have made our \href{https://github.com/locuslab/ect}{code} available to ease future prototyping, studying, and deploying consistency models within the community.
+
+\section{Limitations}
+One of the major limitations of ECT is that it requires a dataset to tune DMs to CMs. Recent works developed data-free approaches~\citep{gu2023boot,di,yin2023one,sid} for diffusion distillation.
+The distinction between ECT and data-free methods is that ECT learns the \textit{consistency condition} on a given dataset through the self teacher, while data-free methods transfer knowledge from a frozen diffusion teacher.
+This feature of ECT can be a potential limitation since the training data of bespoke models are unavailable to the public. 
+However, we hold an optimistic view on tuning CMs using datasets different from pretraining.
+
+In \cref{sec:ecd}, we discuss a data-free variant of Easy Consistency Distillation (ECD), in which we extend the continuous time formulation to Consistency Distillation, by generating self-synthetic data from CM on-the-fly. However, it only applies to the distillation settings.
+Further data-centric research is needed regarding 
+synthetic data, data composition, and data scaling for consistency models.
+
+\section*{Broader Impacts and Ethics Statement}\label{sec:broader-impact}
+
+We propose Easy Consistency Tuning (ECT) that can efficiently train consistency models as \sota few-step generators, using only a small fraction of the computational requirements compared to current CMs training and diffusion distillation methods. 
+We hope that ECT will democratize the creation of high-quality generative models, enabling artists and creators to produce content more efficiently.
+While this advancement can aid creative industries by reducing computational costs and speeding up workflows, it also raises concerns about the potential misuse of generative models to produce misleading, fake, or biased content. 
+We conduct experiments on academic benchmarks, whose resulting models are less likely to be misused. Further experiments are needed to better understand these consistency model limitations and propose solutions to address them.
+
+
+
+\section*{Reproducibility Statement}\label{sec:reproducibility}
+We provide extensive details of experimental settings and hyperparameters to reproduce our experimental results in \cref{sec:experiment-details}. We have provided a zip file of our source code in this submission. We plan to release our code to ensure transparency and reproducibility of the results. 
+
+
+\section*{Acknowledgments}
+Zhengyang Geng and Ashwini Pokle are supported by funding from the Bosch Center for AI. Zico Kolter gratefully acknowledges Bosch's funding for the lab. The FLAME Center at CMU generously supports this research.
+
+We appreciate Yang Song for discussions and feedback. We acknowledge the discussions and comments provided by Tianle Cai, Antony Jia, Diyang Xue, Runtian Zhai, and Yonghao Zhuang during the preparation of the \href{https://gsunshine.notion.site/Consistency-Models-Made-Easy-954205c0b4a24c009f78719f43b419cc}{blog post}.
+
+
+% \clearpage
+\bibliography{ref}
+\bibliographystyle{unsrtnat} 
+% \bibliographystyle{plainnat}
+% \bibliographystyle{iclr} 
+
+\newpage
+\appendix
+\input{sections/appendix}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% APPENDIX
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+\end{document}

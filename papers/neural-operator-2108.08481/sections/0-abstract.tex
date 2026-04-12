@@ -1,0 +1,20 @@
+
+
+The classical development of neural networks has primarily focused on learning mappings between finite dimensional Euclidean spaces or finite sets.
+We propose a generalization of neural networks to learn operators, termed \emph{neural operators}, that map between infinite dimensional function spaces.
+We formulate the neural operator as a composition of  linear integral operators and nonlinear activation functions. We prove a universal approximation theorem for our proposed neural operator, showing that it can approximate any given nonlinear continuous operator. The proposed neural operators are also discretization-invariant, i.e., they share the same model parameters among different discretization of the underlying function spaces. 
+Furthermore, we introduce four classes of efficient parameterization, viz., graph neural operators,  multi-pole graph neural operators, low-rank neural operators, and Fourier neural operators.
+An important application for neural operators is learning surrogate maps for the solution operators of
+partial differential equations (PDEs). We consider standard PDEs such as the Burgers, Darcy subsurface flow, and the Navier-Stokes equations, and show that the proposed neural operators have superior performance compared to existing machine learning based methodologies,
+while being several orders of magnitude faster than conventional PDE solvers. 
+
+%Numerical experiments are presented in which the solution operator (mapping initial condition to solution)  is learned for Burgers' equation and the Navier-Stokes equation, and in which the coefficient to solution map is learned in the Darcy model of porous medium flow; a variety of linear operators, defined by linear  PDEs, are also used to illustrate key ideas.
+
+
+
+% \kamyar{
+% The classical development of neural networks has been primarily for mappings between a finite-dimensional spaces, e.g., between Euclidean space and a set of classes/labels, or between two finite-dimensional Euclidean spaces.
+% The purpose of this work is to generalize neural networks so that they can learn operators mapping between general spaces, e.g., between infinite dimensional spaces, such as function spaces. 
+% We formulate the approximation of operators by composition of nonlinear local activation functions and a class of linear local and non-local integral operators, so that the composed operator can approximate complex nonlinear, local, and non-local operators.
+% In this paper, we propose four formulations of the integral operators: graph-based operators, multipole graph-based operators, low rank operators, and Fourier operators.
+% Experiments confirm that the proposed neural operators have the desirable resolution-invariant properties and show competitive performance compared to existing methodologies from both the fields of neural networks and numerical analysis. }

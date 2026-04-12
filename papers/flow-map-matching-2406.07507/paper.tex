@@ -1,0 +1,74 @@
+\documentclass[11pt]{article}
+\usepackage{xcolor}
+\usepackage[margin=1in,top=1in,bottom=1in]{geometry}
+\definecolor{lightblue}{HTML}{2970CC}
+\definecolor{lightpurple}{HTML}{673147}
+\definecolor{ForestGreen}{HTML}{FF5733}
+\usepackage[colorlinks=true,linkcolor=lightblue,urlcolor=blue,citecolor=lightblue,breaklinks]{hyperref}
+\usepackage[skip=0.5\baselineskip]{parskip}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage[numbers, sort&compress]{natbib}
+\usepackage{color}
+\usepackage{enumerate}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{varwidth}
+\usepackage{mathrsfs}
+\usepackage{mathtools}
+\usepackage{subcaption}
+\usepackage{overpic}
+\usepackage{multirow}
+\usepackage{multicol}
+\usepackage{amsmath,amsthm,amssymb,colonequals,etoolbox}
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{thmtools}
+\usepackage{url}
+\usepackage[capitalise,noabbrev]{cleveref}
+% Define the format for equation references
+\crefformat{equation}{(#2#1#3)}
+\crefrangeformat{equation}{(#3#1#4) to (#5#2#6)}
+\crefmultiformat{equation}{(#2#1#3)}{ and (#2#1#3)}{, (#2#1#3)}{ and (#2#1#3)}
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{xcolor}         % colors
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{makecell}
+\usepackage{authblk}
+\usepackage[ruled,vlined]{algorithm2e}
+\crefname{algocf}{Algorithm}{algorithms}
+\Crefname{algocf}{Algorithm}{Algorithms}
+\usepackage{wrapfig}
+\input{commands}
+
+\title{\centering Flow map matching with stochastic interpolants:\\A mathematical framework for consistency models}
+\author{Nicholas M.~Boffi$^*$}
+\author{Michael S.~Albergo$^*$}
+\author{Eric Vanden-Eijnden}
+\affil{Courant Institute of Mathematical Sciences}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+	\input{abstract}
+\end{abstract}
+
+\input{intro}
+\input{related}
+\input{problem}
+\input{exp}
+\input{conc}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\bibliographystyle{unsrtnat}
+\bibliography{paper}
+
+\newpage
+\appendix
+\input{app}
+
+\end{document}

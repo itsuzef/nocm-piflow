@@ -1,0 +1,1527 @@
+\section{}
+\label{sec:appendix_notation}
+
+\begin{table}[ht]
+\begin{center}
+\begin{tabular}{|l|l|}
+\multicolumn{1}{c}{\bf Notation} 
+&\multicolumn{1}{c}{\bf Meaning}\\
+
+\hline 
+{\bf Operator Learning} &\\
+$D \subset \R^d$  & The spatial domain for the PDE. \\
+$x \in D$  & Points in the the spatial domain. \\
+$a \in \A = (D;\R^{d_a})$  & The input functions (coefficients, boundaries, and/or initial conditions). \\
+$u \in \U = (D;\R^{d_u})$  & The target solution functions. \\
+$D_j$ & The discretization of $(a_j, u_j)$.\\
+$\Ftrue: \A \to \U$  & The operator mapping the coefficients to the solutions.\\
+$\mu$ & A probability measure where $a_j$ sampled from.\\
+\hline
+{\bf Neural Operator} &\\
+$v(x) \in \R^{d_v}$  & The neural network representation of $u(x)$ \\
+$d_a$ & Dimension of the input $a(x)$.\\
+$d_u$ & Dimension of the output $u(x)$.\\
+$d_v$ & The dimension of the representation $v(x)$.\\
+$t = 0,\ldots,T$  & The layer (iteration) in the neural operator .\\
+$\cP, \cQ$ & The pointwise linear transformation $\cP: a(x) \mapsto v_0(x)$ and $\cQ: v_T(x) \mapsto u(x)$. \\
+$\cK$ & The integral operator in the iterative update $v_t \mapsto v_{t+1}$, \\
+$\kappa : \R^{2(d+1)} \to \R^{d_v \times d_v}$  & The kernel maps $(x,y,a(x),a(y))$ to a $d_v \times d_v$ matrix\\
+$K \in \R^{n \times n \times d_v \times d_v}$ & The kernel matrix with $K_{xy} = \kappa(x,y)$. \\
+$W \in \R^{d_v \times d_v}$ & The pointwise linear transformation used as the bias term in the iterative update.\\
+$\sigma $  & The activation function.  \\
+\hline
+\end{tabular}
+\caption{Table of notations: operator learning and neural operators}
+\label{table:notations1}
+\small{In the paper, we will use lowercase letters such as $v, u$ to represent vectors and functions; uppercase letters such as $W, K$ to represent matrices or discretized transformations; and calligraphic letters such as $\cF, \cG$ to represent operators.
+}
+\end{center}
+\end{table}
+
+
+We write \(\N= \{1,2,3,\dots\}\) and \(\N_0 = \N \cup \{0\}\). Furthermore, we denote by \(|\cdot|_p\) the \(p\)-norm on any Euclidean space. We say \(\X\) is a Banach space if it is a Banach space over the real field \(\R\). 
+We denote by \(\|\cdot\|_\X\) its norm and by \(\X^*\) its topological (continuous) dual.
+In particular, \(\X^*\) is the Banach space consisting  of all continuous linear functionals 
+\(f : \X \to \R\) with the operator norm
+\[\|f\|_{\X^*} = \sup_{\substack{x \in \X \\ \|x\|_\X = 1}} |f(x)| < \infty.\]
+For any Banach space \(\Y\), we denote by \(\mathcal{L}(\X;\Y)\) the Banach space of continuous 
+linear maps \(T : \X \to \Y\) with the operator norm
+\[\|T\|_{\X \to \Y} = \sup_{\substack{x \in \X \\ \|x\|_\X = 1}} \|Tx\|_\Y < \infty.\]
+We will abuse notation and write \(\|\cdot\|\) for any operator norm when there is no ambiguity about the
+spaces in question.
+
+Let \(d \in \N\). We say that \(D \subset \R^d\) is a \textit{domain} if it is a bounded and connected open set that is topologically regular i.e. \(\text{int}(\bar{D}) = D\).
+Note that, in the case \(d = 1\), a domain is any bounded, open interval. For \(d \geq 2\),
+we say \(D\) is a \textit{Lipschitz domain} if \(\partial D\) can be locally represented as the graph of 
+a Lipschitz continuous function defined on an open ball of \(\R^{d-1}\). If \(d=1\), we will call 
+any domain a Lipschitz domain. For any multi-index \(\alpha \in \N_0^d\), we write \(\partial^\alpha f \) for the \(\alpha\)-th weak partial derivative of \(f\) when it exists. 
+
+Let \(D \subset \R^d\) be a domain. For any \(m \in \N_0\), we define the following spaces
+\begin{align*}
+C (D) &=  \{f : D \to \R : f \text{ is continuous}\}, \\
+C^m (D) & = \{f : D \to \R : \partial^\alpha f \in C^{m - |\alpha|_1}(D) \:\: \forall \: 0 \leq |\alpha|_1 \leq m\}, \\
+C^m_{\text{b}}(D) &= \bigg \{f \in C^m (D) : \max_{0 \leq |\alpha|_1 \leq m} \sup_{x \in D} |\partial^\alpha f (x)| < \infty \bigg\}, \\
+C^m (\bar{D}) &= \{f \in C^m_{\text{b}}(D) : \partial^\alpha f \text{ is uniformly continuous } \forall \: 0 \leq |\alpha|_1 \leq m \}
+\end{align*}
+and make the equivalent definitions when \(D\) is replaced with \(\R^d\). Note that any function in \(C^m (\bar{D})\)
+has a unique, bounded, continuous extension from \(D\) to \(\bar{D}\) and is hence uniquely defined on \(\partial D\).
+We will work with this extension without further notice. We remark that 
+when \(D\) is a Lipschitz domain, the following definition for \(C^m (\bar{D})\) is equivalent
+\[C^m (\bar{D}) = \{f : \bar{D} \to \R : \exists F \in C^m(\R^d) \text{ such that } f \equiv F|_{\bar{D}} \},\]
+see \cite{whitney1934functions,brudnyi2012methods}. We define \(C^\infty (D) = \bigcap_{m=0}^\infty C^m (D)\) and, similarly, \(C^\infty_{\text{b}}(D)\) and \(C^\infty (\bar{D})\).
+We further define
+\[C^\infty_c (D) = \{f \in C^\infty (D) : \text{supp}(f) \subset D \text{ is compact}\}\]
+and, again, note that all definitions hold analogously for \(\R^d\).
+We denote by \(\|\cdot\|_{C^m} : C^m_{\text{b}}(D) \to \R_{\geq 0}\) the norm
+\[\|f\|_{C^m} = \max_{0 \leq |\alpha|_1 \leq m} \sup_{x \in D} |\partial^\alpha f (x)|\]
+which makes \(C^m_{\text{b}}(D)\) (also with \(D = \R^d\)) and \(C^m (\bar{D})\) Banach spaces.
+For any \(n \in \N\), we write \(C(D;\R^n)\) for the \(n\)-fold Cartesian 
+product of \(C(D)\) and similarly for all other spaces we have defined or will
+define subsequently. We will
+continue to write \(\|\cdot\|_{C^m}\) for the norm on \(C^m_{\text{b}}(D;\R^n)\)
+and \(C^m(\bar{D};\R^n)\) defined as
+\[\|f\|_{C^m} = \max_{j \in \{1,\dots,n\}} \|f_j\|_{C^m}.\]
+
+For any \(m \in \N\) and \(1 \leq p \leq \infty\), we use the notation \(W^{m,p}(D)\) for the
+standard \(L^p\)-type Sobolev space with \(m\) derivatives; we refer the reader to \cite{adams2003sobolev} for a formal definition. Furthermore, we, at times, use the notation \(W^{0,p}(D) = L^p(D)\) and \(W^{m,2}(D) = H^m (D)\). Since we use the standard definitions of Sobolev spaces that can be found in any reference on the subject, we do not give the specifics here.
+
+%\section{}
+%\label{proof:attention}
+%In this section, we provide the proof of proposition~\ref{prop:attention}
+
+
+
+
+\section{}
+\label{sec:appendix_approximationproperty}
+
+In this section we gather various results on the approximation property of Banach spaces.
+The main results are Lemma~\ref{lemma:finitedim_approx} which  states that if two Banach spaces have
+the approximation property then continuous maps between them can be approximated in a 
+finite-dimensional manner, and Lemma~\ref{lemma:ap} which states the spaces in Assumptions~\ref{assump:input}
+and \ref{assump:output} have the approximation property.
+
+\begin{definition}
+\label{def:schauder_bases}
+A Banach space \(\X\) has a \textit{Schauder basis} if there exist some \(\{\varphi_j\}_{j=1}^\infty \subset \X\) and \(\{c_j\}_{j=1}^\infty \subset \X^*\)
+such that 
+\begin{enumerate}
+	\item \(c_j(\varphi_k) = \delta_{jk}\) for any \(j,k \in \N\),
+	\item \(\lim\limits_{n \to \infty} \|x - \sum_{j=1}^n c_j(x) \varphi_j \|_\X = 0\) for all \(x \in \X\).
+\end{enumerate}
+\end{definition}
+We remark that definition \ref{def:schauder_bases} is equivalent to the following. The elements \(\{\varphi_j\}_{j=1}^\infty \subset \X\)
+are called a \textit{Schauder basis} for \(\X\) if, for each \(x \in \X\), there exists a unique sequence \(\{\alpha_j\}_{j=1}^\infty \subset \R\)
+such that
+\[\lim_{n \to \infty} \|x - \sum_{j=1}^n \alpha_j \varphi_j\|_\X = 0.\]
+For the equivalence, see, for example \cite[Theorem 1.1.3]{albiac2006topics}. Throughout
+this paper we will simply write the
+term \textit{basis} to mean Schauder basis. Furthermore, we note that if \(\{\varphi\}_{j=1}^\infty\) is a basis 
+then so is \(\{\varphi_j / \|\varphi\|_{\X}\}_{j=1}^\infty\), so we will assume that any basis we use is normalized.
+
+\begin{definition}
+\label{def:finiterank}
+Let \(\X\) be a Banach space and \(U \in \mathcal{L}(\X;\X)\). \(U\) is called a \textit{finite rank operator}
+if \(U(\X) \subseteq \X\) is finite dimensional. 
+\end{definition}
+By noting that any finite dimensional subspace has a basis,
+we may equivalently define a finite rank operator \(U \in \mathcal{L}(\X;\X)\) to be one such that
+there exists a number \(n \in \N\) and some \(\{\varphi_j\}_{j=1}^n \subset \X\) and \(\{c_j\}_{j=1}^n \subset \X^*\)
+such that
+\[Ux = \sum_{j=1}^n c_j(x) \varphi_j, \qquad  \forall x \in \X.\]
+
+
+
+\begin{definition}
+\label{def:ap}
+A Banach space \(\X\) is said to have the \textit{approximation property} (\emph{AP}) if, for any compact set \(K \subset \X\)
+and \(\epsilon > 0\), there exists a finite rank operator \(U : \X \to \X\) such that
+\[\|x - Ux\|_{\X} \leq \epsilon, \qquad  \forall x \in K.\]
+\end{definition}
+
+We now state and prove some well-known results about the relationship between basis and the AP. We were unable to find the statements of the following lemmas in the form given here in the literature and therefore we provide full proofs.
+
+\begin{lemma}
+\label{lemma:schauder_ap}
+Let \(\X\) be a Banach space with a basis. Then \(\X\) has the \emph{AP}.
+\end{lemma}
+\begin{proof}
+Let \(\{c_j\}_{j=1}^\infty \subset \X^*\) and \(\{\varphi_j\}_{j=1}^\infty \subset \X\) be a basis for \(\X\).
+Note that there exists a constant \(C > 0\) such that, for any \(x \in \X\) and \(n \in \N\),
+\[\|\sum_{j=1}^n c_j(x) \varphi_j\|_\X \leq \sup_{J \in \N} \|\sum_{j=1}^J c_j(x) \varphi_j\|_\X \leq C \|x\|_\X,\]
+see, for example \cite[Remark 1.1.6]{albiac2006topics}. Assume, without loss of generality, that \(C \geq 1\).
+Let \(K \subset \X\) be compact and \(\epsilon > 0\). Since \(K\) is compact, we can find 
+a number \(n =  n(\epsilon, C) \in \N\) and elements \(y_1,\dots,y_n \in K\) such that
+for any \(x \in K\) there exists a number \(l \in \{1,\dots,n\}\) with the property that
+\[\|x - y_l\|_\X \leq \frac{\epsilon}{3C}.\] 
+We can then find a number \(J = J(\epsilon,n) \in \N\) such that
+\[\max_{j \in \{1,\dots,n\}}\|y_j - \sum_{k=1}^J c_k(y_j) \varphi_k \|_\X \leq \frac{\epsilon}{3}.\] 
+Define the finite rank operator \(U : \X \to \X\) by
+\[Ux = \sum_{j=1}^J c_j(x) \varphi_j, \qquad \forall x \in \X.\]
+Triangle inequality implies that, for any \(x \in K\),
+\begin{align*}
+\|x - U(x)\|_\X &\leq \|x - y_l\|_\X + \|y_l - U(y_l)\|_\X + \|U(y_l) - U(x)\|_\X \\
+&\leq \frac{2 \epsilon}{3} + \|\sum_{j=1}^J \bigl (c_j(y_l) - c_j(x) \bigl ) \varphi_j \|_\X \\
+&\leq \frac{2 \epsilon}{3} + C\|y_l - x\|_\X \\
+&\leq \epsilon
+\end{align*}
+as desired.
+\end{proof}
+
+\begin{lemma}
+\label{lemma:schauder_schauder}
+Let \(\X\) be a Banach space with a basis and \(\Y\) be any Banach space. Suppose there exists a continuous linear bijection \(T : \X \to \Y\).
+Then \(\Y\) has a basis. 
+\end{lemma}
+\begin{proof}
+Let \(y \in \Y\) and \(\epsilon > 0\). Since \(T\) is a bijection, there exists an element \(x \in \X\) so that \(Tx = y\) and \(T^{-1}y = x\).
+Since \(\X\) has a basis, we can find \(\{\varphi_j\}_{j=1}^\infty \subset \X\) and \(\{c_j\}_{j=1}^\infty \subset \X^*\) 
+and a number \(n = n(\epsilon, \|T\|) \in \N\) such that
+\[\|x - \sum_{j=1}^n c_j(x) \varphi_j \|_\X \leq \frac{\epsilon}{\|T\|}.\]
+Note that
+\[
+\|y - \sum_{j=1}^n c_j(T^{-1}y) T\varphi_j \|_\Y = \|Tx - T \sum_{j=1}^n c_j(x)\varphi_j\| \leq \|T\| \|x - \sum_{j=1}^n c_j(x) \varphi_j \|_\X \leq \epsilon
+\]
+hence \(\{T \varphi_j\}_{j=1}^\infty \subset \Y\) and \(\{c_j(T^{-1} \cdot)\}_{j=1}^\infty \subset \Y^*\) form a basis for \(\Y\)
+by linearity and continuity of \(T\) and \(T^{-1}\).
+\end{proof}
+
+
+
+\begin{lemma}
+\label{lemma:ap_ap}
+Let \(\X\) be a Banach space with the \emph{AP} and \(\Y\) be any Banach space. Suppose there exists a continuous linear bijection \(T : \X \to \Y\).
+Then \(\Y\) has the \emph{AP}. 
+\end{lemma}
+\begin{proof}
+Let \(K \subset \Y\) be a compact set and \(\epsilon > 0\). The set \(R = T^{-1}(K) \subset \X\) is compact since \(T^{-1}\)
+is continuous. Since \(\X\) has the AP, there exists a finite rank operator \(U : \X \to \X\) such that
+\[\|x - Ux\|_\X \leq \frac{\epsilon}{\|T\|}, \qquad \forall x \in R.\]
+Define the operator \(W : \Y \to \Y\) by \(W = T U T^{-1}\). Clearly \(W\) is a finite rank operator since \(U\) is a finite rank operator. Let \(y \in K\) then,
+since \(K = T(R)\), there exists \(x \in R\) such that \(Tx = y\) and \(x = T^{-1}y\).
+Then
+\[
+\|y - Wy\|_\Y = \|Tx - TUx\|_\Y \leq \|T\| \|x - Ux\|_\X \leq \epsilon.
+\]
+hence \(\Y\) has the AP.
+\end{proof}
+
+
+\iffalse
+\begin{lemma}
+Let \(\X\) be a Banach space with \emph{AP} and \(\mathcal{D} \subset \X\) a dense subset. Then for any compact set 
+\(K \subset \X\) and \(\epsilon > 0\), there exists a number \(n = n(\epsilon, K) \in \N\) and some \(\{\varphi_j\}_{j=1}^n \subset \mathcal{D}\) 
+and \(\{c_j\}_{j=1}^n \subset \X^*\) such that
+\[\sup_{x \in K} \|x - \sum_{j=1}^n c_j(x) \varphi_j \|_{\X} \leq \epsilon.\]
+\end{lemma}
+\begin{proof}
+Since \(\X\) has AP, we can find a number \(n = n(\epsilon, K) \in \N\) and some \(\{\phi_j\}_{j=1}^n \subset \mathcal{X}\) 
+and \(\{c_j\}_{j=1}^n \subset \X^*\) such that
+\[\sup_{x \in K} \|x - \sum_{j=1}^n c_j(x) \phi_j \|_{\X} \leq \frac{\epsilon}{2}.\]
+By continuity, the sets \(c_j(K) \subset \R\) are compact hence there is a number \(M > 0\) such that
+\[\max_{j \in \{1,\dots,n\}} \sup_{x \in K} |c_j(x)| \leq M.\]
+Since \(\mathcal{D}\) is dense in \(\X\), we can find elements \(\varphi_1,\dots,\varphi_n \in \mathcal{D}\)
+such that
+\[\max_{j \in \{1,\dots,n\}} \|\phi_j - \varphi_j \|_{\X} \leq \frac{\epsilon}{2nM}.\]
+Hence, for any \(x \in K\),
+\begin{align*}
+\|x - \sum_{j=1}^n c_j(x) \varphi_j \|_\X &\leq \|x - \sum_{j=1}^n c_j(x) \phi_j \|_\X + \|\sum_{j=1}^n c_j(x) \phi_j - \sum_{j=1}^n c_j(x) \varphi_j \|_\X \\
+&\leq \frac{\epsilon}{2} + \sum_{j=1}^n |c_j(x)| \|\phi_j - \varphi_j \|_\X \\
+&\leq \epsilon
+\end{align*}
+as desired.
+\end{proof}
+
+\begin{lemma}
+\label{lemma:bases_bound}
+Let \(\X\) be a Banach space and \(\{\varphi_j\}_{j=1}^\infty \subset \X\) and \(\{c_j\}_{j=1}^\infty \subset \X^*\) be a 
+basis. Then there exists a constant \(C = C(\X) > 0\) such that, for any \(n \in \N\),
+\[\max_{j \in \{1,\dots,n\}} |c_j(x)| \leq C \|\sum_{j=1}^n c_j(x) \varphi_j\|_\X, \qquad \forall x \in \X.\]
+\end{lemma}
+\begin{proof}
+Let \(j \in \{1,\dots,n\}\). By \cite[Proposition 1.a.3]{lindenstrauss1996classical}, we have that there 
+is a constant \(C_1 = C_1 (\X) > 0\) such that, for any \(x \in \X\),
+\begin{align*}
+|c_j (x)| &= |c_j (x)| \|\varphi_j \|_\X \\
+&= \|\sum_{k=1}^n c_k(x) \varphi_k - \sum_{k \neq j}^n c_k(x) \varphi_k \|_\X \\
+&\leq  \|\sum_{k=1}^n c_k(x) \varphi_k \|_\X + \|\sum_{k=1}^{j-1} c_k(x) \varphi_k\|_\X + \|\sum_{k=j+1}^n c_k(x) \varphi_k \|_\X \\
+&\leq \|\sum_{k=1}^n c_k(x) \varphi_k \|_\X + C_1 \|\sum_{k=1}^{n} c_k(x) \varphi_k\|_\X + \|\sum_{k=1}^n c_k(x)\varphi_k \|_\X + \|\sum_{k=1}^{j} c_k(x) \varphi_k\|_\X \\
+&\leq 2(1+ C_1)\|\sum_{k=1}^n c_k(x) \varphi_k \|_\X.
+\end{align*}
+where if \(j-1 = 0\) or \(j+1 = n+1\), the sums are vacuous. Letting \(C = 2(1+C_1)\), completes the proof.
+\end{proof}
+\fi
+
+The following lemma shows than the infinite union of compact sets is compact if each set is the image of a fixed compact set under a convergent sequence of continuous maps. The result is instrumental in proving Lemma~\ref{lemma:finitedim_approx}.
+
+\begin{lemma}
+\label{lemma:compact_union}
+Let \(\X,\Y\) be Banach spaces and \(F : \X \to \Y\) be a continuous map. Let \(K \subset \X\)
+be a compact set in $\X$ and \(\{F_n : \X \to \Y\}_{n=1}^\infty\) be a sequence of continuous maps such that
+\[\lim_{n \to \infty} \sup_{x \in K} \|F(x) - F_n(x)\|_\Y = 0.\]
+Then the set \[W \coloneqq \bigcup_{n=1}^\infty F_n (K) \cup F(K)\] 
+is compact in $\Y$.
+\end{lemma}
+\begin{proof}
+Let \(\epsilon > 0\) then there exists a number \(N = N(\epsilon) \in \N\) such that
+\[\sup_{x \in K} \|F(x) - F_n(x)\|_\Y \leq \frac{\epsilon}{2}, \qquad \qquad \forall n \geq N.\]
+Define the set
+\[W_N = \bigcup_{n=1}^N F_n(K) \cup F(K)\]
+which is compact since \(F\) and each \(F_n\) are continuous. We can therefore find a number \(J = J(\epsilon, N) \in \N\) 
+and elements \(y_1,\dots,y_J \in W_N\) such that, for any \(z \in W_N\), there exists a number \(l = l(z) \in \{1,\dots,J\}\)
+such that 
+\[\|z - y_{l}\|_\Y \leq \frac{\epsilon}{2}.\]
+Let \(y \in W \setminus W_N\) then there exists a number \(m > N\) and an element \(x \in K\) such that \(y = F_m (x)\).
+Since \(F (x) \in W_N\), we can find a number \(l \in \{1,\dots,J\}\) such that
+\[\|F (x) - y_l\|_\Y \leq \frac{\epsilon}{2}.\]
+Therefore,
+\[\|y - y_l\|_\Y \leq \|F_m (x) - F (x) \|_\Y + \|F (x) - y_l\|_\Y \leq \epsilon\]
+hence \(\{y_j\}_{j=1}^J\) forms a finite \(\epsilon\)-net for \(W\), showing that \(W\) is totally bounded.
+
+We will now show that \(W\) is closed. To that end, let \(\{p_n\}_{n=1}^\infty\) be a convergent sequence in \(W\), in particular,
+\(p_n \in W\) for every \(n \in \N\) and \(p_n \to p \in \Y\) as \(n \to \infty\). We can thus find convergent sequences \(\{x_n\}_{n=1}^\infty\)
+and \(\{\alpha_n\}_{n=1}^\infty\) such that \(x_n \in K\), \(\alpha_n \in \N_0\), and 
+\(p_n = F_{\alpha_n}(x_n)\) where we define \(F_0 \coloneqq F\). Since \(K\) is closed, \(\lim\limits_{n \to \infty} x_n = x \in K\) thus, for each fixed \(n \in \N\),
+\[\lim_{j \to \infty} F_{\alpha_n}(x_j) = F_{\alpha_n}(x) \in W\]
+by continuity of \(F_{\alpha_n}\). Since uniform convergence implies point-wise convergence 
+\[p = \lim\limits_{n \to \infty} F_{\alpha_n}(x) = F_{\alpha}(x) \in W\]
+for some \(\alpha \in \N_0\) thus \(p \in W\), showing that \(W\) is closed.
+\end{proof}
+
+The following lemma shows that any continuous operator acting between two Banach spaces with the AP can be approximated in a finite-dimensional manner. The approximation proceeds in three steps which are shown schematically in Figure~\ref{fig:approach}. First an input is mapped to a finite-dimensional representation via the action of a set of functionals on \(\X\). This representation is then mapped by a continuous function to a new finite-dimensional representation which serves as the set of coefficients onto representers of \(\Y\). The resulting expansion is an element of \(\Y\) that is \(\epsilon\)-close to the action of \(\G\) on the input element. A similar finite-dimensionalization was used in \citep{Kovachki} by using PCA on \(\X\) to define the functionals acting on the input and PCA on \(\Y\) to define the output representers. However the result in that work is restricted to separable Hilbert spaces; here, we generalize it to Banach spaces with the AP.
+
+\begin{lemma}
+\label{lemma:finitedim_approx}
+Let \(\X, \Y\) be two Banach spaces with the AP and let \(\G : \mathcal{X} \to \mathcal{Y}\) be a
+continuous map. For every compact set \(K \subset \mathcal{X}\) and \(\epsilon > 0\), there exist numbers \(J,J' \in \N\)
+and continuous linear maps \(F_J : \X \to \R^{J}\), \(G_{J'} : \R^{J'} \to \Y\) as well as  \(\varphi \in C(\R^{J};\R^{J'})\)
+such that  
+\[\sup_{x \in K} \|\G(x) - (G_{J'} \circ \varphi \circ F_J) (x) \|_{\Y} \leq \epsilon.\]
+Furthermore there exist \(w_1,\dots,w_J \in \X^*\) such that \(F_J\) has the form
+\[F_J(x) = \bigl ( w_1(x), \dots, w_{J}(x) \bigl ), \qquad \forall x \in \X\]
+and there exist \(\beta_1,\dots,\beta_{J'} \in \Y\) such that \(G_{J'}\) has the form
+\[G_{J'}(v) = \sum_{j=1}^{J'} v_j \beta_j, \qquad \forall v \in \R^{J'}.\]
+If \(\Y\) admits a basis then \(\{\beta_j\}_{j=1}^{J'}\)
+can be picked so that there is an extension \(\{\beta_j\}_{j=1}^\infty \subset \Y\) which is a basis for \(\Y\).
+\end{lemma}
+\begin{proof}
+Since \(\X\) has the AP, there exists a sequence of finite rank operators \(\{U^{\X}_n : \X \to \X\}_{n=1}^\infty\) such that
+\[\lim_{n \to \infty} \sup_{x \in K} \|x - U^{\X}_n x\|_\X = 0.\]
+Define the set 
+\[Z = \bigcup_{n=1}^\infty U^{\X}_n(K) \cup K\]
+which is compact by Lemma~\ref{lemma:compact_union}. Therefore, \(\mathcal{G}\) is uniformly continuous on \(Z\) hence 
+there exists a modulus of continuity \(\omega : \R_{\geq 0} \to \R_{\geq 0}\) which is non-decreasing 
+and satisfies \(\omega(t) \to \omega(0) = 0\) as \(t \to 0\) as well as 
+\[\|\mathcal{G}(z_1) - \mathcal{G}(z_2)\|_{\mathcal{Y}} \leq \omega \bigl( \|z_1 - z_2\|_\mathcal{X} \bigl ) \qquad \forall z_1, z_2 \in Z.\]
+We can thus find, a number \(N = N(\epsilon) \in \N\) such that
+\[\sup_{x \in K} \omega \bigl ( \|x - U^{\X}_N x \|_{\X} \bigl ) \leq \frac{\epsilon}{2}. \]
+Let \(J = \text{dim } U^{\X}_N (\X) < \infty\). There exist elements \(\{\alpha_j\}_{j=1}^J \subset \X\) and \(\{w_j\}_{j=1}^J \subset \X^*\)
+such that
+\[U^{\X}_N x = \sum_{j=1}^J w_j(x) \alpha_j, \qquad \forall x \in X.\]
+Define the maps \(F^{\X}_J : \X \to \R^{J}\) and \(G^{\X}_J : \R^{J} \to \X\) by
+\begin{align*}
+F^{\X}_J(x) &= (w_1(x), \hdots, w_J(x)), \qquad \forall  x \in \X, \\
+G^{\X}_J (v) &= \sum_{j=1}^J v_j \alpha_j, \qquad \qquad \qquad \:\:\:  \forall v \in \R^J,
+\end{align*}
+noting that \(U^{\X}_N = G^{\X}_J \circ F^{\X}_J\). Define the set \(W = (\G \circ U^{\X}_N)(K) \subseteq \Y\) which is clearly compact.
+Since \(\Y\) has the AP, we can similarly find a finite rank operator \(U^{\Y}_{J'} : \Y \to \Y\) with \(J' = \text{dim } U^{\Y}_{J'} (\Y) < \infty\)
+such that
+\[\sup_{y \in W} \|y - U^{\Y}_{J'} y \|_{\Y} \leq \frac{\epsilon}{2}.\]
+Analogously, define the maps \(F^{\Y}_{J'} : \Y \to \R^{J'}\) and \(G^{\Y}_{J'} : \R^{J'} \to \Y\) by 
+\begin{align*}
+F^{\Y}_{J'}(y) &= (q_1(y), \hdots, q_{J'}(y)), \qquad \forall y \in \Y, \\
+G^{\Y}_{J'} (v) &= \sum_{j=1}^{J'} v_j \beta_j, \qquad \qquad \qquad \:\:  \forall v \in \R^{J'}
+\end{align*}
+for some \(\{\beta_j\}_{j=1}^{J'} \subset \Y\) and \(\{q_j\}_{j=1}^{J'} \subset \Y^*\) such that \(U^{\Y}_{J'} = G^{\Y}_{J'} \circ F^{\Y}_{J'}\).
+Clearly if \(\Y\) admits a basis then we could have defined \(F^{\Y}_{J'}\) and \(G^{\Y}_{J'}\) through it instead 
+of through \(U^{\Y}_{J'}\).
+Define \(\varphi : \R^{J} \to \R^{J'}\) by
+\[\varphi(v) = (F^{\Y}_{J'} \circ \G \circ G^{\X}_{J} )(v), \qquad \forall v \in \R^{J}\]
+which is clearly continuous and note that \(G^{\Y}_{J'} \circ \varphi \circ F^{\X}_J = U^{\Y}_{J'} \circ \G \circ U^{\X}_N\).
+Set \(F_J = F^{\X}_J\) and \(G_{J'} = G^{\Y}_{J'}\) then, for any \(x \in K\),
+\begin{align*}
+\|\G(x) - (G_{J'} \circ \varphi \circ F_J) (x) \|_{\Y} &\leq \|\G(x) - \G(U^{\X}_N x)\|_\Y + \|\G(U^{\X}_N x) - (U^{\Y}_{J'} \circ \G \circ U^{\X}_N) (x) \|_\Y \\
+&\leq \omega \bigl (\|x - U^{\X}_N x\|_\X \bigl ) + \sup_{y \in W} \|y - U^{\Y}_{J'} y \|_{\Y} \\
+&\leq \epsilon
+\end{align*}
+as desired.
+\end{proof}
+
+We now state and prove some results about isomorphisms of function spaces defined on different domains. These results are instrumental in proving Lemma~\ref{lemma:ap}.
+
+\begin{lemma}
+\label{lemma:cm_isomorphism}
+Let \(D, D' \subset \R^d\) be domains. Suppose that, for 
+some \(m \in \N_0\), there exists a \(C^m\)-diffeomorphism \(\tau : \bar{D}' \to \bar{D}\).
+Then the mapping \(T: C^m (\bar{D}) \to C^m (\bar{D}')\) defined as
+\[T(f)(x) = f(\tau(x)), \qquad \forall f \in C^m (\bar{D}), \:\: x \in \bar{D}'\]
+is a continuous linear bijection.
+\end{lemma}
+
+\begin{proof}
+Clearly \(T\) is linear since the evaluation functional is linear. To see that it is continuous, 
+note that by the chain rule we can find a constant \(Q = Q(m) > 0\) such that
+\[\|T(f)\|_{C^m} \leq Q \|\tau\|_{C^m} \|f\|_{C^m}, \qquad \forall f \in C^m(\bar{D}).\]
+We will now show that it is bijective. Let \(f,g \in C^m (\bar{D})\) so that \(f \neq g\).
+Then there exists a point \(x \in \bar{D}\) such that \(f(x) \neq g(x)\). Then 
+\(T(f)(\tau^{-1}(x)) = f(x)\) and \(T(g)(\tau^{-1}(x)) = g(x)\) hence \(T(f) \neq T(g)\) thus
+\(T\) is injective.
+Now let \(g \in C^m (\bar{D}')\) and define \(f : \bar{D} \to \R\) by \(f = g \circ \tau^{-1}\). 
+Since \(\tau^{-1} \in C^m (\bar{D};\bar{D}')\), we have that \(f \in C^m (\bar{D})\). Clearly, 
+\(T(f) = g\) hence \(T\) is surjective.
+\end{proof}
+
+\begin{corollary}
+\label{corr:cm_isomorphism}
+Let \(M > 0\) and \(m \in \N_0\). There exists a continuous linear bijection \(T : C^m([0,1]^d) \to C^m([-M,M]^d)\).
+\end{corollary}
+\begin{proof}
+Let $\one \in \R^d$ denote the vector in which all entries are $1$. 
+Define the map \(\tau : \R^d \to \R^d\) by
+\begin{equation}
+\label{eq:tau}
+\tau(x) = \frac{1}{2M} x + \frac{1}{2}\one, \qquad \forall x \in \R^d.
+\end{equation}
+Clearly \(\tau\) is a \(C^\infty\)-diffeomorphism between \([-M,M]^d\) and \([0,1]^d\)
+hence Lemma~\ref{lemma:cm_isomorphism} implies the result.
+\end{proof}
+
+\begin{lemma}
+\label{lemma:w1_isomorphism}
+Let \(M > 0\) and \(m \in \N\). There exists a continuous linear bijection \(T : W^{m,1}((0,1)^d) \to W^{m,1}((-M,M)^d)\).
+\end{lemma}
+\begin{proof}
+Define the map \(\tau : \R^d \to \R^d\) by \eqref{eq:tau}.
+%\[\tau(x) = \frac{1}{2M} x + \frac{1}{2}, \qquad \forall x \in \R^d.\]
+We have that \(\tau((-M,M)^d) = (0,1)^d\). Define the operator \(T\) by
+\[Tf = f \circ \tau, \qquad \forall f \in W^{m,1}((0,1)^d).\]
+which is clearly linear since composition is linear. We compute that, for any \(0 \leq |\alpha|_1 \leq m\),
+\[\partial^\alpha (f \circ \tau) = (2M)^{-|\alpha|_1} (\partial^\alpha f) \circ \tau\]
+hence, by the change of variables formula, 
+\[\|Tf\|_{W^{m,1}((-M,M)^d)} = \sum_{0 \leq |\alpha|_1 \leq m} (2M)^{d - |\alpha|_1} \|\partial^\alpha f\|_{L^1((0,1)^d)}. \]
+We can therefore find numbers \(C_1,C_2 > 0\), depending on \(M\) and \(m\), such that
+\[C_1 \|f\|_{W^{m,1}((0,1)^d)} \leq \|Tf\|_{W^{m,1}((-M,M)^d)} \leq C_2 \|f\|_{W^{m,1}((0,1)^d)}.\]
+This shows that \(T : W^{m,1}((0,1)^d) \to W^{m,1}((-M,M)^d)\) is continuous and injective.
+Now let \(g \in W^{m,1}((-M,M)^d)\) and define \(f = g \circ \tau^{-1}\). A similar argument shows that
+\(f \in W^{m,1}((0,1)^d)\) and, clearly, \(Tf = g\) hence \(T\) is surjective.
+\end{proof}
+
+We now show that the spaces in Assumptions \ref{assump:input} and \ref{assump:output} have the AP. While the result is well-known when the domain is \((0,1)^d\) or \(\R^d\), we were unable to find any results in the literature for Lipschitz domains and we therefore give a full proof here. The essence of the proof is to either exhibit an isomorphism to a space that is already known to have AP or to directly show AP by embedding the Lipschitz domain into an hypercube for which there are known basis constructions. Our proof shows the stronger result that \(W^{m,p}(D)\) for \(m \in \N_0\) and \(1 \leq p < \infty\) has a basis, but, for \(C^m (\bar{D})\), we only establish the AP and not necessarily a basis. The discrepancy comes from the fact that there is an isomorphism between \(W^{m,p}(D)\) and \(W^{m,p}(\R^d)\)\ while there is not one between \(C^m(\bar{D})\) and \(C^m(\R^d)\).
+
+\begin{lemma}
+\label{lemma:ap}
+Let Assumptions \ref{assump:input} and \ref{assump:output} hold. Then \(\A\) and \(\U\) have the \emph{AP}.
+\end{lemma}
+
+\begin{proof}
+It is enough to show that the spaces \(W^{m,p}(D)\), and \(C^m (\bar{D})\) for 
+any \(1 \leq p < \infty\) and \(m \in \N_0\) with \(D \subset \R^d\) a Lipschitz domain have the AP.
+Consider first the spaces \(W^{0,p} (D) = L^p(D)\). Since the Lebesgue measure on \(D\) is 
+\(\sigma\)-finite and has no atoms, \(L^p(D)\) is isometrically isomorphic 
+to \(L^p ((0,1))\) (see, for example, \cite[Chapter 6]{albiac2006topics}). Hence by
+Lemma \ref{lemma:ap_ap}, it is enough to show that \(L^p((0,1))\) has the AP. Similarly, consider the spaces \(W^{m,p}(D)\) for \(m > 0\) and \(p > 1\). 
+Since \(D\) is Lipschitz, 
+there exists a continuous linear operator \(W^{m,p} (D) \to W^{m,p} (\R^d)\) \cite[Chapter 6, Theorem 5]{stein1970singular}
+(this also holds for \(p=1\)). We can therefore apply \cite[Corollary 4]{pelczynski2001contribution} (when \(p > 1\))
+to conclude that \(W^{m,p}(D)\) is isomorphic to \(L^p((0,1))\). By \cite[Proposition 6.1.3]{albiac2006topics},
+\(L^p((0,1))\) has a basis hence Lemma~ \ref{lemma:schauder_ap} implies the result.
+
+Now, consider the spaces \(C^m(\bar{D})\). Since \(D\) is bounded, there exists a number \(M > 0\)
+such that \(\bar{D} \subseteq [-M,M]^d\).
+Hence, by Corollary~\ref{corr:cm_isomorphism}, \(C^m ([0,1]^d)\) is isomorphic to \(C^m ([-M,M]^d)\).
+Since \(C^m ([0,1]^d)\) has a basis \cite[Theorem 5]{ciesielski1972construction}, Lemma~\ref{lemma:schauder_schauder} then implies that
+\(C^m ([-M,M]^d)\) has a basis. By \cite[Theorem 1]{fefferman2007cmextension}, 
+there exists a continuous linear operator \(E : C^m (\bar{D}) \to C^m_{\text{b}}(\R^d)\)
+such that \(E(f)|_{\bar{D}} = f\) for all \(f \in C(\bar{D})\).
+Define the restriction operators \(R_M : C^m_{\text{b}}(\R^d) \to C^m([-M,M]^d)\) and \(R_D : C^m([-M,M]^d) \to C^m(\bar{D})\)
+which are both clearly linear and continuous and \(\|R_M\| = \|R_D\| = 1\). Let \(\{c_j\}_{j=1}^\infty \subset \bigl ( C^m([-M,M]^d) \bigl )^*\)
+and \(\{\varphi_j\}_{j=1}^\infty  \subset C^m([-M,M]^d)\) be a basis for \(C^m([-M,M]^d)\). 
+As in the proof of Lemma~\ref{lemma:schauder_ap}, there exists a constant \(C_1 > 0\)
+such that, for any \(n \in \N\) and \(f \in C^m([-M,M]^d) \), 
+\[\|\sum_{j=1}^n c_j(f) \varphi_j\|_{C^m([-M,M]^d)} \leq C_1 \|f\|_{C^m([-M,M]^d)}.\]
+Suppose, without loss of generality, that \(C_1 \|E\| \geq 1\). Let \(K \subset C^m(\bar{D})\)
+be a compact set and \(\epsilon > 0\). Since \(K\) is compact, we can find a number \(n = n(\epsilon) \in \N\)
+and elements \(y_1,\dots,y_n \in K\) such that, for any \(f \in K\) there exists a number \(l \in \{1,\dots,n\}\)
+such that
+\[\|f - y_l\|_{C^m(\bar{D})} \leq \frac{\epsilon}{3 C_1 \|E\|}.\]
+For every \(l \in \{1,\dots,n\}\), define \(g_l = R_M (E(y_l))\) and note that \(g_l \in C^m([-M,M]^d)\)
+hence there exists a number \(J = J(\epsilon,n) \in \N\) such that
+\[\max_{l \in \{1,\dots,n\}} \|g_l - \sum_{j=1}^J c_j(g_l) \varphi_j \|_{C^m([-M,M]^d)} \leq \frac{\epsilon}{3}.\]
+Notice that, since \(y_l = R_D(g_l)\), we have
+\[ \max_{l \in \{1,\dots,n\}} \|y_l - \sum_{j=1}^J c_j \bigl ( R_M (E(y_l)) \bigl ) R_D(\varphi_j)\|_{C^m(\bar{D})} \leq \|R_D\| \max_{l \in \{1,\dots,n\}}  \|g_l - \sum_{j=1}^J c_j(g_l) \varphi_j \|_{C^m([-M,M]^d)} \leq \frac{\epsilon}{3}.\]
+Define the finite rank operator \(U : C^m(\bar{D}) \to C^m(\bar{D})\) by
+\[Uf = \sum_{j=1}^J c_j \bigl ( R_M (E(f)) \bigl ) R_D(\varphi_j), \qquad \forall f \in C^m(\bar{D}).\]
+We then have that, for any \(f \in K\),
+\begin{align*}
+\|f - Uf\|_{C^m(\bar{D})} &\leq \|f - y_l\|_{C^m(\bar{D})} + \|y_l - Uy_l\|_{C^m(\bar{D})} + \|U y_l - Uf\|_{C^m(\bar{D})} \\
+&\leq \frac{2\epsilon}{3} + \|\sum_{j=1}^J c_j \bigl( R_M(E(y_l - f)) \bigl ) \varphi_j \|_{C^m([-M,M]^d)} \\
+&\leq \frac{2\epsilon}{3} + C_1 \|R_M(E(y_l - f))\|_{C^m([-M,M]^d)} \\
+&\leq \frac{2\epsilon}{3} + C_1 \|E\| \|y_l - f\|_{C^m(\bar{D})} \\
+&\leq \epsilon
+\end{align*}
+hence \(C^m(\bar{D})\) has the AP.
+
+We are left with the case \(W^{m,1}(D)\). A similar argument as for the \(C^m(\bar{D})\) case holds. In
+particular the basis from \cite[Theorem 5]{ciesielski1972construction} is also a basis for \(W^{m,1}((0,1)^d)\).
+Lemma~\ref{lemma:w1_isomorphism} gives an isomorphism between \(W^{m,1}((0,1)^d)\) and \(W^{m,1}((-M,M)^d)\) hence 
+we may use the extension operator \(W^{m,1} (D) \to W^{m,1} (\R^d)\) from \cite[Chapter 6, Theorem 5]{stein1970singular}
+to complete the argument. In fact, the same construction yields a basis for \(W^{m,1} (D)\) due 
+to the isomorphism with \(W^{m,1} (\R^d)\), see, for example \cite[Theorem 1]{pelczynski2001contribution}.
+\end{proof}
+
+
+
+\section{}
+\label{sec:appendix_functionalapprox}
+
+In this section, we prove various results about the approximation of linear functionals by kernel integral operators. Lemma~\ref{lemma:reisz} establishes a Riesz-representation theorem for \(C^m\). The proof proceeds exactly as in the well-known result for \(W^{m,p}\) but, since we did not find it in the literature, we give full details here. Lemma~\ref{lemma:wmp_kernelapprox} shows that linear functionals on \(W^{m,p}\) can be approximated uniformly over compact set by integral kernel operators with a \(C^\infty\) kernel. Lemmas~\ref{lemma:c_kernelapprox} and \ref{lemma:cm_kernelapprox} establish similar results for \(C\) and \(C^m\) respectively by employing Lemma~\ref{lemma:reisz}. These lemmas are crucial in showing that NO(s) are universal since they imply that the functionals from Lemma~\ref{lemma:finitedim_approx} can be approximated by elements of \(\mathsf{IO}\).
+
+\begin{lemma}
+\label{lemma:reisz}
+Let \(D \subset \R^d\) be a domain and \(m \in \N_0\). For every \(L \in \bigl (C^m (\bar{D}) \bigl )^*\) 
+there exist finite, signed, Radon measures \(\{\lambda_\alpha\}_{0 \leq |\alpha|_1 \leq m}\) such that
+\[L(f) = \sum_{0 \leq |\alpha|_1 \leq m} \int_{\bar{D}} \partial^\alpha f \: \mathsf{d}\lambda_\alpha, \qquad \forall f \in C^m(\bar{D}).\] 
+\end{lemma}
+\begin{proof}
+The case \(m = 0\) follow directly from \cite[Theorem B.111]{leoni2009first}, so we assume that \(m > 0\).
+Let \(\alpha_1,\dots,\alpha_J\) be an enumeration of the set \(\{\alpha \in \N^d : |\alpha|_1 \leq m\}\).
+Define the mapping \(T : C^m(\bar{D}) \to C(\bar{D};\R^J)\) by
+\[Tf = \bigl ( \partial^{\alpha_0} f, \dots, \partial^{\alpha_J}f ), \qquad \forall f \in C^m(\bar{D}).\]
+Clearly \(\|Tf\|_{C(\bar{D};\R^J)} = \|f\|_{C^m(\bar{D})}\) hence \(T\) is an injective, continuous linear operator.
+Define \(W \coloneqq T(C^m(\bar{D})) \subset C(\bar{D};\R^J)\) then \(T^{-1} : W \to C^m (\bar{D})\) is a continuous linear 
+operator since \(T\) preserves norm. Thus \(W = \bigl (T^{-1} \bigl)^{-1}(C^m(\bar{D}))\) is closed as the pre-image of a 
+closed set under a continuous map. In particular, \(W\) is a Banach space since \(C(\bar{D};\R^J)\) is a Banach space
+and \(T\) is an isometric isomorphism between \(C^m(\bar{D})\) and \(W\). Therefore, there exists a 
+continuous linear functional \(\tilde{L} \in W^*\) such that 
+\[L(f) = \tilde{L}(Tf), \qquad \forall f \in C^m (\bar{D}).\]
+By the Hahn-Banach theorem, \(\tilde{L}\) can be extended to a continuous linear functional \(\bar{L} \in \bigl ( C(\bar{D};\R^J) \bigl)^*\)
+such that \(\|L\|_{(C^m(\bar{D}))^*} = \|\tilde{L}\|_{W^*} = \|\bar{L}\|_{(C(\bar{D};\R^J))^*}\). We have that
+\[L(f) = \tilde{L}(Tf) = \bar{L}(Tf), \qquad \forall f \in C^m (\bar{D}).\]
+Since 
+\[\bigl ( C(\bar{D};\R^J) \bigl )^* \cong \bigtimes_{j=1}^J \bigl ( C(\bar{D}) \bigl )^* \cong \bigoplus_{j=1}^J \bigl ( C(\bar{D}) \bigl )^*,\]
+we have, by applying \cite[Theorem B.111]{leoni2009first} \(J\) times, that there exist finite, signed, Radon measures \(\{\lambda_\alpha\}_{0 \leq |\alpha|_1 \leq m}\) 
+such that
+\[\bar{L}(Tf) = \sum_{0 \leq |\alpha|_1 \leq m} \int_{\bar{D}} \partial^\alpha f \: \mathsf{d}\lambda_\alpha, \qquad \forall f \in C^m(\bar{D})\]
+as desired.
+\end{proof}
+
+
+
+\begin{lemma}
+\label{lemma:wmp_kernelapprox}
+Let \(D \subset \R^d\) be a bounded, open set and \(L \in (W^{m,p}(D))^*\) for some \(m \geq 0\)
+and \(1 \leq p < \infty\). For any closed and bounded set \(K \subset W^{m,p}(D)\) (compact if \(p=1\)) and \(\epsilon > 0\),
+there exists a function \(\kappa \in C^\infty_c (D)\) such that
+\[\sup_{u \in K} |L(u) - \int_D \kappa  u \dx| < \epsilon.\]
+\end{lemma}
+\begin{proof}
+First consider the case \(m = 0\) and \(1 \leq p < \infty\). By the Riesz Representation Theorem \cite[Appendix B]{conway2007acourse},
+there exists a function \(v \in L^q(D)\) such that
+\[L(u) = \int_D v u \dx.\]
+Since \(K\) is bounded, there is a constant \(M > 0\) such that
+\[\sup_{u \in K} \|u\|_{L^p} \leq M.\]
+
+Suppose \(p > 1\), so that \(1 < q < \infty\). Density of \(C^\infty_c(D)\) in \(L^q (D)\) \cite[Corollary 2.30]{adams2003sobolev}  implies there exists 
+a function \(\kappa \in C^\infty_c(D)\) such that
+\[\|v - \kappa\|_{L^q} < \frac{\epsilon}{M}.\]
+By the H{\"o}lder inequality,
+\[|L(u) - \int_D \kappa u \dx| \leq \|u\|_{L^p} \|v - \kappa\|_{L^q} < \epsilon.\]
+
+Suppose that \(p=1\) then \(q=\infty\). Since \(K\) is totally bounded, there exists a number
+\(n \in \N\) and functions \(g_1,\dots,g_n \in K\) such that, for any \(u \in K\),
+\[\|u - g_l\|_{L^1} < \frac{\epsilon}{3 \|v\|_{L^\infty}}\]
+for some \(l \in \{1,\dots,n\}\). Let \(\psi_\eta \in C^\infty_c (D)\) denote a standard mollifier
+for any \(\eta > 0\). We can find \(\eta > 0\) small enough such that
+\[\max_{l \in \{1,\dots,n\}} \|\psi_\eta * g_l - g_l\|_{L^1} < \frac{\epsilon}{9 \|v\|_{L^\infty}}\]
+Define \(f = \psi_\eta * v \in C(D)\) and note that \(\|f\|_{L^\infty} \leq \|v\|_{L^\infty}\). By Fubini's theorem, we find
+\[|\int_D (f - v)g_l \dx| = \int_D v ( \psi_\eta * g_l - g_l) \dx \leq \|v\|_{L^\infty} \|\psi_\eta * g_l - g_l\|_{L^1} < \frac{\epsilon}{9}.\]
+Since \(g_l \in L^1 (D)\), by Lusin's theorem, we can find a compact set \(A \subset D\) such that
+\[\max_{l \in \{1,\dots,n\}}  \int_{D \setminus A} |g_l| \dx < \frac{\epsilon}{18 \|v\|_{L^\infty}}\]
+Since \(C^\infty_c (D)\) is dense in \(C(D)\) over compact sets \cite[Theorem C.16]{leoni2009first}, we can find a function \(\kappa \in C^\infty_c (D)\) such that
+\[\sup_{x \in A} |\kappa(x) - f(x)| \leq \frac{\epsilon}{9M}\]
+and \(\|\kappa\|_{L^\infty} \leq \|f\|_{L^\infty} \leq \|v\|_{L^\infty}\).
+We have,
+\begin{align*}
+|\int_D (\kappa - v) g_l \dx| &\leq \int_A |(\kappa - v)g_l| \dx + \int_{D \setminus A} |(\kappa - v)  g_l | \dx\\
+&\leq \int_A |(\kappa - f)g_l| \dx + \int_D |(f-v)g_l| \dx + 2 \|v\|_{L^\infty} \int_{D \setminus A} |g_l| \dx \\
+&\leq \sup_{x \in A} |\kappa(x) - f(x)| \|g_l\|_{L^1} + \frac{2\epsilon}{9}   \\ 
+&< \frac{\epsilon}{3}.
+\end{align*}
+Finally,
+\begin{align*}
+|L(u) - \int_{D} \kappa u \dx| &\leq |\int_D vu \dx - \int_D vg_l \dx| + |\int_D v g_l \dx - \int_D \kappa u \dx| \\
+&\leq \|v\|_{L^\infty} \|u- g_l\|_{L^1} + |\int_D \kappa u \dx - \int_D \kappa g_l \dx | + | \int_D \kappa g_l \dx - \int_D v g_l \dx| \\
+&\leq \frac{\epsilon}{3} + \|\kappa\|_{L^\infty} \|u - g_l\|_{L^1} + |\int_D (\kappa - v) g_l  \dx| \\
+&\leq \frac{2\epsilon}{3} + \|v\|_{L^\infty} \|u-g_l\|_{L^1} \\
+&< \epsilon.
+\end{align*}
+
+Suppose \(m \geq 1\). By the Riesz Representation Theorem \cite[Theorem 3.9]{adams2003sobolev}, there exist elements \((v_\alpha)_{0\leq |\alpha|_1 \leq m}\) of 
+\(L^q (D)\) where \(\alpha \in \N^d\) is a multi-index such that
+\[L(u) = \sum_{0 \leq |\alpha|_1 \leq m} \int_D v_\alpha \partial_\alpha u  \dx.\]
+Since \(K\) is bounded, there is a constant \(M > 0\) such that
+\[\sup_{u \in K} \|u\|_{W^{m,p}} \leq M.\]
+
+Suppose \(p > 1\), so that \(1 < q < \infty\). Density of \(C^\infty_0(D)\) in \(L^q (D)\) implies there exist
+functions \((f_\alpha)_{0 \leq |\alpha|_1 \leq m}\) in \(C^\infty_c(D)\) such that 
+\[\|f_\alpha - v_\alpha\|_{L^q} < \frac{\epsilon}{MJ}\]
+where \(J = |\{\alpha \in \N^d : |\alpha|_1 \leq m \}|\). Let
+\[\kappa = \sum_{0 \leq |\alpha|_1 \leq m} (-1)^{|\alpha|_1} \partial_\alpha f_\alpha\]
+then, by definition of a weak derivative, 
+\[\int_D \kappa u \dx = \sum_{0 \leq |\alpha|_1 \leq m} (-1)^{|\alpha|_1} \int_D \partial_\alpha f_\alpha  u \dx = \sum_{0 \leq |\alpha|_1 \leq m} \int_D f_\alpha \partial_\alpha u \dx.  \]
+By the H{\"o}lder inequality,
+\[|L(u) - \int_D \kappa u \dx | \leq \sum_{0 \leq |\alpha|_1 \leq m} \|\partial_\alpha u\|_{L^p} \|f_\alpha - v_\alpha\|_{L^q} < M \sum_{0 \leq |\alpha|_1 \leq m} \frac{\epsilon}{MJ} = \epsilon.\]
+
+Suppose that \(p=1\) then \(q=\infty\). Define the constant \(C_v > 0\) by
+\[C_v = \sum_{0 \leq |\alpha|_1 \leq m} \|v_\alpha\|_{L^\infty}.\]
+Since \(K\) is totally bounded, there exists a number
+\(n \in \N\) and functions \(g_1,\dots,g_n \in K\) such that, for any \(u \in K\),
+\[\|u - g_l\|_{W^{m,1}} < \frac{\epsilon}{3C_v}\]
+for some \(l \in \{1,\dots,n\}\). 
+Let \(\psi_\eta \in C^\infty_c (D)\) denote a standard mollifier
+for any \(\eta > 0\). We can find \(\eta > 0\) small enough such that
+\[\max_{\alpha} \max_{l \in \{1,\dots,n\}} \|\psi_\eta * \partial_\alpha g_l - \partial_\alpha g_l\|_{L^1} < \frac{\epsilon}{9 C_v}.\]
+Define \(f_\alpha = \psi_\eta * v_\alpha \in C(D)\) and note that \(\|f_\alpha\|_{L^\infty} \leq \|v_\alpha\|_{L^\infty}\). By Fubini's theorem, we find
+\begin{align*}
+\sum_{0 \leq |\alpha|_1 \leq m} |\int_D (f_\alpha - v_\alpha) \partial_\alpha g_l \dx| &= \sum_{0 \leq |\alpha|_1 \leq m} |\int_D v_\alpha ( \psi_\eta * \partial_\alpha g_l - \partial_\alpha g_l) \dx| \\
+&\leq \sum_{0 \leq |\alpha|_1 \leq m} \|v_\alpha\|_{L^\infty} \|\psi_\eta * \partial_\alpha g_l - \partial_\alpha g_l\|_{L^1} \\
+&< \frac{\epsilon}{9}.
+\end{align*}
+Since \(\partial_\alpha g_l \in L^1 (D)\), by Lusin's theorem, we can find a compact set \(A \subset D\) such that
+\[\max_\alpha \max_{l \in \{1,\dots,n\}}  \int_{D \setminus A} |\partial_\alpha g_l| \dx < \frac{\epsilon}{18 C_v}.\]
+Since \(C^\infty_c (D)\) is dense in \(C(D)\) over compact sets, we can find functions \(w_\alpha \in C^\infty_c (D)\) such that
+\[\sup_{x \in A} |w_\alpha (x) - f_\alpha (x)| \leq \frac{\epsilon}{9M J}\]
+where \(J = |\{\alpha \in \N^d : |\alpha|_1 \leq m \}|\) and \(\|w_\alpha\|_{L^\infty} \leq \|f_\alpha\|_{L^\infty} \leq \|v_\alpha\|_{L^\infty}\).
+We have,
+\begin{align*}
+\sum_{0 \leq |\alpha|_1 \leq m} \int_D |(w_\alpha - v_\alpha) \partial_\alpha g_l| &= \sum_{0 \leq |\alpha|_1 \leq m} \left (  \int_A |(w_\alpha - v_\alpha) \partial_\alpha g_l| dx + 
+\int_{D \setminus A} |(w_\alpha - v_\alpha) \partial_\alpha g_l| dx \right )\\
+&\leq \sum_{0 \leq |\alpha|_1 \leq m} \bigg ( \int_A |(w_\alpha - f_\alpha) \partial_\alpha g_l| \dx + \int_D |(f_\alpha -v_\alpha) \partial_\alpha g_l| \dx \\
+&\quad \: + 2 \|v_\alpha\|_{L^\infty} \int_{D \setminus A} |\partial_\alpha g_l| \dx \bigg ) \\
+&\leq \sum_{0 \leq |\alpha|_1 \leq m} \sup_{x \in A} |w_\alpha (x) - f_\alpha (x)| \|\partial_\alpha g_l\|_{L^1} + \frac{2\epsilon}{9}   \\ 
+&< \frac{\epsilon}{3}.
+\end{align*}
+Let
+\[\kappa = \sum_{0 \leq |\alpha|_1 \leq m} (-1)^{|\alpha|_1} \partial_\alpha w_\alpha.\]
+then, by definition of a weak derivative, 
+\[\int_D \kappa u \dx = \sum_{0 \leq |\alpha|_1 \leq m} (-1)^{|\alpha|_1} \int_D \partial_\alpha w_\alpha  u \dx = \sum_{0 \leq |\alpha|_1 \leq m} \int_D w_\alpha \partial_\alpha u \dx.  \]
+Finally,
+\begin{align*}
+|L(u) - \int_{D} \kappa u \dx| &\leq \sum_{0 \leq |\alpha|_1 \leq m} \int_D | v_\alpha \partial_\alpha u - w_\alpha \partial_\alpha u| \dx \\
+&\leq \sum_{0 \leq |\alpha|_1 \leq m} \left ( \int_D |v_\alpha (\partial_\alpha u - \partial_\alpha g_l)| \dx + \int_D |v_\alpha \partial_\alpha g_l - w_\alpha \partial_\alpha u| \dx \right ) \\
+&\leq \sum_{0 \leq |\alpha|_1 \leq m} \left ( \|v_\alpha\|_{L^\infty} \|u - g_l\|_{W^{m,1}} +  \int_D |(v_\alpha - w_\alpha) \partial_\alpha g_l| \dx + \int_D |(\partial_\alpha g_l - \partial_\alpha u) w_\alpha| \dx \right ) \\
+&< \frac{2\epsilon}{3} + \sum_{0 \leq |\alpha|_1 \leq m} \|w_\alpha\|_{L^\infty} \|u - g_l\|_{W^{m,1}} \\
+&< \epsilon.
+\end{align*}
+
+\end{proof}
+
+\begin{lemma}
+\label{lemma:cm_delta_approx}
+Let \(D \subset \R^d\) be a domain and \(L \in \bigl ( C^m(\bar{D}) \bigl)^*\) for some \(m \in \N_0\). 
+For any compact set \(K \subset C^m(\bar{D})\) and \(\epsilon > 0\),
+there exists distinct points \(y_{11},\dots,y_{1 n_1},\dots,y_{J n_J} \in D\) and numbers \(c_{11},\dots,c_{1 n_1},\dots,c_{J n_J} \in \R\)
+such that
+\[\sup_{u \in K} |L(u) - \sum_{j=1}^J \sum_{k=1}^{n_j} c_{j k} \partial^{\alpha_j} u(y_{jk})| \leq \epsilon\]
+where \(\alpha_1,\dots,\alpha_J\) is an enumeration of the set \(\{\alpha \in \N^d_0 : 0 \leq |\alpha|_1 \leq m\}\).
+\end{lemma}
+\begin{proof}
+By Lemma~\ref{lemma:reisz}, there exist finite, signed, Radon
+measures \(\{\lambda_{\alpha}\}_{0 \leq |\alpha|_1 \leq m}\) such that
+\[L(u) = \sum_{0 \leq |\alpha|_1 \leq m} \int_{\bar{D}} \partial^\alpha u \: \mathsf{d} \lambda_\alpha, \qquad \forall u \in C^m(\bar{D}).\]
+Let \(\alpha_1,\dots,\alpha_J\) be an enumeration of the set \(\{\alpha \in \N^d_0 : 0 \leq |\alpha|_1 \leq m\}\).
+By weak density of the Dirac measures \cite[Example 8.1.6]{bogachev2007measure}, we can find points 
+\(y_{1 1},\dots,y_{1 n_{1}},\dots,y_{J 1},\dots,y_{J n_{J}} \in \bar{D}\) as well
+as numbers \(c_{1 1},\dots,c_{J n_{J}} \in \R\) such that
+\[|\int_{\bar{D}} \partial^{\alpha_j} u \: \mathsf{d}\lambda_{\alpha_j} -\sum_{k=1}^{n_j} c_{j k} \partial^{\alpha_j} u(y_{jk})| \leq \frac{\epsilon}{4J}, \qquad \forall u \in C^m(\bar{D})\]
+for any \(j \in \{1,\dots,J\}\). Therefore,
+\[|\sum_{j=1}^J \int_{\bar{D}} \partial^{\alpha_j} u \: \mathsf{d}\lambda_{\alpha_j} - \sum_{j=1}^J \sum_{k=1}^{n_j} c_{j k} \partial^{\alpha_j} u(y_{jk})| \leq \frac{\epsilon}{4}, \qquad \forall u \in C^m(\bar{D}).\]
+Define the constant 
+\[Q \coloneqq \sum_{j=1}^J \sum_{k=1}^{n_j} |c_{j k}|.\]
+Since \(K\) is compact, we can find functions \(g_1,\dots,g_N \in K\) such that, for any \(u \in K\), 
+there exists \(l \in \{1,\dots,N\}\) such that
+\[\|u - g_l\|_{C^k} \leq \frac{\epsilon}{4Q}.\]
+Suppose that some \(y_{jk} \in \partial D\). By uniform continuity, we can find a point \(\tilde{y}_{jk} \in D\) such that
+\[\max_{l \in \{1,\dots,N\}} |\partial^{\alpha_j} g_l (y_{jk}) - \partial^{\alpha_j} g_l (\tilde{y}_{jk})| \leq \frac{\epsilon}{4Q}.\]
+Denote 
+\[S(u) = \sum_{j=1}^J \sum_{k=1}^{n_j} c_{j k} \partial^{\alpha_j} u(y_{jk})\]
+and by \(\tilde{S}(u)\) the sum \(S(u)\) with \(y_{jk}\) replaced by \(\tilde{y}_{jk}\). Then, for any \(u \in K\), we have
+\begin{align*}
+|L(u) - \tilde{S}(u)| &\leq |L(u) - S(u)| + |S(u) - \tilde{S}(u)| \\
+&\leq \frac{\epsilon}{4} + |c_{jk} \partial^{\alpha_j} u(\tilde{y}_{jk}) - c_{jk} \partial^{\alpha_j} u(y_{jk})| \\
+&\leq \frac{\epsilon}{4} + |c_{jk} \partial^{\alpha_j} u(\tilde{y}_{jk}) - c_{jk} \partial^{\alpha_j} g_l(\tilde{y}_{jk})| + |c_{jk} \partial^{\alpha_j} g_l(\tilde{y}_{jk}) - c_{jk} \partial^{\alpha_j} u(y_{jk})| \\
+&\leq \frac{\epsilon}{4} + |c_{jk}|\|u - g_l\|_{C^m} + |c_{jk} \partial^{\alpha_j} g_l(\tilde{y}_{jk}) - c_{jk} \partial^{\alpha_j} g_l(y_{jk})| + |c_{jk} \partial^{\alpha_j} g_l(y_{jk}) - c_{jk} \partial^{\alpha_j} u(y_{jk})| \\
+&\leq \frac{\epsilon}{4}  + 2|c_{jk}|\|u - g_l\|_{C^m} + |c_{jk}| |\partial^{\alpha_j} g_l(\tilde{y}_{jk}) - \partial^{\alpha_j} g_l(y_{jk})| \\
+&\leq \epsilon.
+\end{align*} 
+Since there are a finite number of points, this implies that all points \(y_{jk}\) can be chosen in \(D\). Suppose now 
+that \(y_{jk} = y_{qp}\) for some \((j,k) \neq (q,p)\). As before, we can always find a point \(\tilde{y}_{jk}\)
+distinct from all others such that
+\[\max_{l \in \{1,\dots,N\}} |\partial^{\alpha_j} g_l (y_{jk}) - \partial^{\alpha_j} g_l (\tilde{y}_{jk})| \leq \frac{\epsilon}{4Q}.\]
+Repeating the previous argument then shows that all points \(y_{jk}\) can be chosen distinctly as desired.
+\end{proof}
+
+\begin{lemma}
+\label{lemma:c_kernelapprox}
+Let \(D \subset \R^d\) be a domain and \(L \in \bigl ( C(\bar{D}) \bigl)^*\). 
+For any compact set \(K \subset C(\bar{D})\) and \(\epsilon > 0\),
+there exists a function \(\kappa \in C^\infty_c (D)\) such that
+\[\sup_{u \in K} |L(u) - \int_D \kappa  u \dx| < \epsilon.\]
+\end{lemma}
+
+\begin{proof}
+By Lemma~\ref{lemma:cm_delta_approx}, we can find points distinct points 
+\(y_1, \dots, y_n \in D\) as well
+as numbers \(c_1,\dots,c_n \in \R\) such that
+\[\sup_{u \in K} |L(u) - \sum_{j=1}^{n} c_{j} u(y_{j})| \leq \frac{\epsilon}{3}.\]
+Define the constants
+\[Q \coloneqq \sum_{j=1}^n |c_{j}|.\]
+Since \(K\) is compact, there exist functions \(g_1,\dots,g_J \in K\) such that, for any \(u \in K\), there exists 
+some \(l \in \{1,\dots,J\}\) such that
+\[\|u - g_l\|_{C} \leq \frac{\epsilon}{6nQ}.\]
+Let \(r > 0\) be such that the open balls \(B_r (y_{j}) \subset D\) and are pairwise disjoint.
+Let \(\psi_\eta \in C^\infty_c (\R^d)\) denote the standard mollifier with parameter \(\eta > 0\), noting that \(\text{supp } \psi_r = B_r(0)\). We can find a number \(0 < \gamma \leq r\) such that
+\[\max_{\substack{l \in \{1,\dots,J\} \\ j \in \{1,\dots,n\}}} |\int_D \psi_{\gamma}(x - y_{j}) g_l(x) \dx - g_l(y_{j})| \leq \frac{\epsilon}{3nQ}.\]
+Define \(\kappa : \R^d \to \R\) by
+\[\kappa(x) = \sum_{j=1}^n c_{j} \psi_{\gamma}(x - y_{j}), \qquad \forall x \in \R^d.\]
+Since \(\text{supp } \psi_\gamma (\cdot - y_j) \subseteq B_r(y_j)\), we have that \(\kappa \in C^\infty_c(D)\).
+Then, for any \(u \in K\),
+\begin{align*}
+|L(u) - \int_D \kappa u \dx| &\leq |L({}u) - \sum_{j=1}^n c_j u(y_j) | + |\sum_{j=1}^n c_j u(y_j) - \int_D \kappa u \dx| \\
+&\leq \frac{\epsilon}{3} + \sum_{j=1}^n |c_j| |u(y_j) - \int_D \psi_\eta(x - y_j)u(x) \dx| \\
+&\leq \frac{\epsilon}{3} + Q \sum_{j=1}^n |u(y_j) - g_l(y_j)| + |g_l(y_j) - \int_D \psi_\eta(x - y_j)u(x) \dx| \\
+&\leq \frac{\epsilon}{3} + nQ \|u - g_l\|_{C} + Q \sum_{j=1}^n |g_l(y_j) - \int_D \psi_\eta (x - y_j)g_l(x) \dx|\\
+&\quad\quad\quad\quad\quad\quad+ | \int_D \psi_\eta (x - y_j) \bigl (g_l(x) - u(x) \bigl) \dx| \\
+&\leq \frac{\epsilon}{3} + nQ \|u - g_l\|_{C} + n Q \frac{\epsilon}{3n Q} + Q \|g_l - u\|_C \sum_{j=1}^n \int_D \psi_{\gamma}(x - y_{j}) \dx \\
+&= \frac{2\epsilon}{3} + 2nQ \|u - g_l\|_{C} \\
+&=\epsilon
+\end{align*}
+where we use the fact that mollifiers are non-negative and integrate to one.
+\end{proof}
+
+\begin{lemma}
+\label{lemma:cm_kernelapprox}
+Let \(D \subset \R^d\) be a domain and \(L \in \bigl ( C^m (\bar{D}) \bigl)^*\). 
+For any compact set \(K \subset C^m (\bar{D})\) and \(\epsilon > 0\),
+there exist functions \(\kappa_1,\dots,\kappa_J \in C^\infty_c (D)\) such that
+\[\sup_{u \in K} |L(u) - \sum_{j=1}^J \int_D \kappa_j  \partial^{\alpha_j} u \dx| < \epsilon\]
+where \(\alpha_1,\dots,\alpha_J\) is an enumeration of the set \(\{\alpha \in \N^d_0 : 0 \leq |\alpha|_1 \leq m\}\).
+\end{lemma}
+
+\begin{proof}
+By Lemma~\ref{lemma:cm_delta_approx}, we find distinct points \(y_{11},\dots,y_{1 n_1},\dots,y_{J n_J} \in D\) and numbers \(c_{11},\dots,c_{J n_J} \in \R\) such that
+\[\sup_{u \in K} |L(u) - \sum_{j=1}^J \sum_{k=1}^{n_j} c_{j k} \partial^{\alpha_j} u(y_{jk})| \leq \frac{\epsilon}{2}.\]
+Applying the proof of Lemma~\ref{lemma:cm_kernelapprox} \(J\) times to each of the inner sums, we find functions 
+\(\kappa_1,\dots,\kappa_J \in C^\infty_c (D)\) such that
+\[\max_{j \in \{1,\dots,J\}}|\int_D \kappa_j \partial^{\alpha_j} u \dx - \sum_{k=1}^{n_j} c_{jk} \partial^{\alpha_j} u(y_{jk}) | \leq \frac{\epsilon}{2J}.\]
+Then, for any \(u \in K\),
+\begin{align*}
+|L(u) - \sum_{j=1}^J &\int_D \kappa_j  \partial^{\alpha_j} u \dx|\\& \leq |L(u) - \sum_{j=1}^J \sum_{k=1}^{n_j} c_{j k} \partial^{\alpha_j} u(y_{jk})| + \sum_{j=1}^J  |\int_D \kappa_j \partial^{\alpha_j} u \dx - \sum_{k=1}^{n_j} c_{jk} \partial^{\alpha_j} u(y_{jk})| \leq \epsilon
+\end{align*}
+as desired.
+\end{proof}
+
+\section{}
+\label{sec:appendix_nos}
+
+The following lemmas show that the three pieces used in constructing the approximation from Lemma~\ref{lemma:finitedim_approx}, which are schematically depicted in Figure~\ref{fig:approach}, can all be approximated by NO(s). Lemma~\ref{lemma:input_approx} shows that \(F_J : \A \to \R^{J}\) can be approximated by an element of \(\mathsf{IO}\) by mapping to a vector-valued constant function. Similarly, Lemma~\ref{lemma:output_approx} shows that \(G_{J'} : \R^{J'} \to \U\) can be approximated by an element of \(\mathsf{IO}\) by mapping a vector-valued constant function to the coefficients of a basis expansion. Finally, Lemma~\ref{lemma:nn_emulation} shows that NO(s) can exactly represent any standard neural network by viewing the inputs and outputs as vector-valued constant functions.
+
+\begin{lemma}
+\label{lemma:input_approx}
+Let Assumption \ref{assump:input} hold. Let \(\{c_j\}_{j=1}^n \subset \A^*\) for some \(n \in \N\).
+Define the map \(F : \A \to \R^n\) by 
+\[F(a) = \bigl (c_1(a), \dots, c_n(a) \bigl ), \qquad \forall a \in \A.\]
+Then, for any compact set \(K \subset \A\), \(\sigma \in \mathsf{A}_{0}\), and \(\epsilon > 0\), there exists 
+a number \(L \in \N\) and neural network \(\kappa \in \NN_L(\sigma;\R^{d} \times \R^{d},\R^{n \times 1})\) such that
+\[\sup_{a \in K} \sup_{y \in \bar{D}} |F(a) - \int_{D} \kappa(y, x) a(x) \dx |_1 \leq \epsilon. \]
+\end{lemma}
+\begin{proof}
+Since \(K\) is bounded, there exists a number \(M > 0\) such that
+\[\sup_{a \in K} \|a\|_\A \leq M.\]
+Define the constant
+\[Q \coloneqq \begin{cases}
+M, & \A = W^{m,p}(D) \\
+M |D|, & A = C(\bar{D})
+\end{cases}\]
+and let \(p = 1\) if \(\A = C(\bar{D})\).
+By Lemma~\ref{lemma:wmp_kernelapprox} and Lemma~\ref{lemma:c_kernelapprox}, there exist functions
+\(f_1,\dots,f_n \in C^\infty_c (D)\) such that
+\[\max_{j\in \{1,\dots,n\}} \sup_{a \in K} |c_j(a) - \int_D f_j a \dx | \leq \frac{\epsilon}{2 n^{\frac{1}{p}}}.\]
+Since \(\sigma \in \mathsf{A}_0\), there exits some \(L \in \N\) and neural networks \(\psi_1,\dots,\psi_n \in \NN_L(\sigma;\R^d)\)
+such that
+\[\max_{j \in \{1,\dots,n\}} \|\psi_j - f_j\|_C \leq \frac{\epsilon}{2Q n^{\frac{1}{p}}}.\]
+By setting all weights associated to the first argument to zero, 
+we can modify each neural network \(\psi_j\)
+to a neural network \(\psi_j \in \NN_L(\sigma;\R^{d} \times \R^{d})\) so that
+\[\psi_j(y,x) = \psi_j(x) \mathds{1}(y), \qquad \forall y,x \in \R^{d}.\]
+Define \(\kappa \in \NN_L (\sigma; \R^{d} \times \R^{d}, \R^{n \times 1})\) by
+\[\kappa(y,x) = [\psi_1(y,x), \dots, \psi_n (y,x) ]^T.\]
+Then for any \(a \in K\) and \(y \in \bar{D}\), we have
+\begin{align*}
+|F(a) - \int_D \kappa(y,x) a \dx|_p^p &= \sum_{j=1}^n |c_j(a) - \int_D \mathds{1}(y) \psi_j(x) a(x) \dx|^p \\
+&\leq 2^{p-1} \sum_{j=1}^n |c_j(a) - \int_D f_j a \dx|^p + |\int_D (f_j - \psi_j) a \dx |^p \\
+&\leq \frac{\epsilon^p}{2} + 2^{p-1} n Q^p \|f_j - \psi_j\|_C^p \\
+&\leq \epsilon^p
+\end{align*}
+and the result follows by finite dimensional norm equivalence.
+\end{proof}
+
+\begin{lemma}
+\label{lemma:cm_input_approx}
+Suppose \(D \subset \R^d\) is a domain and let \(\{c_j\}_{j=1}^n \subset \bigl ( C^{m}(\bar{D}) \bigl )^*\) for some \(m, n \in \N\).
+Define the map \(F : \A \to \R^n\) by 
+\[F(a) = \bigl (c_1(a), \dots, c_n(a) \bigl ), \qquad \forall a \in C^m(\bar{D}).\]
+Then, for any compact set \(K \subset C^m(\bar{D})\), \(\sigma \in \mathsf{A}_{0}\), and \(\epsilon > 0\), there exists 
+a number \(L \in \N\) and neural network \(\kappa \in \NN_L(\sigma;\R^{d} \times \R^{d},\R^{n \times J})\) such that
+\[\sup_{a \in K} \sup_{y \in \bar{D}} |F(a) - \int_{D} \kappa(y, x) \bigl (\partial^{\alpha_1} a(x), \dots, \partial^{\alpha_J} a(x) \bigl ) \dx |_1 \leq \epsilon \]
+where \(\alpha_1,\dots,\alpha_J\) is an enumeration of the set \(\{\alpha \in \N^d : 0 \leq |\alpha|_1 \leq m\}\).
+\end{lemma}
+\begin{proof}
+The proof follows as in Lemma~\ref{lemma:input_approx} by replacing the use of Lemmas~\ref{lemma:wmp_kernelapprox} and \ref{lemma:c_kernelapprox}
+by Lemma~\ref{lemma:cm_kernelapprox}.
+\end{proof}
+
+\begin{lemma}
+\label{lemma:output_approx}
+Let Assumption \ref{assump:output} hold. Let \(\{\varphi_j\}_{j=1}^n \subset \U\) for some \(n \in \N\).
+Define the map \(G : \R^n \to \U\) by 
+\[G(w) = \sum_{j=1}^n w_j \varphi_j, \qquad \forall w \in \R^n.\]
+Then, for any compact set \(K \subset \R^n\), \(\sigma \in \mathsf{A}_{m_2}\), and \(\epsilon > 0\), there exists 
+a number \(L \in \N\) and a neural network \(\kappa \in \NN_L(\sigma;\R^{d'} \times \R^{d'},\R^{1 \times n})\) such that
+\[\sup_{w \in K} \|G(w) - \int_{D'} \kappa(\cdot, x) w \mathds{1}(x) \dx \|_\U \leq \epsilon. \]
+\end{lemma}
+\begin{proof}
+Since \(K \subset \R^n\) is compact, there is a number \(M > 1\) such that
+\[\sup_{w \in K} |w|_1 \leq M.\]
+If \(\U = L^{p_2}(D')\), then density of \(C^\infty_c (D')\) implies there are 
+functions \(\tilde{\psi}_1, \dots, \tilde{\psi}_n \in C^\infty (\bar{D}')\) such that
+\[\max_{j \in \{1,\dots,n\}} \|\varphi_j - \tilde{\psi}_j \|_\U \leq \frac{\epsilon}{2nM}.\]
+Similarly if \(U = W^{m_2, p_2}(D')\), then density of the restriction of functions in \(C^{\infty}_c (\R^{d'})\)
+to \(D'\) \cite[Theorem 11.35]{leoni2009first} implies the same result.
+If \(\U = C^{m_2}(\bar{D}')\) then we set \(\tilde{\psi}_j = \varphi_j\) for any \(j \in \{1,\dots,n\}\).
+Define \(\tilde{\kappa} : \R^{d'} \times \R^{d'} \to \R^{1 \times n}\) by 
+\[\tilde{\kappa}(y,x) = \frac{1}{|D'|} [\tilde{\psi}_1(y), \dots, \tilde{\psi}_n (y)].\]
+Then, for any \(w \in K\), 
+\begin{align*}
+\|G(w) - \int_{D'} \tilde{\kappa}(\cdot,x) w \mathds{1}(x) \dx \|_\U &= \| \sum_{j=1}^n w_j \varphi_j - \sum_{j=1}^n w_j \tilde{\psi}_j \|_\U \\
+&\leq \sum_{j=1}^n  |w_j| \|\varphi_j - \tilde{\psi}_j\|_\U \\
+&\leq \frac{\epsilon}{2}.
+\end{align*}
+Since \(\sigma \in \mathsf{A}_{m_2}\), there exists neural networks \(\psi_1,\dots,\psi_n \in \NN_1(\sigma;\R^{d'})\) such that
+\[\max_{j \in \{1,\dots,n\}}\| \tilde{\psi}_j - \psi_j \|_{C^{m_2}} \leq \frac{\epsilon}{2nM(J|D'|)^{\frac{1}{p_2}}}\]
+where, if \(\U = C^{m_2}(\bar{D}')\), we set \(J = 1/|D'|\) and \(p_2=1\), and otherwise \(J = |\{\alpha \in \N^d : |\alpha|_1 \leq m_2 \}|\). By setting all weights associated to the second argument to zero, 
+we can modify each neural network \(\psi_j\)
+to a neural network \(\psi_j \in \NN_1(\sigma;\R^{d'} \times \R^{d'})\) so that
+\[\psi_j(y,x) = \psi_j(y) \mathds{1}(x), \qquad \qquad \forall y,x \in \R^{d'}.\]
+Define \(\kappa \in \NN_1(\sigma;\R^{d'} \times \R^{d'},\R^{1 \times n})\) as
+\[\kappa(y,x) = \frac{1}{|D'|}[\psi_1(y,x), \dots, \psi_n (y,x)].\]
+Then, for any \(w \in \R^n\),
+\[\int_{D'} \kappa(y,x) w \mathds{1}(x) \dx = \sum_{j=1}^nw_j \psi_j(y).\]
+We compute that, for any \(j \in \{1,\dots,n\}\),
+\[\|\psi_j - \tilde{\psi}_j\|_\U \leq \begin{cases}
+|D'|^{\frac{1}{p_2}} \|\psi_j - \tilde{\psi}_j\|_{C^{m_2}}, & \U = L^{p_2}(D') \\
+(J|D'|)^{\frac{1}{p_2}} \|\psi_j - \tilde{\psi}_j\|_{C^{m_2}}, & \U = W^{m_2,p_2}(D') \\
+\|\psi_j - \tilde{\psi}_j\|_{C^{m_2}}, & \U = C^{m_2}(\bar{D}')
+\end{cases}\]
+hence, for any \(w \in K\),
+\[\|\int_{D'} \kappa(y,x) w \mathds{1}(x) \dx - \sum_{j=1}^n w_j \tilde{\psi}_j \|_{\U} \leq \sum_{j=1}^n |w_j| \|\psi_j - \tilde{\psi}_j \|_\U \leq \frac{\epsilon}{2}.\]
+By triangle inequality, for any \(w \in K\), we have
+\begin{align*}
+\|G(w) - \int_D \kappa(\cdot,x) w \mathds{1}(x) \dx\|_\U &\leq \|G(w) - \int_D \tilde{\kappa}(\cdot,x) w \mathds{1}(x) \dx\|_\U \\
+&\:\:\:\: + \|\int_D \tilde{\kappa}(\cdot,x) w \mathds{1}(x) \dx - \int_D \kappa(\cdot,x) w \mathds{1}(x) \dx\|_\U \\
+&\leq \frac{\epsilon}{2} + \|\int_D \kappa(\cdot,x) w \mathds{1}(x) -\sum_{j=1}^n w_j \tilde{\psi}_n \|_\U \\
+&\leq \epsilon
+\end{align*}
+as desired.
+\end{proof}
+
+\begin{lemma}
+\label{lemma:nn_emulation}
+Let \(N, d, d', p, q \in \N\), \(m, n \in \N_0\), \(D \subset \R^p\) and \(D' \subset \R^q\) be domains and \(\sigma_1 \in \mathsf{A}^{\emph{\text{L}}}_m\). 
+For any \(\varphi \in \NN_N (\sigma_1;\R^d, \R^{d'})\) and \(\sigma_2, \sigma_3 \in \mathsf{A}_n\), there exists a 
+\(G \in \mathsf{NO}_N (\sigma_1,\sigma_2,\sigma_3;D,D',\R^d,\R^{d'})\) such that 
+\[\varphi(w) = G(w \mathds{1})(x), \qquad \forall w \in \R^d, \:\: \forall x \in D'.\].
+\end{lemma}
+\begin{proof}
+We have that
+\[\varphi(x) = W_N \sigma_1 (\dots W_1 \sigma_1 (W_0x + b_0) + b_1 \dots ) + b_N, \qquad \forall x \in \R^d\]
+where \(W_0 \in \R^{d_0 \times d}, W_1 \in \R^{d_1 \times d_0}, \dots, W_N \in \R^{d' \times d_{N-1}}\) and \(b_0 \in \R^{d_0}, b_1 \in \R^{d_1}, \dots,b_N \in \R^{d'}\)
+for some \(d_0,\dots,d_{N-1} \in \N\). By setting all parameters to zero except for the last bias term, we can find 
+\(\kappa^{(0)} \in \NN_1(\sigma_2;\R^p \times \R^p, \R^{d_0 \times d})\) such that
+\[\kappa_0 (x,y) = \frac{1}{|D|} W_0, \qquad \forall x,y \in \R^p.\]
+Similarly, we can find \(\tilde{b}_0 \in \NN_1(\sigma_2;\R^p, \R^{d_0})\)
+such that
+\[\tilde{b}_0 (x) = b_0, \qquad \forall x \in \R^p.\]
+Then 
+\[\int_D \kappa_0 (y,x) w \mathds{1}(x) \dx + \tilde{b}(y) = (W_0 w + b_0) \mathds{1}(y), \qquad \forall w \in \R^d, \:\: \forall y \in D.\]
+Continuing a similar construction for all layers clearly yields the result.
+\end{proof}
+
+\section{}
+\label{sec_proof:discretizational_invariance}
+
+\nk{
+
+\begin{proof}[of Theorem~\ref{thm:discretizational_invariance}]
+Without loss of generality, we will assume that \(D = D'\) and, by continuous embedding, that
+\(\A = \U = C(\bar{D})\). Furthermore, note that, by continuity, it suffices to show the 
+result for the single layer 
+\[\mathsf{NO} = \left \{ f \mapsto \sigma_1 \left ( \int_D \kappa(\cdot, y) f(y) \dy + b \right ) : \kappa \in \mathsf{N}_{n_1}(\sigma_2;\R^d \times \R^d), \: b \in \mathsf{N}_{n_2}(\sigma_2;\R^d), \: n_1, n_2 \in \N \right \}.\]
+Let \(K \subset \A\) be a compact set and  \((D_j)_{j=1}^\infty\) be a discrete refinement of \(D\).
+To each discretization \(D_j\) associate partitions \({P_j^{(1)},\dots,P_j^{(j)} \subseteq D}\) which are pairwise disjoint,
+each contains a single, unique point of \(D_j\), each has positive Lebesgue measure, and
+\[\coprod_{k=1}^j P_j^{(k)} = D.\]
+We can do this since the points in each discretization \(D_j\) are pairwise distinct.
+For any \(\G \in \mathsf{NO}\) with parameters \(\kappa, \: b\) define the sequence of maps \(\hat{\G}_j : \R^{jd} \times \R^j \to \Y\) by 
+\[\hat{\G}_j(y_1,\dots,y_j,w_1,\dots,w_j) = \sigma_1 \left ( \sum_{k=1}^j \kappa(\cdot, y_k) w_k |P_j^{(k)}| + b(\cdot) \right )\]
+for any \(y_k \in \R^d\) and \(w_k \in \R\). Since \(K\) is compact, there is a constant \(M > 0\) such that 
+\[\sup_{a \in K} \|a\|_{\U} \leq M.\]
+Therefore,
+\begin{align*}
+\sup_{x \in \bar{D}} \sup_{j \in \N} \left | \int_D \kappa (x,y) a(y) \dy + \sum_{k=1}^j \kappa(x,y_k) a(y_k) |P_j^{(k)}| + 2b(x) \right | &\leq 2(M |D| \|\kappa\|_{C(\bar{D} \times \bar{D})} + \|b\|_{C(\bar{D})} ) \\
+&\coloneqq R.
+\end{align*}
+Hence we need only consider \(\sigma_1\) as a map \([-R,R] \to \R\). Thus, by uniform continuity, there exists a modulus of continuity \(\omega : \R_{\geq 0} \to \R_{\geq 0} \) which is continuous, non-negative, and non-decreasing on \(\R_{\geq 0}\), satisfies \(\omega(z) \to \omega(0) =0\) 
+as \(z \to 0\) and 
+\begin{equation}
+\label{eq:disc_inv_modulusofcont}
+|\sigma_1(z_1) - \sigma_1(z_2) | \leq \omega(|z_1 - z_2|) \qquad \forall z_1,z_2 \in [-R,R].
+\end{equation}
+Let \(\epsilon > 0\). Equation \eqref{eq:disc_inv_modulusofcont} and the non-decreasing property of \(\omega\) imply that in order to show there exists \(Q = Q(\epsilon) \in \N\) such that for any \(m \geq Q\) implies 
+\[\sup_{a \in K}\| \hat{\G}_m (D_m, a|_{D_m}) - \G(a)\|_\Y < \epsilon,\]
+it is enough to show that
+\begin{equation}
+\label{eq:disc_inv_needtoshow}
+\sup_{a \in K} \sup_{x \in \bar{D}} \left | \int_D \kappa(x,y) a(y) \dy - \sum_{k=1}^m \kappa(x,y_k) a(y_k) |P_m^{(k)}| \right | < \epsilon
+\end{equation}
+for any \(m \geq Q\).
+Since \(K\) is compact, we can find functions \(a_1,\dots,a_N \in K\) such that, for any \(a \in K\), there is some \(n \in \{1,\dots,N\}\) such that
+\[\|a-a_n\|_{C(\bar{D})} \leq \frac{\epsilon}{4 |D| \|\kappa\|_{C(\bar{D} \times \bar{D})}}.\]
+Since \((D_j)\) is a discrete refinement, by convergence of Riemann sums, we can find some \(q \in \N\) such that for any \(t \geq q\), we have
+\[\sup_{x \in \bar{D}} \left | \sum_{k=1}^t \kappa(x,y_k) |P_t^{(k)}| - \int_{D} \kappa(x,y) \dy  \right | < |D| \|\kappa\|_{C(\bar{D} \times \bar{D})}\]
+where \(D_t = \{y_1,\dots,y_t\}\). Similarly, we can find \(p_1,\dots,p_N \in \N\) such that, for any \(t_n \geq p_n\), we have
+\[\sup_{x \in \bar{D}} \left | \sum_{k=1}^{t_n} \kappa(x,y_k^{(n)}) a_n(y_k^{(n)}) |P_{t_n}^{(k)}| - \int_D \kappa(x,y) a_n(y) \dy \right | < \frac{\epsilon}{4}\]
+where \(D_{t_n} = \{y_1^{(n)},\dots,y_{t_n}^{(n)}\}\).
+Let \(m \geq \max \{q,p_1,\dots,p_N\}\) and denote \(D_m = \{y_1,\dots,y_m\}\).
+Note that,
+\[\sup_{x \in \bar{D}} \left | \int_D \kappa(x,y) \left ( a(y) - a_n(y) \right ) \dy \right | \leq |D| \|\kappa\|_{C(\bar{D} \times \bar{D})} \|a - a_n\|_{C(\bar{D})}.\]
+Furthermore,
+\begin{align*}
+    \sup_{x \in \bar{D}} \left | \sum_{k=1}^m \kappa(x,y_k) \left ( a_n(y_k) - a(y_k) \right ) |P_m^{(k)}| \right | &\leq \|a_n - a \|_{C(\bar{D})} \sup_{x \in \bar{D}} \left | \sum_{k=1}^m \kappa(x,y_k) |P_m^{(k)}| \right | \\
+    &\leq \|a_n - a \|_{C(\bar{D})} \bigg ( \sup_{x \in \bar{D}} \left | \sum_{k=1}^m \kappa(x,y_k) |P_m^{(k)}| - \int_{D} \kappa(x,y) \dy  \right | \\
+    &\qquad\qquad\qquad\qquad+ \sup_{x \in \bar{D}} \left | \int_D \kappa(x,y) \dy \right | \bigg  ) \\
+    &\leq 2 |D|\|\kappa\|_{C(\bar{D} \times \bar{D})} \|a_n - a \|_{C(\bar{D})}.
+\end{align*}
+Therefore, for any \(a \in K\), by repeated application of the triangle inequality, we find that 
+\begin{align*}
+    \sup_{x \in \bar{D}} \left | \int_D \kappa(x,y) a(y) \dy - \sum_{k=1}^m \kappa(x,y_k) a(y_k) |P_m^{(k)}| \right | &\leq \sup_{x \in \bar{D}} \left | \sum_{k=1}^{m} \kappa(x,y_k) a_n(y_k) |P_{m}^{(k)}| - \int_D \kappa(x,y) a_n(y) \dy \right | \\
+    &\quad+ 3 |D| \|\kappa\|_{C(\bar{D} \times \bar{D})} \|a - a_n\|_{C(\bar{D})} \\
+    &< \frac{\epsilon}{4} + \frac{3 \epsilon}{4} = \epsilon
+\end{align*}
+which completes the proof.
+\end{proof}
+}
+
+\section{}
+\label{sec_proof:main_compact}
+
+\begin{proof}[of Theorem~\ref{thm:main_compact}]
+The statement in Lemma~\ref{lemma:ap} allows us to apply Lemma~\ref{lemma:finitedim_approx} to find a mapping \(\G_1 : \A \to \U\) 
+such that
+\[\sup_{a \in K} \|\G^\dagger (a) - \G_1(a)\|_{\U} \leq \frac{\epsilon}{2}\]
+where \(\G_1 = G \circ \psi \circ F\) with \(F : \A \to \R^J\), \(G : \R^{J'} \to \U\) continuous linear maps  and \(\psi \in C(\R^{J};\R^{J'})\) for some \(J, J' \in \N\).
+By Lemma~\ref{lemma:input_approx}, we can find a sequence of maps \(F_t \in \mathsf{IO}(\sigma_2;D,\R,\R^J)\) for \(t=1,2,\dots\) such that
+\[\sup_{a \in K} \sup_{x \in \bar{D}} | \bigl (F_t (a) \bigl )(x) - F (a)|_1 \leq \frac{1}{t}.\]
+In particular, \(F_t(a)(x) = w_t(a) \mathds{1}(x)\) for some \(w_t : \A \to \R^J\)
+which is constant in space.
+We can therefore identify the range of $F_t(a)$ with \(\R^J\).
+Define the set 
+\[Z \coloneqq \bigcup_{t = 1}^\infty F_t (K) \cup F (K) \subset \R^{J}\]
+which is compact by Lemma~\ref{lemma:compact_union}.
+Since \(\psi\) is continuous, it is uniformly continuous on \(Z\) hence there exists a modulus of continuity \(\omega : \R_{\geq 0} \to \R_{\geq 0}\) which is continuous, non-negative, and non-decreasing on \(\R_{\geq 0}\), satisfies \(\omega(s) \to \omega(0) = 0\) as \(s \to 0\) and
+\[|\psi(z_1) - \psi(z_2)|_1 \leq \omega ( |z_1 - z_2|_1 ) \qquad \forall z_1, z_2 \in Z.\]
+We can thus find \(T \in \N\) large enough such that
+\[\sup_{a \in K} \omega (|F (a) - F_T (a)|_1) \leq \frac{\epsilon}{6 \|G\|}.\]
+Since \(F_T\) is continuous, \(F_T (K)\) is compact. \nk{Since \(\psi\) is a continuous function on the compact set \(F_T(K) \subset \R^J\) mapping into \(\R^{J'}\), we can use any classical neural network approximation theorem such as \cite[Theorem 4.1]{pinkus1999approximation} to find an \(\epsilon\)-close (uniformly) neural network. Since Lemma \ref{lemma:nn_emulation} shows that neural operators can exactly mimic standard neural networks, it follows that} we can find 
+\(S_1 \in \mathsf{IO}(\sigma_1;D,\R^J,\R^{d_1}), \dots,\) \(S_{N-1} \in \mathsf{IO}(\sigma_1;D,\R^{d_{N-1}},\R^{J'})\) for some \(N \in \N_{\geq 2}\) 
+and \(d_1,\dots,d_{N-1} \in \N\) such that
+\[\tilde{\psi}(f) \coloneqq \bigl ( S_{N-1} \circ \sigma_1 \circ \dots \circ S_2 \circ \sigma_1 \circ S_1 \bigl)(f), \qquad \forall f \in L^1(D;\R^J) \]
+satisfies
+\[\sup_{q \in F_T (K)} \sup_{x \in \bar{D}}  | \psi(q) - \tilde{\psi}(q \mathds{1})(x) |_1 \leq \frac{\epsilon}{6 \|G\|}. \]
+By construction, \(\tilde{\psi}\) maps constant functions into constant functions and is continuous in the 
+appropriate subspace topology of constant functions hence we can identity it as an element of \(C(\R^J;\R^{J'})\)
+for any input constant function taking values in \(\R^J\).
+Then \((\tilde{\psi} \circ F_T)(K) \subset \R^{J'}\) is compact. 
+Therefore, by Lemma~\ref{lemma:output_approx}, we can find a neural network
+\(\kappa \in \mathcal{N}_L (\sigma_3; \R^{d'} \times \R^{d'}, \R^{1 \times J'})\) for some \(L \in \N\) such that
+\[\tilde{G} (f) \coloneqq \int_{D'} \kappa (\cdot, y) f(y) \: \text{d}y, \qquad \forall f \in L^1(D;\R^{J'})\]
+satisfies
+\[\sup_{y \in (\tilde{\psi}  \circ F_T)(K)} \|G (y) - \tilde{G} (y \mathds{1}) \|_\U \leq \frac{\epsilon}{6}.\]
+Define
+\[\G(a) \coloneqq \bigl (\tilde{G} \circ \tilde{\psi} \circ F_T \bigl)(a) = \int_{D'} \kappa(\cdot,y) \bigl ( (S_{N-1} \circ \sigma_1 \circ \dots \sigma_1 \circ S_1 \circ F_T)(a)\bigl) (y)\: \mathsf{d}y, \qquad \forall a \in \A,\]
+noting that \(\G \in \mathsf{NO}_{N}(\sigma_1,\sigma_2,\sigma_3;D,D')\).
+For any \(a \in K\), define \(a_1 \coloneqq (\psi \circ F) (a)\) and \(\tilde{a}_1 \coloneqq (\tilde{\psi} \circ F_T)(a)\) so that $\G_1(a)=G(a_1)$ and $\G(a)=\tilde{G} (\tilde{a}_1)$ then
+\begin{align*}
+    \|\G_1(a) - \G(a)\|_\U &\leq \|G (a_1) - G ( \tilde{a}_1) \|_\U + \|G (\tilde{a}_1) - \tilde{G} (\tilde{a}_1) \|_\U \\
+    &\leq \|G\| |a_1 - \tilde{a_1}|_1 + \sup_{y \in (\tilde{\psi} \circ F_T)(K)} \|G (y) - \tilde{G} (y \mathds{1}) \|_\U \\
+    &\leq \frac{\epsilon}{6} + \|G\| |(\psi \circ F)(a) - (\psi \circ F_T)(a) |_1 + \|G\| |(\psi \circ F_T)(a) - (\tilde{\psi} \circ F_T)(a) |_1\\
+    &\leq \frac{\epsilon}{6} + \|G\| \omega \bigl ( |F(a) - F_T (a)|_1 \bigl ) + \|G\| \sup_{q \in F_T (K)} |\psi(q) - \tilde{\psi}(q)|_1  \\
+    &\leq \frac{\epsilon}{2}.
+\end{align*}
+Finally we have
+\begin{align*}
+    \|\G^\dagger(a) - \G(a)\|_\U \leq \|\G^\dagger (a) - \G_1(a) \|_\U + \|\G_1(a) - \G(a)\|_\U \leq \frac{\epsilon}{2} + \frac{\epsilon}{2} = \epsilon 
+\end{align*}
+as desired.
+
+To show boundedness, we will exhibit a neural operator \(\tilde{\G}\) that is \(\epsilon\)-close to \(\G\)
+in \(K\) and is uniformly bounded by \(4M\). Note first that
+\[\|\G(a)\|_\U \leq \|\G(a) - \G^\dagger(a)\|_\U + \|\G^\dagger(a)\|_\U \leq \epsilon + M \leq 2M, \qquad \forall a \in K\]
+where, without loss of generality, we assume that \(M \geq 1\). By construction, we have that
+\[\G(a) = \sum_{j=1}^{J'} \tilde{\psi}_j(F_T(a)) \varphi_j, \qquad \forall a \in \A\]
+for some  neural network \(\varphi : \R^{d'} \to \R^{J'}\). Since \(\U\) is a Hilbert space and 
+by linearity, we may assume that the components \(\varphi_j\) are orthonormal since orthonormalizing them 
+only requires multiplying the last layers of \(\tilde{\psi}\) by an invertible linear map.
+Therefore
+\[|\tilde{\psi}(F_T(a))|_2 = \|\G(a)\|_\U \leq 2M, \qquad \forall a \in K.\]
+Define the set \(W \coloneqq (\tilde{\psi} \circ F_T)(K) \subset \R^{J'}\) which is compact as before.
+We have 
+\[\text{diam}_2 (W) = \sup_{x,y \in W} |x-y|_2 \leq \sup_{x,y \in W} |x|_2 + |y|_2 \leq 4M.\]
+Since \(\sigma_1 \in \mathsf{BA}\), there exists 
+a number \(R \in \N\) and a neural network \(\beta \in \NN_R (\sigma_1;\R^{J'},\R^{J'})\) such that
+\begin{align*}
+|\beta(x) - x|_2 &\leq \epsilon ,\qquad \forall x \in W \\
+|\beta(x)|_2 &\leq 4M, \quad \forall x \in \R^{J'}.
+\end{align*}
+Define
+\[\tilde{\G}(a) \coloneqq \sum_{j=1}^{J'} \beta_j (\tilde{\psi}(F_T(a))) \varphi_j, \qquad \forall a \in \A.\]
+Lemmas \ref{lemma:output_approx} and \ref{lemma:nn_emulation} then shows that \(\tilde{\G} \in \mathsf{NO}_{N+R}(\sigma_1,\sigma_2,\sigma_3;D,D')\).
+Notice that
+\[\sup_{a \in K} \|\G(a) - \tilde{\G}(a)\|_{\U} \leq \sup_{w \in W} |w - \beta(w)|_2 \leq \epsilon.\]
+Furthermore,
+\[\|\tilde{\G}(a)\|_{\U} \leq \|\tilde{\G}(a) - \G(a)\|_{\U} + \|\G(a)\|_\U \leq \epsilon + 2M \leq 3M, \qquad \forall a \in K.\]
+Let \(a \in \A \setminus K\) then there exists \(q \in \R^{J'} \setminus W\) such that \(\tilde{\psi}(F_T(a)) = q\) and 
+\[\|\tilde{\G}(a)\|_{\U} = |\beta(q)|_2 \leq 4M\]
+as desired.
+\end{proof}
+
+\section{}
+\label{sec_proof:measurable_approx}
+
+\begin{proof}[of Theorem~\ref{thm:measurable_approx}]
+Let \(\U = H^{m_2}(D)\). For any \(R > 0\), define 
+\[\G^\dagger_R (a) \coloneqq \begin{cases}
+\G^\dagger(a), & \|\G^\dagger(a)\|_{\U} \leq R \\
+\frac{R}{\|\G^\dagger(a)\|_{\U}} \G^\dagger(a), & \text{otherwise}
+\end{cases}\]
+for any \(a \in \A\). Since \(\G^\dagger_R \to \G^\dagger\) as \(R \to \infty\) \(\mu\)-almost everywhere, \(\G^\dagger \in L^2_\mu(\A;\U)\), and clearly \(\|\G^\dagger_R(a)\|_{\U} \leq \|\G^\dagger (a)\|_{\U}\) for any \(a \in \A\), we can apply the dominated convergence theorem for Bochner integrals to find \(R > 0\) large enough such that
+\[\|\G^\dagger_R - \G^\dagger\|_{L^2_\mu (\A;\U)} \leq \frac{\epsilon}{3}.\]
+Since \(\A\) and \(\U\) are Polish spaces, by Lusin's theorem \cite[Theorem 1.0.0]{aaronson1997introduction} we can find a compact set \(K \subset \A\) such that
+\[\mu(\A \setminus K) \leq \frac{\epsilon^2}{153R^2}\]
+and \(\G^\dagger_R |_K\) is continuous. Since \(K\) is closed, by a generalization of the Tietze extension theorem \cite[Theorem 4.1]{dugundji1961anextension},
+there exist a continuous mapping \(\tilde{\G}^\dagger_R : \A \to \U \) such that \(\tilde{\G}^\dagger_R(a) = \G^\dagger_R(a)\) for 
+all \(a \in K\) and 
+\[\sup_{a \in \A} \|\tilde{\G}^\dagger_R(a)\| \leq \sup_{a \in \A} \|\G^\dagger_R(a)\| \leq R.\]
+Applying Theorem~\ref{thm:main_compact} to \(\tilde{\G}^\dagger_R\), we find that there exists a number \(N \in \N\) and a neural operator \(\G \in \mathsf{NO}_{N}(\sigma_1,\sigma_2,\sigma_3;D,D')\)
+such that
+\[\sup_{a \in K} \|\G(a) - \G^\dagger_R(a) \|_\U \leq \frac{\sqrt{2} \epsilon}{3}\]
+and
+\[\sup_{a \in \A} \|\G(a)\|_{\U} \leq 4R.\]
+We then have
+\begin{align*}
+\|\G^\dagger - \G\|_{L^2_\mu(\A;\U)} &\leq \|\G^\dagger - \G^\dagger_R\|_{L^2_\mu (\A;\U)} + \|\G^\dagger_R - \G\|_{L^2_\mu (\A;\U)} \\
+&\leq \frac{\epsilon}{3} + \left ( \int_K \|\G^\dagger_R(a) - \G(a)\|^2_\U \: \mathsf{d}\mu (a) + \int_{\A \setminus K} \|\G^\dagger_R(a) - \G(a)\|^2_\U \: \mathsf{d}\mu (a) \right )^{\frac{1}{2}} \\
+&\leq \frac{\epsilon}{3} + \left (\frac{2 \epsilon^2}{9} + 2 \left ( \sup_{a \in \A} \|\G^\dagger_R (a)\|_\U^2 +  \|\G (a)\|_\U^2 \right ) \mu(\A \setminus K) \right )^{\frac{1}{2}} \\
+&\leq \frac{\epsilon}{3} + \left (\frac{2 \epsilon^2}{9} + 34 R^2 \mu(\A \setminus K) \right )^{\frac{1}{2}} \\
+&\leq\frac{\epsilon}{3} + \left (\frac{4 \epsilon^2}{9}\right )^{\frac{1}{2}} \\
+&= \epsilon
+\end{align*}
+as desired.
+\end{proof}
+
+
+%%%%%%%%%%%%%%%%%OLD%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\iffalse
+\hold{
+\section{Method of Chen and Chen}
+\label{app:chenandchen}
+
+We will assume \(D \subset \R^d\) is a compact domain and \(V \subset C(D;\R)\) is a compact set. 
+Lemma \ref{lemma:compact_representers} allows us to find representers for \(V\). In particular,
+there exist continuous linear functionals \(\{c_j\}_{j=1}^\infty \subset C(V;\R)\) known as the \textit{coordinate functionals} and elements \(\{\varphi_j\}_{j=1}^\infty \subset V\) known as the \textit{representers} such that any \(v \in V\) may be written as
+\begin{equation}
+\label{eq:representers_contfunc}
+v = \sum_{j=1}^\infty c_j(v) \varphi_j.
+\end{equation}
+Note that the result of Lemma \ref{lemma:compact_representers} is stronger than \eqref{eq:representers_contfunc}
+as the approximation is uniform in \(v\). The first observation of \cite{chen1995universal} is that we may find representers 
+that are scales and shifts of bounded, non-polynomial maps. In particular, fix \(\sigma : \R \to \R\)
+as some bounded, non-polynomial map, then there exist vectors \(\{w_j\}_{j=1}^\infty\) and 
+numbers \(\{b_j\}_{j=1}^\infty\) such that
+\begin{equation}
+\label{eq:representers_are_sigmoids}
+\varphi_j(x) = \sigma (\langle x, w_j \rangle + b_j) \qquad \forall x \in D.
+\end{equation}
+The weights \(w_j\) and biases \(b_j\) are independent of any particular function \(v \in V\), but 
+may depend on the set \(V\) as a whole. Combining \eqref{eq:representers_contfunc} and \eqref{eq:representers_are_sigmoids}
+yields a universal approximation result for single layer neural networks \cite[Theorem 3]{chen1995universal}
+that while being uniform in \(v\) is restricted to compact sets of \(C(D;\R)\).
+
+With this result at hand, we now turn our attention to approximating continuous, possibly non-linear, functionals \(G \in C(V;\R)\).
+The main idea of \cite{chen1995universal} is to work not with the functions \(v \in V\) directly but rather
+some appropriately defined coordinate functionals. In particular, it is shown that there exists a compact extension
+\(U\) of \(V\) such that any \(u \in U\) may be written as
+\begin{equation}
+\label{eq:representaion_evalfunc}
+u = \sum_{j=1}^\infty u(x_j) \varphi_j
+\end{equation}
+for some fixed set of points \(\{x_j\}_{j=1}^\infty \subset D\) and appropriately defined representers \(\{\varphi_j\}_{j=1}^\infty \subset U\).
+That is, the coordinate functionals \(c_j\) from \eqref{eq:representers_contfunc} can be chosen as evaluation functionals 
+for a fixed set of points by moving to the larger compact set \(U\). Similarly to before, the result 
+is stronger than \eqref{eq:representaion_evalfunc} since it is uniform in \(u\). It may be thought of 
+as a generalization to the classical semi-discrete Fourier transform restricted to compact sets of the function space.
+For simplicity of the current discussion, we will not longer consider the set \(U\) and make all definitions 
+directly on \(V\) which is possible since \(V \subset U\). Once we fix the set of representers \(\{\varphi_j\}_{j=1}^\infty\),
+we are free to move between the function representation of \(v \in V\) and its sequence
+representation through the mapping \(F: V \to \mathcal{V}\) which we define as
+\begin{equation}
+F(v) = (v(x_1), v(x_2), v(x_3), \dots) \qquad \forall v \in V
+\end{equation}
+where \(\mathcal{V} \subset \ell^\infty(\N;\R)\) is a compact set. Compactness of \(\mathcal{V}\) follows from compactness of \(V\)
+and continuity of \(F\), in particular, \(\mathcal{V} = F(V)\). We choose to work in the induced topology of \(\ell^\infty(\N;\R)\)
+since it is similar to the topology of \(C(D;\R)\) and results such as the continuity of \(F\) are trivial. 
+Furthermore, we define the inverse \(F^{-1} : \mathcal{V} \to V\) by
+\begin{equation}
+F^{-1}(w) = \sum_{j=1}^\infty w_j \varphi_j \qquad \forall w \in \mathcal{V}.
+\end{equation}
+The fact that \(F^{-1}\) is indeed the inverse to \(F\) follows from uniqueness of the representation \eqref{eq:representaion_evalfunc}.
+We may then consider any functional \(G \in C(V;\R)\) by 
+\begin{equation}
+G(v) = G(F^{-1}(F(v))) \qquad \forall v \in V.
+\end{equation}
+This is especially useful as it allows us to construct approximations to \(G\)  by directly working 
+with the coordinates of \(v\). For each \(n \in \N\), define the spaces
+\begin{equation}
+\mathcal{V}_n = \{(v(x_1),\dots,v(x_n),0,0,\dots) : v \in V\} \subset \mathcal{V}.
+\end{equation}
+From compactness of \(\mathcal{V}\), it follows that each \(\mathcal{V}_n\) is isomorphic to a compact subset of \(\R^n\).
+We may thus consider the sequence of restricted functionals \(G_n : V \to \R\) defined by
+\begin{equation}
+G_n(v) = G(F^{-1}(F_n(v)))
+\end{equation}
+where \(F_n : V \to \mathcal{V}_n\) is given as \(F_n(v) = (v(x_1),\dots,v(x_n),0,\dots)\). Since \(F_n(V) = \mathcal{V}_n\),
+we have the outer mapping \(G \circ F^{-1} : \mathcal{V}_n \to \R\). In particular, when viewed in the definition of \(G_n\), 
+\(G \circ F^{-1} \) is a continuous function defined on a compact set of \(\R^n\). We may therefore use the
+previously established universal approximation theorem for functions to conclude
+\[G_n(v) \approx \sum_{j=1}^m c_j \varphi_j (F_n(v)) = \sum_{j=1}^m c_j \sigma (\langle w_j, (v(x_1),\dots,v(x_n)) \rangle + b_j).\]
+The argument is finished by establishing closeness of \(G\) to \(G_n\) \cite[Theorem 4]{chen1995universal}.
+
+Lastly, we consider approximating operators \(\G \in C(V; C(D;\R))\). We note that continuity of \(\G\),
+implies \(\G(V) \subset C(D;\R)\) is compact. Therefore we may use the universal approximation theorem for functions
+to conclude that
+\[\G(v)(x) \approx \sum_{j=1}^n c_j(\G(v)) \sigma ( \langle w_j, x \rangle + b_j) \qquad \forall x \in D.\]
+Note that we can view each \(c_j \in C(V;\R)\) by re-defining \(c_j(v) = c_j(\G(v))\) noting that continuity is preserved by
+the composition.
+We then repeatedly apply the universal approximation theorem for functionals to find
+\[c_j(v) \approx \sum_{k=1}^m a_{jk} \sigma (\langle \xi_{jk}, (v(x_1),\dots,v(x_p)) \rangle + q_{jk} ) \]
+and therefore
+\[\G(v)(x) \approx \sum_{j=1}^n \sum_{k=1}^m a_{jk} \sigma (\langle \xi_{jk}, (v(x_1),\dots,v(x_p)) \rangle + q_{jk} )\sigma ( \langle w_j, x \rangle + b_j) \qquad \forall x \in D.\]
+This result is established rigorously in \cite[Theorem 5]{chen1995universal}.
+
+\subsection{Supporting Results}
+
+\begin{lemma}
+\label{lemma:compact_representers}
+Let \(\mathcal{X}\) be a Banach space and \(V \subseteq \mathcal{X}\) a compact set. Then, for any 
+\(\epsilon > 0\), there exists a number \(n = n(\epsilon) \in \N\), continuous, linear, functionals \(G_1, \dots, G_n \in C(V;\R)\),
+and elements \(\varphi_1,\dots,\varphi_n \in V\) such that
+such that
+\[\sup_{v \in V} \Big\|v - \sum_{j=1}^n G_j(v) \varphi_j \Big\|_{\mathcal{X}} < \epsilon.\]
+\end{lemma}
+\begin{proof}
+Since \(V\) is compact,
+we may find nested finite dimensional spaces \(V_1 \subset V_2 \subset \dots\) with \(\text{dim}(V_n) = n\)
+for \(n=1,2,\dots\) such that
+\begin{equation}
+\label{eq:compact_approx}
+\lim_{n \to \infty} \sup_{u \in V} \min_{v \in V_n} \|u - v\|_{\mathcal{X}} = 0.
+\end{equation}
+Since the spaces \(V_n\) are finite dimensional, they admit a Schauder basis, in particular,
+there are sequences \(\{(\varphi_{j,n})_{j=1}^n\}_{n=1}^\infty\) of elements \(\varphi_{j,n} \in V\)
+and \(\{(G_{j,n})_{j=1}^n\}_{n=1}^\infty\) of functionals \(G_{j,n} \in C(V;\R)\)
+such that for any \(n \in \N\), any \(v \in V_n\) can be uniquely written as
+\[v = \sum_{j=1}^n G_{j,n}(v) \varphi_{j,n}.\]
+Let \(v \in V\) be arbitrary and define \(v_n \in V_n\) to be the best approximation of
+\(v\) from \(V_n\) for \(n=1,2,\dots\) and set \(v_0 = 0\). Then, by \eqref{eq:compact_approx}, 
+for any \(\epsilon > 0\), we can always find \(n = n(\epsilon) \in \N\) that is independent of \(v\) such that
+\[\Big\|v - \sum_{j=1}^n (v_j - v_{j-1}) \Big\|_{\mathcal{X}} < \epsilon.\]
+Since \(v_j - v_{j-1} \in V_j\) for \(j=1,\dots,n\), it may be written as a linear combination of 
+elements \(\varphi_{k,j}\) with coefficients \(G_{k,j}(v_j - v_{j-1})\) for \(k=1,\dots,j\)
+and the result follows.
+\end{proof}
+
+\begin{lemma}
+\label{lemma:compact_representers_dense}
+Let \(\mathcal{X}\) be a Banach space, \(V \subseteq \mathcal{X}\) a compact set, and \(U \subset \mathcal{X}\) a dense set. Then, for any 
+\(\epsilon > 0\), there exists a number \(n = n(\epsilon) \in \N\), continuous, linear, functionals \(G_1, \dots, G_n \in C(V;\R)\),
+and elements \(\varphi_1,\dots,\varphi_n \in U\) such that
+such that
+\[\sup_{v \in V} \Big\|v - \sum_{j=1}^n G_j(v) \varphi_j \Big\|_{\mathcal{X}} < \epsilon.\]
+\end{lemma}
+\begin{proof}
+Apply Lemma~\ref{lemma:compact_representers} to find a number \(n \in \N\), continuous, linear, functionals \(G_1, \dots, G_n \in C(V;\R)\),
+and elements \(\psi_1,\dots,\psi_n \in V\) such that
+\[\sup_{v \in V} \Big\|v - \sum_{j=1}^n G_j(v) \psi_j \Big\|_{\mathcal{X}} < \frac{\epsilon}{2}.\]
+By continuity, the sets \(G_j(V) \subset \R\) are compact hence we can find a number \(M > 0\) such that
+\[\sup_{v \in V} \max_{j=1,\dots,n} |G_j(v)| < M.\]
+By density of \(U\), we can find elements \(\varphi_1,\dots,\varphi_n \in U\)
+such that
+\[\|\varphi_j - \psi_j\|_{\mathcal{X}} < \frac{\epsilon}{2nM}, \qquad \forall j \in \{1,\dots,n\}.\]
+By triangle inequality,
+\begin{align*}
+    \sup_{v \in V} \Big\|v - \sum_{j=1}^n G_j(v) \varphi_j \Big\|_{\mathcal{X}} &\leq \sup_{v \in V} \Big\|v - \sum_{j=1}^n G_j(v) \psi_j \Big\|_{\mathcal{X}} + \sup_{v \in V} \Big\|\sum_{j=1}^n G_j(v) \psi_j - \sum_{j=1}^n G_j(v) \varphi_j \Big\|_{\mathcal{X}} \\
+    &\leq \frac{\epsilon}{2} + \sup_{v \in V} \sum_{j=1}^n |G_j(v)| \|\psi_j - \varphi_j \|_{\mathcal{X}} \\
+    &< \frac{\epsilon}{2} + \frac{\epsilon}{2nM} nM \\
+    &= \epsilon
+\end{align*}
+as desired.
+\end{proof}
+
+\begin{lemma}
+\label{lemma:op_continuous}
+Let \(D \subseteq \R^d\) be a compact domain, and \(\kappa \in C(D \times D;\R)\) and \(b \in C(D;\R)\)
+be continuous functions. Furthermore let \(\sigma: \R \to \R\) be \(\alpha\)-H{\"o}lder continuous for some \(\alpha > 0\)
+then the operator \(P: C(D;\R) \to C(D;\R)\) defined by
+\[P(v)(x) = \sigma \left ( \int_D \kappa(x,y) v(y) \: dy + b(x) \right ) \qquad \forall x \in D, \quad \forall v \in C(D;\R)\]
+is \(\alpha\)-H{\"o}lder continuous. In particular, there exists a constant \(C > 0\) such that
+\[\|P(v) - P(u)\|_{C(D;\R)} \leq C \|v - u\|_{C(D;\R)}^\alpha.\]
+\end{lemma}
+\begin{proof}
+Since \(D \times D\) is compact and \(\kappa\) is
+continuous, there is a number \(M > 0\) such that
+\[\sup_{x,y \in D} |\kappa(x,y)| \leq M .\]
+Then for any \(u,v \in C(D;\R)\), we have that there exists a constant \(L > 0\) such that
+\begin{align*}
+\|P(v) - P(u)\|_{C(D;\R)} &\leq L \sup_{x \in D} \int_D |\kappa(x,y)|^\alpha | v(y) - u(y)|^\alpha \: \text{d}y \\
+&\leq L M^\alpha |D|\ \|v - u\|_{C(D;\R)}^\alpha
+\end{align*}
+as desired.
+\end{proof}
+
+\begin{lemma}
+\label{lemma:stich_kernel}
+Let \(D \subseteq \R^d\) be a domain, \(f_1,\dots,f_n \in C(D;\R)\) a finite collection of continuous functions, and
+\(x_1,\dots,x_n \in D\) a finite collection of distinct points. Then there exists a function \(\kappa \in C(D \times D;\R)\)
+such that
+\[\kappa(x_j, y) = f_j(y) \qquad \forall y \in D, \quad j=1,\dots,n.\]
+Furthermore if \(f_1 \in C^{\alpha_1}(D;\R), \dots, f_n \in C^{\alpha_n}(D;\R)\) then \(\kappa \in C^{\alpha}(D \times D;\R)\)
+where \(\alpha = \min_{j \in \{1,\dots,n\}} \alpha_j\).
+\end{lemma}
+\begin{proof}
+Recursively define
+\[\kappa_{j}(x,y) = t_{j}(x) \kappa_{j-1}(x,y) + (1 - t_{j}(x)) f_{j+1}(y) \qquad \forall x,y \in D, \quad j \in \{1,\dots,n-1\}\]
+where \(\kappa_0(x,y) = f_1(y)\) and \(t_j : D \to \R\) is the unique polynomial of degree at most \(j\)
+such that \(t_j(x_{j+1}) = 0, t_j(x_j) = 1, t_j(x_{j-1}) = 1, \dots, t_j(x_1) = 1\). Existence and uniqueness of 
+the polynomials \(t_1,\dots,t_{n-1}\) is guaranteed by the interpolation theorem for polynomials since the 
+points \(x_1,\dots,x_n\) are assumed to be distinct. Furthermore since sums and products of continuous functions are 
+continuous, \(\kappa_j \in C(D \times D;\R)\) for \(j=1,\dots,n-1\). Notice that, for any \(j \in \{1,\dots,n\}\)
+\[\kappa_{n-1}(x_j,y) = t_{n-1}(x_j) \kappa_{n-2}(x_j,y) + (1 - t_{n-1}(x_j)) f_{n}(y).\]
+If \(j=n\), then by definition, \(t_{n-1}(x_j) = 0\) hence \(\kappa_{n-1}(x_j,y) = f_n(y)\).
+If \(j=n-1\) then by definition, \(t_{n-1}(x_j) = 1\) hence
+\[\kappa_{n-1}(x_j,y) = \kappa_{n-2}(x_j,y) = t_{n-2}(x_j) \kappa_{n-3}(x_j,y) + (1 - t_{n-2}(x_j)) f_{n-1}(y) = f_{n-1}(y) \]
+since, by definition, \(t_{n-2}(x_j) = 0\). Continuing this by induction shows that setting
+\[\kappa(x,y) = \kappa_{n-1}(x,y)\]
+gives the desired construction. The fact that \(\kappa \in C^{\alpha}(D \times D;\R)\) follows immediately since \(t_1,\dots,t_{n-1} \in C^\infty (D;\R)\) by construction.
+\end{proof}
+
+\begin{lemma}
+\label{lemma:mollifier}
+Let \(D \subset \R^d\) be a domain and \(V \subset C(D;\R)\) be a compact set. Furthermore let \(c_1,\dots,c_n \in \R\)
+be a finite collection of points, and \(x_1,\dots,x_n \in \emph{\text{int}}(D)\) be a finite collection of distinct points. 
+Then, for any \(\epsilon > 0\), there exists a smooth function \(w \in C^\infty_c (D;\R)\) such that
+\[ \Big| \int_D w(x) v(x) \: dx - \sum_{j=1}^n c_j v(x_j) \Big| < \epsilon \qquad \forall v \in V. \] 
+\end{lemma}
+\begin{proof}
+Define 
+\[c = \sum_{j=1}^n |c_j|.\]
+Since \(V\) is compact, we can find 
+a number \(p = p(\epsilon,c) \in \N\) as well as functions \(v_1,\dots,v_p \in U\) such that,
+for any \(v \in V\), there exists a number \(l \in \{1,\dots,p\}\) such that
+\begin{equation}
+\label{eq:Vcompact_close}
+\|v_l - v\|_{C(D;\R)} = \sup_{x \in D} |v_l(x) - v(x)| < \frac{\epsilon}{3 c}.
+\end{equation}
+Pick \(\gamma > 0\)
+so that \(\bar{B}_\gamma(x_j) \cap \bar{B}_\gamma(x_k) = \emptyset\) whenever \(j \neq k\) for all \(j,k \in \{1,\dots,n\}\) and so that 
+and \(\bar{B}_\gamma(x_j) \subset D\) for \(j=1,\dots,n\). 
+Let \(\varphi \in C^\infty_c (\R^d;\R)\) be the standard mollifier supported on \(\bar{B}_\gamma(0)\). Since \(\varphi\) is a mollifier,
+we may find numbers \(\alpha_1,\dots,\alpha_p \in \R_+\) such that, for any \(l \in \{1,\dots,p\}\) we have
+\begin{equation}
+\label{eq:mollifier_compact}
+|\alpha^{-d} \int_D \varphi \left ( \frac{x - x_j}{\alpha} \right ) v_l(x) \: dx - v_l(x_j) | < \frac{\epsilon}{3c} \qquad \forall \alpha \leq \alpha_l, \quad j=1,\dots,n.
+\end{equation}
+Define \(\alpha = \min_{l \in \{1,\dots,p\}} \alpha_l\) and notice that by applying triangle inequality and 
+combining \eqref{eq:Vcompact_close} and \eqref{eq:mollifier_compact}, we find that for any \(v \in V\),
+\begin{align}
+\label{eq:mollifier_alpha}
+\begin{split}
+\Big|\alpha^{-d} \int_D \varphi \left ( \frac{x-x_j}{\alpha} \right )v(x) \: dx - v(x_j)\Big| &\leq \Big|v_l(x_j) - v(x_j)\Big| + \Big|\alpha^{-d} \int_D \varphi \left ( \frac{x-x_j}{\alpha} \right ) v(x) \: dx - v_l(x_j)\Big| \\
+&< \frac{\epsilon}{3c} + \Big|\alpha^{-d} \int_D \varphi \left ( \frac{x-x_j}{\alpha} \right ) v_l(x) \: dx - v_l(x_j)\Big| \\
+&\quad+ \Big|\alpha^{-d} \int_D \varphi \left ( \frac{x-x_j}{\alpha} \right ) v(x) \: dx - \alpha^{-d} \int_D \varphi \left ( \frac{x-x_j}{\alpha} \right ) v_l(x) \: dx\Big| \\
+&< \frac{2\epsilon}{3c} + \alpha^{-d} \int_D \varphi \left ( \frac{x - x_j}{\alpha} \right ) \: dx \|v - v_l\|_{C(D;\R)} \\
+&< \frac{\epsilon}{c}
+\end{split}
+\end{align}
+Define
+\[w(x) = \alpha^{-d} \sum_{j=1}^n c_j \varphi \left ( \frac{x - x_j}{\alpha} \right ) \qquad \forall x \in D\]
+noting that, by construction,  \(w \in C^\infty_c(D;\R)\). Finally, applying triangle inequality and using \eqref{eq:mollifier_alpha}, we 
+find that for any \(v \in V\)
+\begin{align*}
+\Big| \int_D w(x) v(x) \: dx - \sum_{j=1}^n c_j v(x_j) \Big| &\leq \sum_{j=1}^n |c_j| \Big| \alpha^{-d} \int_D \varphi \left ( \frac{x - x_j}{\alpha} \right )  v(x) \: dx - v(x_j)\Big| \\
+&< \sum_{j=1}^n |c_j| \cdot \frac{\epsilon}{c} \\
+&= \epsilon
+\end{align*}
+as desired.
+\end{proof}
+
+\as{Odd to have a Theorem buried in an appendix; should it
+be a proposition (kept here) or should it be in the main text?}
+\begin{theorem}
+\label{thm:functional_chen}
+Let \(D \subset \R^d\) be a compact domain and \(V \subset C(D;\R)\) be a compact set. Let \(\G^\dagger \in C(V;\R)\)
+be a continuous functional and let  \(\sigma: \R \to \R\) be \(\alpha\)-H{\"o}lder continuous for some \(\alpha > 0\) and of the Tauber-Wiener class. Then, for any \(\epsilon > 0\), there exists 
+a smooth kernel \(\kappa \in C^\infty (D \times D;\R)\) and smooth functions \(w, b \in C^\infty (D;\R)\) such that
+\[\Big| \G^\dagger(v) - \int_D w(x) \sigma \left ( \int_D \kappa (x,y) v(y) \: dy + b(x) \right ) \: dx \Big| < \epsilon \qquad \forall v \in V.\]
+\end{theorem}
+\begin{proof}
+Applying \cite[Theorem 4]{chen1995universal}, we find integers \(n, m \in \N\), distinct points \(x_1,\dots,x_m \in \text{int}(D)\), as well as constants
+\(w_j, b_j, \xi_{jk} \in \R\) for \(j=1,\dots,n\) and \(k=1,\dots,m\) such that
+\begin{equation}
+\label{eq:chenchen_estimate}
+\Big| \G^\dagger(v) - \sum_{j=1}^n w_j \sigma \left ( \sum_{k=1}^m \xi_{jk} v(x_k) + b_j \right ) \Big| < \frac{\epsilon}{3} \qquad \forall v \in V.
+\end{equation}
+Fix \(z_1,\dots,z_n \in D\) to be arbitrary distinct points. Using the interpolation theorem for polynomials, we define \(b \in C^\infty (D;\R)\) to be the unique polynomial 
+of degree at most \(n-1\) such that \(b_j = b(z_j)\) for \(j=1,\dots,n\). Let \(L > 0\) be the 
+H{\"o}lder constant of \(\sigma\) and suppose we can find a kernel \(\kappa \in  C^\infty (D \times D; \R)\) so that
+for every \(j \in \{1,\dots,n\}\) we have
+\begin{equation}
+\label{eq:kernel_close}
+\Big|\sum_{k=1}^m \xi_{jk} v(x_k) - \int_D \kappa(z_j, y)v(y) \: dy\Big| < \left ( \frac{\epsilon}{3nL|w_j|} \right )^{1/\alpha}.
+\end{equation}
+Define the operator \(P: V \to C(D;\R)\) by
+\[P(v)(x) = \sigma \left ( \int_D \kappa(x,y) v(y) \: dy + b(x) \right ) \qquad \forall v \in V.\]
+Applying Lemma \ref{lemma:op_continuous}, we find that{} \(P\) is continuous therefore \(P(V)\)
+is compact since \(V\) is compact. We can therefore apply Lemma
+\ref{lemma:mollifier} to find \(w \in C^\infty (D;\R)\) such that for any \(v \in V\)
+\begin{equation}
+\label{eq:weight_epsilon}
+\Big|\int_D w(x) \sigma \left ( \int_D \kappa(x,y)v(y) \: dy + b(x) \right ) \: dx  - \sum_{j=1}^n w_j \sigma \left ( \int_D \kappa (z_j, y) v(y) \: dy + b(z_j) \right ) \Big| < \frac{\epsilon}{3}.
+\end{equation}
+Applying triangle inequality and combining \eqref{eq:chenchen_estimate}, \eqref{eq:kernel_close}, and \eqref{eq:weight_epsilon}, we find 
+\begin{align*}
+ \Big| \G^\dagger(v) - \int_D w(x) \sigma & \left ( \int_D \kappa (x,y)v(y) \: dy + b(x) \right ) \: dx \Big| \\
+&\leq \Big| \G^\dagger(v) - \sum_{j=1}^n w_j \sigma \left ( \sum_{k=1}^m \xi_{jk} v(x_k) + b_j \right ) \Big| \\
+&\qquad+ \Big|\sum_{j=1}^n w_j \sigma \left ( \sum_{k=1}^m \xi_{jk} v(x_k) + b_j \right ) \\
+&\qquad- \int_D w(x) \sigma \left ( \int_D \kappa (x,y)v(y) \: dy + b(x) \right ) \: dx\Big| \\
+&< \frac{\epsilon}{3} + \Big|\sum_{j=1}^n w_j \sigma \left ( \sum_{k=1}^m \xi_{jk} v(x_k) + b_j \right ) \\
+&\qquad- \sum_{j=1}^n w_j \sigma \left ( \int_D \kappa(z_j, y) v(y) \: dy + b(z_j) \right )\Big| \\
+&\qquad+ \Big| \sum_{j=1}^n w_j \sigma \left ( \int_D \kappa(z_j, y) v(y) \: dy + b(z_j) \right ) \\
+&\qquad- \int_D w(x) \sigma \left ( \int_D \kappa (x,y)v(y) \: dy + b(x) \right ) \: dx\Big|  \\
+&< \frac{2 \epsilon}{3} + L \sum_{j=1}^n |w_j| \Big|\sum_{k=1}^m \xi_{jk} v(x_k)  - \int_D \kappa(z_j,y)v(y) \: dy \Big|^\alpha \\
+&< \epsilon.
+\end{align*}
+All that is left to do is find a smooth kernel \(\kappa\) satisfying \eqref{eq:kernel_close}. By repeatedly applying 
+Lemma \ref{lemma:mollifier}, we can find functions \(\kappa_1, \dots, \kappa_n \in C^\infty (D;\R)\) such that
+for \(j=1,\dots,n\), we have
+\[\Big|\sum_{k=1}^m \xi_{jk} v(x_k) - \int_D \kappa_j (y) v(y) \: dy\Big| < \left ( \frac{\epsilon}{3nL|w_j|} \right )^{1/\alpha}.\]
+Applying Lemma \ref{lemma:stich_kernel} to the functions \(\kappa_1, \dots, \kappa_n\) we find 
+\(\kappa \in C^\infty (D \times D;\R)\) such that 
+\[\kappa(z_j,y) = \kappa_j(y), \qquad \forall y \in D, \quad j=1,\dots,n\]
+therefore \eqref{eq:kernel_close} holds by construction and the proof is complete. 
+\end{proof}
+
+\iffalse
+\begin{lemma}
+Let \(D \subset \R^d\) be a compact domain and \(\U\) be a normed, linear space over the real field. Let \(\varphi_1,\varphi_2, \dots\) be any sequence in \(\U\) and define
+\(\G: C(D;\R) \to \U\) by
+\[\G(a) = \sum_{j=1}^n G_j(a) \varphi_j  \qquad \forall a \in C(D;\R)\]
+for some fixed \(n \in \N\) where
+\[G_j(a) = \int_D w_j(y)  \sigma  \left ( \int_D \kappa_j (y,z) a(z) \: \text{d}z + b_j(y) \right) \: \text{d}y \]
+for some \(w_j, b_j \in C(D;\R)\), \(\kappa_j \in C(D \times D;\R)\) with \(j=1,\dots,n\) and some \(\sigma \in C(\R;\R)\). For some \(M > 0\), let 
+\(B_M = \{a \in C(D;\R) : \|a\|_{C(D;\R)} \leq M\}\) then there exists a constant \(C > 0\) such that
+\[\sup_{a \in B_M} \|\G(a)\|_\U < C.\]
+\end{lemma}
+
+\begin{proof}
+Let \(a \in B_M\) then, by triangle inequality, we have
+\[\|\G(a)\|_\U \leq \sum_{j=1}^n |G_j(a)| \| \varphi_j\|_\U \leq C_1 \sum_{j=1}^n |G_j(a)| \]
+where \(C_1 = \max \{\|\varphi_1\|_\U,\dots,\|\varphi_n\|_\U\}\). Define 
+\[f_j (y) = \int_D \kappa_j(y,z) a(z) \: \text{d}z + b_j(y), \qquad j=1,\dots,n\]
+for \(y \in D\). Since \(D\) is compact, 
+\[\sup_{y,z \in D} |\kappa_j(y,z)| \leq L_j, \quad \sup_{y \in D} |b_j(y)| \leq B_j, \quad \sup_{y \in D} |w_j(y)| \leq W_j \]
+for some constants \(L_j, B_j, W_j > 0\) for \(j=1,\dots,n\). Define \(L = \max \{L_1,\dots,L_n\}\), \(B = \max \{B_1,\dots,B_n\}\), and \(W = \max \{W_1,\dots,W_n\}\). It is easy to see that
+\[\sup_{y \in D} |f_j(y)| \leq |D| L M + B.\]
+Let \(Q = |D| L M + B\). Since \(\sigma\) is continuous on \(\R\), it must be bounded on \([-Q,Q]\), in particular, there exists \(C_2 > 0\) such that
+\[\sup_{x \in [-Q,Q]} |\sigma(x)| \leq C_2.\]
+Therefore, we have that
+\begin{align*}
+\|\sigma(f_j)\|_{L^2(D;\R)}^2 &= \int_D |\sigma (f_j(y))|^2 \: \text{d}y \\
+&\leq |D| \sup_{y \in D} |\sigma (f_j(y))|^2 \\
+&\leq |D| \sup_{x \in [-Q,Q]} |\sigma(x)|^2 \\
+&\leq C_2^2 |D|.
+\end{align*}
+Using H{\"o}lder's inequality, we have
+\begin{align*}
+    |G_j(a)| &\leq \int_D |w_j(y)| |\sigma(f_j)(y)| \: \text{d}y \\
+    &\leq C_2 |D|^{1/2} \|w_j\|_{L^2(D;\R)} \\
+    &\leq C_2 W |D|.
+\end{align*}
+Letting \(C = nC_1 C_2 W |D|\) completes the proof.
+
+
+We have
+\begin{align*}
+    \|f_j\|_{L^2(D;\R)}^2 &= \int_D |f_j(y)|^2 \: \text{d}y \\
+    &\leq 2 \int _D \left ( \int_D \kappa_j(y,z) a(z) \: \text{d}z  \right )^2 + b_j(y)^2 \: \text{d}y \\
+    &\leq 2 \int_D \|\kappa_j(y, \cdot)\|_{L^2(D;\R)}^2 \|a\|_{L^2(D;\R)}^2 \: \text{d} y + 2 \|b_j\|_{L^2(D;\R)}^2 \\
+    &\leq 2 \int_D |D|^2 L^2 M^2 \: \text{d}y + 2 |D|B^2 \\
+    &= 2|D| (|D|^2 L^2 M^2 + B^2).
+\end{align*}
+hence \(f_j \in L^2(D;\R)\) for \(j=1,\dots,n\). Define the autonomous Nemytskii operator \(N_\sigma : L^2(D;\R) \to L^2(D;\R)\) by
+\[N_\sigma (g) (x) = (N_\sigma g)(x) = \sigma(g(x)), \qquad \forall x \in D\]
+for any \(g \in L^2(D;\R)\). Since \(\sigma\) is continuous, it is a Carath{\'e}odory function hence \cite[Corollary 7.20]{dudley2011concrete} implies that there exist constants \(C_2, C_3 > 0\) such that
+\[\|N_\sigma g\|_{L^2(D;\R)} \leq C_2 + C_3 \|g\|_{L^2(D;\R)}, \qquad \forall g \in L^2(D;\R).\]
+Therefore, using H{\"o}lder's inequality, we have
+\begin{align*}
+    |G_j(a)| &\leq \int_D |w_j(y)| | N_\sigma(f_j)(y)| \: \text{d}y \\
+    &\leq \|w_j\|_{L^2(D;\R)}(C_2 + C_3\|f_j\|_{L^2(D;\R)}) \\
+    &\leq |D|^{1/2} W (C_2 + C_3( 2|D| (|D|^2 L^2 M^2 + B^2))^{1/2}).
+\end{align*}
+Letting \(C = nC_1 |D|^{1/2} W (C_2 + C_3( 2|D| (|D|^2 L^2 M^2 + B^2))^{1/2})\) completes the proof.
+
+\end{proof}
+
+\fi
+
+
+\section{Proof of Theorem~\ref{thm:main_compact}}
+\begin{proof}(of Theorem~\ref{thm:main_compact})
+Apply Theorem~\ref{thm:functional_chen} to find a number \(n \in \N\) and functions \(\tilde{\kappa}^{(1)}_1,\dots,\tilde{\kappa}^{(1)}_n \in C(D' \times D; \R)\), \(\tilde{\kappa}^{(0)}_1,\dots,\tilde{\kappa}^{(0)}_n \in C(D \times D; \R)\), \(\tilde{b}_1,\dots,\tilde{b}_n \in C(D; \R)\) such that
+\[\sup_{a \in K} \sup_{x \in D'}\Big| \G^\dagger(a)(x) - \sum_{j=1}^n \int_D \tilde{\kappa}^{(1)}_j(x, y) \sigma \left ( \int_D \tilde{\kappa}^{(0)}_j (y,z) a(z) \: \text{d} z + \tilde{b}_j(y) \right ) \: \text{d} y \Big| < \epsilon. \]
+Since \(K\) is bounded, there is a number \(M > 0\) such that
+\[\sup_{a \in K} \|a\|_{C(D;\R)} = \sup_{a \in K} \sup_{x \in D} |a(x)| < M.\]
+We can find a neural network \(\cP: \R \to \R^n\) such that
+\[\sup_{x \in [-M,M]} \|\cP(x) - \tilde{\cP}(x)\|_{\R^n} < \epsilon\]
+where \(\tilde{\cP}(x) = (x,\dots,x) \in \R^n\). 
+Since the domains \(D' \times D\), \(D \times D\), and \(D\) are compact, we can find neural networks \(\kappa^{(1)}: \R^{d'} \times \R^d \to \R^{n \times n}\), \(\kappa^{(0)}: \R^d \times \R^d \to \R^{n \times n}\), \(b: \R^d \to \R^n\) such that
+\begin{align*}
+    &\sup_{(x,y) \in D' \times D} |\kappa^{(1)}_{jj}(x,y) - \tilde{\kappa}^{(1)}_j (x,y)| < \epsilon, \quad j=1,\dots,n, \\
+    &\sup_{(x,y) \in D' \times D} |\kappa_{jk}^{(1)}(x,y)| < \frac{\epsilon}{n}, \quad j,k=1,\dots,n, \:\: j\neq k
+\end{align*}
+and 
+\begin{align*}
+    &\sup_{(y,z) \in D \times D} |\kappa^{(0)}_{jj}(y,z) - \tilde{\kappa}^{(0)}_j (y,z)| < \epsilon, \quad j=1,\dots,n, \\
+    &\sup_{(y,z) \in D \times D} |\kappa_{jk}^{(0)}(y,z)| < \frac{\epsilon}{n^\beta}, \quad j,k=1,\dots,n, \:\: j\neq k
+\end{align*}
+and
+\[\sup_{y \in D} |b_j(y) - \tilde{b}_j(y)| < \epsilon, \quad j=1,\dots,n\]
+where \(\beta > 0\) is to be determined later. Define the operator \(S: C(D;\R^n) \to C(D';\R^n)\) by
+\[S(f)_k(x) = \sum_{l=1}^n \int_{D'} \kappa^{(1)}_{kl}(x,y) \sigma \left ( \int_D \sum_{j=1}^n \kappa^{(0)}_{lj} (y,z) f_j(z) \: \text{d}z + b_l(y) \right ) \: \text{d}y, \quad \forall x \in D' \]
+for \(k=1,\dots,n\) and any \(f \in C(D;\R^n)\) where \(f = (f_1,\dots,f_n)\). Likewise, define \(\tilde{S}: C(D;\R^n) \to C(D';\R^n)\) by
+\[\tilde{S}(f)_k (x) = \int_D \tilde{\kappa}_k^{(1)}(x,y) \sigma \left ( \int_D \tilde{\kappa}^{(0)}_k (y,z) f_k(z) \: \text{d}z + \tilde{b}_k(y) \right ) \: \text{d}y.\]
+Since \(\cP, \kappa^{(0)}\), and \(b\) are continuous functions on compact domains and are therefore bounded, and \(K\) is a bounded set, there exists a constant \(C_1 > 0\) such that
+\[\sup_{a \in K} \max_{l=1,\dots,n} \sup_{y\in D} \left | \int_D \sum_{j=1}^n \kappa^{(0)}_{lj}(y,z) \cP_j(a) (z) \: \text{d}z + b_l(y) \right | < C_1.\]
+Since \(\sigma\) is continuous on \(\R\), it is bounded on \([-C_1,C_1]\). Using this and the fact that \(\kappa^{(1)}\) is continuous on a compact domain, we can find a constant \(C_2 > 0\) such that
+\[\sup_{a \in K} \max_{k=1,\dots,n} \sup_{x \in D'} |S(\cP(a))_k(x)| < C_2.\]
+We can find a neural network \(\cQ : \R^n \to \R\) such that
+\[\sup_{x \in [-C_2,C_2]^n} |\cQ(x) - \tilde{\cQ}(x)| < \epsilon\]
+where \(\tilde{\cQ}(x) = x_1 + \dots x_n\) for any \(x \in \R^n\).
+We can now define our neural operator approximation \(\G_\theta : K \to C(D';\R)\) by
+\[\G_\theta (a) = \cQ(S(\cP(a))), \qquad \forall a \in K\]
+where \(\theta\) denotes the concatenation of the parameters of all involved neural networks. It is not hard to see that there exists a constant \(C_3 > 0\) such hat
+\[\sup_{a \in K} \|\G_\theta (a)\|_{C(D;\R)} <  C_3.\]
+Notice that to show boundedness, we only used the fact that \(K\) is bounded.
+Hence to obtain boundedness on \(B\), we simply extend the domain of approximation of the neural networks \(\cP, \cQ\), using, instead of the constant \(M > 0\), the constant \(M' \geq M\) defined to be a number such that
+\[\sup_{a \in B} \|a\|_{C(D;\R)} = \sup_{a \in B} \sup_{x \in D} |a(x)| < M'.\]
+We now complete the proof by extensive use of the triangle inequality. Let \(a \in K\). We begin by noting that
+\begin{align*}
+\sup_{x \in D'} |\G^\dagger (a)(x) - \G_\theta(a)(x)| &\leq \sup_{x \in D'} \left ( |G^\dagger(a)(x) - \tilde{\cQ}(\tilde{S}(\tilde{\cP}(a)))(x)| + |\tilde{\cQ}(\tilde{S}(\tilde{\cP}(a)))(x) - \G_\theta(a)(x)|  \right ) \\
+&\leq \epsilon + \sup_{x \in D'} |\tilde{\cQ}(\tilde{S}(\tilde{\cP}(a)))(x) - \cQ(S(\cP(a)))(x)|.
+\end{align*}
+Suppose now that \(\sigma\) is \(\alpha\)-H{\"o}lder for some \(\alpha > 0\). We pick 
+\[\beta = \begin{cases} 1, & \alpha \geq \frac{1}{2} \\
+\frac{1}{2 \alpha}, & 0 < \alpha < \frac{1}{2}
+\end{cases}
+\]
+recalling that \(\beta\) controls how well the off-diagonal entries of the neural network \(\kappa^{(0)}\) approximate the zero function. This choice ensures that, since \(n \geq 1\), we have 
+\[\frac{1}{n^\beta} \leq \frac{1}{n}, \qquad \frac{1}{n^{2 \alpha \beta}} \leq \frac{1}{n}.\]
+Since \(\tilde{\cQ}\) is linear hence \(1\)-H{\"o}lder, and the only non-linearity in \(\tilde{S}\) is due to \(\sigma\), we have that \(\tilde{\cQ} \circ \tilde{S}\) is \(\alpha\)-H{\"o}lder and therefore there is a constant \(C_4 > 0\) such that
+\begin{align*}
+    \sup_{x \in D'} |\tilde{\cQ}(\tilde{S}(\tilde{\cP}(a)))(x) - \cQ(S(\cP(a)))(x)| &\leq C_4 \sup_{x \in D} \|\tilde{\cP}(a)(x) - \cP(a)(x)\|_{\R^n}^\alpha  \\
+    &\:\:+ \sup_{x \in D'} |\tilde{\cQ}(\tilde{S}(\cP(a)))(x) - \cQ(S(\cP(a)))(x)| \\
+    &\leq C_4 \sup_{x \in [-M,M]} \|\tilde{\cP}(x) - \cP(x)\|_{\R^n}^\alpha  \\
+    &\:\:+ \sup_{x \in D'} |\tilde{\cQ}(\tilde{S}(\cP(a)))(x) - \cQ(S(\cP(a)))(x)| \\
+    &\leq C_4 \epsilon^\alpha + \sup_{x \in D'} |\tilde{\cQ}(\tilde{S}(\cP(a)))(x) - \cQ(S(\cP(a)))(x)|.
+\end{align*}
+Similarly,
+\begin{align*}
+    \sup_{x \in D'} |\tilde{\cQ}(\tilde{S}(\cP(a)))(x) - \cQ(S(\cP(a)))(x)| &\leq \|\tilde{S}(\cP(a)) - S(\cP(a))\|_{C(D';\R^n)} \\ 
+    &\:\:+ \sup_{x \in D'} |\tilde{\cQ}(S(\cP(a)))(x) - \cQ(S(\cP(a)))(x)| \\
+    & \leq \|\tilde{S}(\cP(a)) - S(\cP(a))\|_{C(D';\R^n)} \\ 
+    &\:\:+ \sup_{x \in [-C_2, C_2]^n} |\tilde{\cQ}(x) - \cQ(x)| \\
+    &\leq \epsilon + \|\tilde{S}(\cP(a)) - S(\cP(a))\|_{C(D';\R^n)}.
+\end{align*}
+Note that since \(\cP\) is continuous, \(\cP(K)\) is compact, therefore there is a number \(M' > 0\) such that
+\[\sup_{a \in K} \|\cP(a)\|_{C(D;\R^n)} < M'.\]
+Let \(f = \cP(a)\) then for any \(k \in \{1,\dots,n\}\) and \(x \in D'\), we have
+\begin{align*}
+    |\sum_{l=1}^n \int_D \kappa^{(1)}_{kl}(x,y) \sigma(A_l) \: \text{d}y - \int_D \tilde{\kappa}^{(1)}_k &(x,y)\sigma(\tilde{A}) \: \text{d}y| \leq |\sum_{l \neq k} \int_D \kappa^{(1)}_{kl}(x,y) \sigma(A_l) \: \text{d}y| \\
+    &+ |\int_D \kappa^{(1)}_{kk}(x,y) \sigma(A_k) \: \text{d}y - \int_D \tilde{\kappa}^{(1)}_k(x,y) \sigma(\tilde{A}) \: \text{d}y|
+\end{align*}
+where
+\begin{align*}
+    A_l(y) &= \int_D \sum_{j=1}^n \kappa^{(0)}_{lj} (y,z) f_j(z) \: \text{d}z + b_l(y) \\
+    \tilde{A}(y) &= \int_D \tilde{\kappa}_k^{(0)}(y,z) f_k(z) \: \text{d}z + \tilde{b}_k(y).
+\end{align*}
+By H{\"o}lder's inequality,
+\begin{align*}
+    \sup_{x \in D'} |\sum_{l \neq k} \int_D \kappa^{(1)}_{kl}(x,y) \sigma(A_l) \: \text{d}y| &\leq \sup_{x \in D'} \sum_{l \neq k}  \|\kappa^{(1)}_{kl}(x,\cdot)\|_{L^2(D;\R)} \|\sigma(A_l)\|_{L^2(D;\R)} \\
+    &\leq \epsilon |D|^{1/2} C_5
+\end{align*}
+for some constant \(C_5 > 0\) found by using boundedness of \(\cP(K)\) and continuity of \(\sigma\). To see this, note that
+\begin{align*}
+    \sup_{x \in D'} \|\kappa^{(1)}_{kl}(x,\cdot)\|_{L^2(D;\R)} &\leq \sup_{x \in D' } \left ( |D| \sup_{y \in D} |\kappa^{(1)}_{kl}(x,y)|^2 \right )^{1/2} \\
+    &\leq \left( |D| \frac{\epsilon^2}{n^2} \right )^{1/2} \\
+    &= |D|^{1/2} \frac{\epsilon}{n}.
+\end{align*}
+Furthermore, 
+\begin{align*}
+    \sup_{y \in D} |A_l(y)| \leq \sup_{y \in D} \left ( \|\kappa_{ll}^{(0)}(y,\cdot)\|_{L^2} \|f_l\|_{L^2} + \sum_{j \neq l} \|\kappa_{lj}^{(0)}(y,\cdot)\|_{L^2} \|f_j\|_{L^2} + |b_l(y)| \right )
+\end{align*}
+and 
+\[\sup_{y \in D} \sum_{j \neq l} \|\kappa_{lj}^{(0)}(y,\cdot)\|_{L^2} \|f_j\|_{L^2} \leq \sum_{j \neq l} |D|M' \frac{\epsilon}{n^\beta} \leq \epsilon |D| M'\]
+hence \(A_l\) is uniformly bounded for all \(a \in K\) and existence of \(C_5\) follows.
+Using H{\"o}lder again, we have
+\begin{align*}
+    |\int_D \kappa^{(1)}_{kk}(x,y) \sigma(A_k) \: \text{d}y - \int_D \tilde{\kappa}^{(1)}_k(x,y) \sigma(\tilde{A}) \: \text{d}y| &\leq |\int_D \kappa_{kk}^{(1)}(x,y) (\sigma(A_k) - \sigma(\tilde{A})) \: \text{d}y \\
+    &\:\:+ |\int_D (\kappa_{kk}^{(1)}(x,y) - \tilde{\kappa}^{(1)}_k(x,y)) \sigma(\tilde{A}) \: \text{d}y| \\
+    &\leq \|\kappa_{kk}^{(1)}(x,\cdot)\|_{L^2} \|\sigma(A_k) - \sigma(\tilde{A})\|_{L^2} \\
+    &\:\: + \|\kappa_{kk}^{(1)}(x,\cdot) - \tilde{\kappa}_k^{(1)} \|_{L^2} \|\sigma(\tilde{A})\|_{L^2}.
+\end{align*}
+Clear \(\tilde{A}\) is uniformly bounded for all \(a \in K\) hence there exists a constant \(C_6 > 0\) such that
+\[\sup_{x \in D'} \|\kappa_{kk}^{(1)}(x,\cdot) - \tilde{\kappa}_k^{(1)} \|_{L^2} \|\sigma(\tilde{A})\|_{L^2} \leq \epsilon |D|^{1/2} C_6.\]
+Using \(\alpha\)-H{\"o}lder continuity of \(\sigma\) and the generalized triangle inequality, we find a constant \(C_7 > 0\) such that
+\begin{align*}
+    \|\sigma(A_k) - \sigma(\tilde{A})\|_{L^2}^2 &\leq C_7 \bigg ( \int_D \|\kappa^{(0)}_{kk}(y,\cdot) - \tilde{\kappa}^{(0)}_k(y,\cdot)\|_{L^2}^{2\alpha} \|f_k\|_{L^2}^{2\alpha} \: \text{d}y + \sum_{j \neq k} \int_D \|\kappa^{(0)}_{kj}\|_{L^2}^{2\alpha} \|f_j\|_{L^2}^{2\alpha} \: \text{d}y \\
+    &\:\:+ \int_D (b_k(y) - \tilde{b}_k(y))^{2\alpha} \: \text{d}y \bigg ) \\
+    &\leq C_7 \left ( |D|^{2\alpha} M'^{2\alpha} \epsilon^{2\alpha} + \sum_{j \neq k} |D|^{2\alpha} M'^{2\alpha} \frac{\epsilon^{2\alpha}}{n^{2 \alpha \beta}} + |D| \epsilon^{2\alpha} \right ) \\
+    &\leq \epsilon^{2\alpha} C_7 \left ( |D|^{2\alpha} M'^{2\alpha} +  |D|^{2\alpha} M'^{2\alpha} + |D| \right ).
+\end{align*}
+Since all of our estimates are uniform over \(k = 1\dots,n\), we conclude that there exists a constant \(C_8 > 0\) such that
+\[\|\tilde{S}(\cP(a)) - S(\cP(a))\|_{C(D';\R^n)} \leq (\epsilon + \epsilon^\alpha)C_8.\]
+Since \(\epsilon\) is arbitrary, the proof is complete. 
+\end{proof}
+}
+\fi
+%%%%%%%%%%%%%%%%%OLD%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

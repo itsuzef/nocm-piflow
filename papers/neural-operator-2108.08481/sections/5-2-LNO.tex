@@ -1,0 +1,73 @@
+
+\subsection{Low-rank Neural Operator (LNO)}
+\label{sec:lowrank}
+By directly imposing that the kernel \(\kappa\) is of a tensor product form, we obtain a layer with \(\mathcal{O}(J)\) computational complexity. We term this construction the Low-rank Neural Operator (LNO) due to its equivalence to directly parameterizing a finite-rank operator. We start by assuming \(\kappa : D \times D \to \R\) is scalar valued and later generalize to the vector valued setting. We express the kernel as
+\[\kappa(x,y) = \sum_{j=1}^r \varphi^{(j)}(x) \psi^{(j)}(y) \qquad \forall x,y \in D\]
+for some functions \(\varphi^{(1)},\psi^{(1)},\dots,\varphi^{(r)},\psi^{(r)} : D \to \R\) that are normally given as the components of two neural networks \(\varphi, \psi : D \to \R^r\) or a single neural network \(\Xi : D \to \R^{2r}\) which couples all functions through its parameters. With this definition, and supposing that \(n=m=1\), we have that \eqref{eq:onelayerlinear} becomes
+\begin{align*}
+    u(x) &= \int_D \sum_{j=1}^r \varphi^{(j)}(x) \psi^{(j)}(y) v(y) \: \text{d}y \\ 
+    &= \sum_{j=1}^r \int_D \psi^{(j)} (y) v(y) \: \text{d}y \: \varphi^{(j)}(x) \\
+    &= \sum_{j=1}^r \langle \psi^{(j)}, v \rangle \varphi^{(j)} (x)
+\end{align*}
+where \(\langle \cdot, \cdot \rangle\) denotes the \(L^2(D;\R)\) inner product. Notice that the inner products can be evaluated independently of the evaluation point \(x \in D\) hence the computational complexity of this method is \(\mathcal{O}(rJ)\) which is linear in the discretization. 
+
+We may also interpret this choice of kernel as directly parameterizing a rank \(r \in \N\) operator on \(L^2(D;\R)\). Indeed, we have
+\begin{equation}
+    \label{eq:finiteranksvd}
+    u = \sum_{j=1}^r (\varphi^{(j)} \otimes \psi^{(j)}) v 
+\end{equation}
+which corresponds preceisely to applying the SVD of a rank \(r\) operator to the function \(v\). Equation \eqref{eq:finiteranksvd} makes natural the vector valued generalization. Assume \(m, n \geq 1\) and \(\varphi^{(j)}: D \to \R^m\) and \(\psi^{(j)} : D \to \R^n\) for \(j=1,\dots,r\) then, \eqref{eq:finiteranksvd} defines an operator mapping 
+\(L^2(D;\R^n) \to L^2(D;\R^m)\) that can be evaluated as
+\[u(x) = \sum_{j=1}^r \langle \psi^{(j)}, v \rangle_{L^2(D;\R^n)} \varphi^{(j)}(x) \qquad \forall x  \in D.\]
+We again note the linear computational complexity of this parameterization. Finally, we observe that this method can be interpreted as directly imposing a rank \(r\) structure on the kernel matrix. Indeed,
+\[K = K_{Jr} K_{rJ}\]
+where \(K_{Jr}, K_{rJ}\) are \(J \times r\) and \(r \times J\) block matricies respectively. 
+This construction is similar to the DeepONet construction of \cite{lu2019deeponet} discussed in Section~\ref{sec:deeponets}, but parameterized to be consistent in function space.
+
+
+%While this method enjoys a linear computational complexity, it also constitutes a \textit{linear} approximation method which may not be able to effectively capture the solution manifold; see Section~\ref{sec:deeponets} for further discussion. 
+
+
+\postponed{We have not really discussed our learning problem using the
+solution manifold perspective of DeVore/Dahmen as far as I recall;
+maybe rephrase in terms of Bochner norm that we have discussed,
+or introduce that manifold perspective if it adds something. I am not convinced it does because it  actually is a graph (if output unique
+for every input which we implicitly assume) and Bochner
+measures the graph or errors between graphs (our approximation
+is also a graph).}
+
+\iffalse
+The second method bases on the low-rank decomposition of operator $\cK$ (the Fredholm kernel), referred as Low-rank neural operator (LNO).
+let \(\U\) be a Hilbert space of functions defined on \(\bar{D}\) taking values in \(\R\). Consider a compact, linear operator \(\cK: \U \to \U\).
+This operator admits a singular value decomposition (SVD) and can therefore be approximated by its rank \(r\) truncation:
+\[\cK \approx \sum_{j=1}^r \varphi^{(j)} \otimes \psi^{(j)}\]
+for some \(\varphi^{(j)}, \psi^{(j)} \in \U\).  
+We approximate the two factor functions by two factor neural networks $\varphi^{(j)}, \psi^{(j)}: \R^{d+1} \to \R^{r \times d_v \times d_v}$ (notice we have only two neural networks matter the rank).
+This approach can also be seen as kernel integration by assuming separability of the kernel, in particular,
+$\kappa\big(x,y, a(x), a(y)\big) = \sum_{j=1}^r \varphi^{(j)}\big(x, a(x)\big) \psi^{(j)}\big(y, a(y)\big)$, or simply
+\[\kappa(x,y) = \sum_{j=1}^r \varphi^{(j)}(x) \psi^{(j)}(y).\]
+Let \(\langle \cdot, \cdot \rangle\) be the \(L^2(D;\R)\) inner-product. Then
+\begin{align*}
+\bigl(\cK(a;\phi)v\bigr)(x) &= \int_D \kappa(x,y) v(y) \: dy \\
+   &= \sum_{j=1}^r \left ( \int_D \psi^{(j)}(y) v(y) \: dy \right ) \varphi^{(j)}(x) \\
+   & = \sum_{j=1}^r \langle \psi^{(j)}, v \rangle \varphi^{(j)}(x). 
+\end{align*}
+
+In the discretized format, the low-rank methods can be viewed as an low-rank decomposition on the kernel matrix $K_{nn}$.
+\begin{align*}
+    &K = \sum_j^r \varphi^{(j)} \otimes \psi^{(j)}\\
+    &K_{nn} = K_{nr} K_{rn}
+\end{align*}
+In this case, $\varphi^{(j)}$ and $\psi^{(j)}$ are $n$-dimensional vector, and $K_{nr}, K_{rn}$ has each column and row to be $\varphi^{(j)}$ and $\psi^{(j)}$ respectively.
+
+
+\paragraph{Spectral decomposition and eigen decomposition.}
+Since $K$ is a kernel, it is possible to use eigenvalue decomposition by forcing $\varphi = \psi$. However, this constrains will make training of the neural network more difficult. In practice, we observe fixing $\varphi = \psi$ the neural operator will have a higher error rate.
+
+\paragraph{Rank and channel space.}
+In practice, the low-rank method does not require a high rank. Indeed it can approximate the kernel even with rank one. This is when we lift to higher dimension $d_v$, $\varphi^{(j)}, \psi^{(j)} \in \C^{n \times d_v \times d_v}$. 
+In practice, when $d_v$ is sufficiently large, we don't need additional rank, but simply set $r=1$, because the higher dimension space induces implicit rank $d_v \times d_v$.
+
+\paragraph{Linear complexity.}
+It can be seen that the low-rank method has complexity $O(n)$, where $n$ is the number f points, since we only need to evaluate $\varphi$ and $\psi$ each for $n$ times.
+\fi

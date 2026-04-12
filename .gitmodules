@@ -1,0 +1,12 @@
+[submodule "repos/DSNO"]
+	path = repos/DSNO
+	url = https://github.com/neuraloperator/DSNO.git
+[submodule "repos/consistency_models"]
+	path = repos/consistency_models
+	url = https://github.com/openai/consistency_models.git
+[submodule "repos/neuraloperator"]
+	path = repos/neuraloperator
+	url = https://github.com/neuraloperator/neuraloperator.git
+[submodule "repos/piFlow"]
+	path = repos/piFlow
+	url = https://github.com/Lakonik/piFlow.git

@@ -1,0 +1,186 @@
+\section{Simplifying Continuous-Time Consistency Models}
+\label{sec:trigflow}
+
+Previous consistency models (CMs) adopt the model parameterization and diffusion process formulation in EDM~\citep{karras2022edm}. Specifically, the CM is parameterized as $\f_\theta(\x_t,t) = c_{\text{skip}}(t)\x_t + c_{\text{out}}(t)\F_\theta(c_{\text{in}}(t)\x_t, c_{\text{noise}}(t))$, where $\F_\theta$ is a neural network with parameters $\theta$. The coefficients $c_{\text{skip}}(t)$, $c_{\text{out}}(t)$, $c_{\text{in}}(t)$ are fixed to ensure that the variance of the diffusion objective is equalized across all time steps at initialization, and $c_\text{noise}(t)$ is a transformation of $t$ for better time conditioning. Since EDM diffusion process is variance-exploding~\citep{song2020score}, meaning that $\x_t = \x_0 + t \z$, we can derive that $c_{\text{skip}}(t) = \sigma_d^2 / (t^2 + \sigma_d^2)$, $c_{\text{out}}(t) = \sigma_d \cdot t / \sqrt{\sigma_d^2 + t^2}$, and $c_{\text{in}}(t) = 1 / \sqrt{t^2 + \sigma_d^2}$ (see Appendix B.6 in \citet{karras2022edm}). Although these coefficients are important for training efficiency, their complex arithmetic relationships with $t$ and $\sigma_d$ complicate theoretical analyses of CMs.
+
+
+To simplify EDM and subsequently CMs, we propose \emph{TrigFlow}, a formulation of diffusion models that keep the EDM properties but satisfy $c_\text{skip}(t) =\cos(t)$, $c_\text{out}(t) =-\sigma_d\sin(t)$, and $c_\text{in}(t) \equiv 1/\sigma_d$ (proof in Appendix~\ref{appendix:trigflow}). TrigFlow is a special case of flow matching (also known as stochastic interpolants or rectified flows) and v-prediction parameterization~\citep{salimans2022progressive}. It closely resembles the trigonometric interpolant proposed by \citet{albergo2023building,albergo2023stochastic_interpolants,ma2024sit}, but is modified to account for $\sigma_d$, the standard deviation of the data distribution $p_d$. Since TrigFlow is a special case of flow matching and simultaneously satisfies EDM principles, it combines the advantages of both formulations while allowing the diffusion process, diffusion model parameterization, the PF-ODE, the diffusion training objective, and the CM parameterization to all have simple expressions, as provided below.
+
+\textbf{Diffusion Process. }
+Given $\x_0\sim p_d(\x_0)$ and $\z \sim \gN(\vzero, \sigma_d^2 \mI)$, the noisy sample is defined as $\x_t = \cos(t)\x_0 + \sin(t)\z$ for $t \in [0,\frac{\pi}{2}]$. As a special case, the prior sample $\x_\frac{\pi}{2} \sim \gN(\vzero, \sigma_d^2 \mI)$.
+
+\textbf{Diffusion Models and PF-ODE. }
+We parameterize the diffusion model as $\f^{\text{DM}}_\theta(\x_t,t) = \F_\theta(\x_t / \sigma_d, c_{\text{noise}}(t))$, where $\F_\theta$ is a neural network with parameters $\theta$, and $\cnoise(t)$ is a transformation of $t$ to facilitate time conditioning. The corresponding PF-ODE is given by
+\begin{equation}
+    \frac{\dm \x_t}{\dm t} = \sigma_d \F_\theta\left(\frac{\x_t}{\sigma_d }, \cnoise(t)\right). \label{eq:cm_pfode}
+\end{equation}
+
+\textbf{Diffusion Objective. }
+In TrigFlow, the diffusion model is trained by minimizing
+\begin{equation}
+\label{eq:objective_trigflow}
+    \gL_{\text{Diff}}(\theta) = \E_{\x_0,\z,t}\left[
+        \left\| \sigma_d\F_\theta\left(\frac{\x_t}{\sigma_d}, \cnoise\left(t\right)\right)
+        - \vv_t
+        \right\|_2^2
+    \right],
+\end{equation}
+where $\vv_t = \cos(t) \z - \sin(t) \x_0$ is the training target.
+
+
+
+\textbf{Consistency Models.}~~As mentioned in \secref{sec:cm}, a valid CM must satisfy the boundary condition $\f_\theta(\x, 0) \equiv \x$. To enforce this condition, we parameterize the CM as the single-step solution of the PF-ODE in \eqref{eq:cm_pfode} using the first-order ODE solver (see Appendix~\ref{appendix:trigflow_derivation} for derivations). Specifically, CMs in TrigFlow take the form of
+\begin{equation}
+\label{eq:trigflow_cm}
+    \f_\theta(\x_t,t) = \cos(t)\x_t - \sin(t)\sigma_d \F_\theta\left( \frac{\x_t}{\sigma_d}, \cnoise(t) \right),
+\end{equation}
+where $\cnoise(t)$ is a time transformation for which we defer the discussion to \secref{sec:stable_parameterization}. 
+
+
+
+\section{Stabilizing Continuous-time Consistency Models}
+\label{sec:stabilizing}
+
+Training continuous-time CMs has been highly unstable~\citep{song2023cm,geng2024ect}. As a result, they perform significantly worse compared to discrete-time CMs in prior works. To address this issue, we build upon the TrigFlow framework and introduce several theoretically motivated improvements to stabilize continuous-time CMs, with a focus on parameterization, network architecture, and training objectives.
+
+\subsection{Parameterization and Network Architecture}
+\label{sec:stable_parameterization}
+
+Key to the training of continuous-time CMs is \eqref{eq:gradient_cm_general}, which depends on the tangent function $\frac{\dm \f_{\theta^-}(\x_t, t)}{\dm t}$. Under the TrigFlow formulation, this tangent function is given by
+\begin{equation}
+\label{eq:df_dt_trigflow}
+    \frac{\dm \f_{\theta^-}(\x_t,t)}{\dm t} = -\cos(t)\left(\sigma_d\F_{\theta^-}\left(\frac{\x_t}{\sigma_d}, t\right) - \frac{\dm\x_t}{\dm t}\right) 
+    - \sin(t)\left(\x_t + \sigma_d \frac{\dm \F_{\theta^-}\left(\frac{\x_t}{\sigma_d}, t\right)}{\dm t}\right),
+\end{equation}
+where $\frac{\dm\x_t}{\dm t}$ represents the PF-ODE, which is either estimated using a pretrained diffusion model in consistency distillation, or using an unbiased estimator calculated from noise and clean samples in consistency training. 
+
+To stabilize training, it is necessary to ensure the tangent function in \eqref{eq:df_dt_trigflow} is stable across different time steps. Empirically, we found that $\sigma_d \F_{\theta^-}$, the PF-ODE $\frac{\dm \x_t}{\dm t}$, and the noisy sample $\x_t$ are all relatively stable. The only term left in the tangent function now is $\sin(t) \frac{\dm \F_{\theta^-}}{\dm t} = \sin(t) \nabla_{\x_t} \F_{\theta^-} \frac{\dm \x_t}{\dm t} + \sin(t) \partial_t \F_{\theta^-}$. After further analysis, we found $\nabla_{\x_t} \F_{\theta^-} \frac{\dm \x_t}{\dm t}$ is typically well-conditioned, so instability originates from the time-derivative $\sin(t) \partial_t \F_{\theta^-}$%
+, which can be decomposed according to
+\begin{equation}
+\sin(t)\partial_t \F_{\theta^-} = \sin(t)\frac{\partial \cnoise(t)}{\partial t} \cdot \frac{\partial \text{emb}(\cnoise)}{\partial \cnoise} \cdot \frac{\partial \F_{\theta^-}}{\partial \text{emb}(\cnoise)},\label{eq:decompose}
+\end{equation}
+where $\text{emb}(\cdot)$ refers to the time embeddings, typically in the form of either positional embeddings~\citep{ho2020ddpm,vaswani2017attention} or Fourier embeddings~\citep{song2020score,tancik2020fourier} in the literature of diffusion models and CMs. 
+
+Below we describe improvements to stabilize each component from \eqref{eq:decompose} in turns.
+
+
+
+
+
+\textbf{Identity Time Transformation ($\bm{c_{\text{noise}}(t)=t}$). }
+Most existing CMs use the EDM formulation, which can be directly translated to the TrigFlow formulation as described in Appendix~\ref{appendix:relation_with_other_parameterization}. In particular, the time transformation becomes $\cnoise(t) \propto \log(\sigma_d \tan t)$. Straightforward derivation shows that with this $\cnoise(t)$, $\sin(t) \cdot \partial_t \cnoise(t) = 1/\cos(t)$ blows up whenever $t \to \frac{\pi}{2}$. To mitigate numerical instability, we propose to use $\cnoise(t) = t$ as the default time transformation.
+
+
+\textbf{Positional Time Embeddings. }
+For general time embeddings in the form of $\text{emb}(c) = \sin(s\cdot 2 \pi \omega \cdot c + \phi)$, we have $\partial_c \text{emb}(c) = s \cdot 2\pi \omega \cos(s\cdot 2 \pi \omega \cdot c + \phi)$. With larger Fourier scale $s$, this derivative has greater magnitudes and oscillates more vibrantly, causing worse instability. To avoid this, we use positional embeddings, which amounts to $s \approx 0.02$ in Fourier embeddings. This analysis provides a principled explanation for the observations in \citet{song2023ict}.
+
+\textbf{Adaptive Double Normalization. }
+\citet{song2023ict} found that the AdaGN layer~\citep{diffusion_beat_gan}, defined as $\y = \text{norm}(\x) \odot \vs(t) + \vb(t)$, negatively causes CM training to diverge. Our modification is \textit{adaptive double normalization}, defined as \(\y = \text{norm}(\x) \odot \text{pnorm}(\vs(t)) + \text{pnorm}(\vb(t))\), where $\text{pnorm}(\cdot)$ denotes pixel normalization~\citep{karras2017progressive}. Empirically we find it retains the expressive power of AdaGN for diffusion training but removes its instability in CM training.
+
+
+
+As shown in \figref{fig:main:parameterization}, we visualize how our techniques stabilize the time-derivates for CMs trained on CIFAR-10. Empirically, we find that these improvements help stabilize the training dynamics of CMs without hurting diffusion model training (see Appendix~\ref{appendix:exp}).
+
+
+
+
+
+
+
+\begin{figure}[t]
+	\begin{minipage}{0.32\linewidth}
+		\centering
+			\includegraphics[width=\linewidth]{figures/main/edm_ncsnpp_uncond_stats_cropped.pdf}\\
+		    \small{EDM, Fourier scale = $16.0$} \\
+	\end{minipage}
+	\begin{minipage}{0.32\linewidth}
+		\centering
+			\includegraphics[width=\linewidth]{figures/main/edm_ddpmpp_uncond_stats_cropped.pdf}\\
+		    \small{EDM, positional embedding} \\
+	\end{minipage}
+	\begin{minipage}{0.32\linewidth}
+		\centering
+			\includegraphics[width=\linewidth]{figures/main/trigflow_ddpmpp_uncond_stats_cropped.pdf}\\
+		    \small{TrigFlow, positional embedding} \\
+	\end{minipage}
+    \vspace{-.1in}
+	\caption{\small{\textbf{Stability of different formulations.} We show the norms of both terms in $\frac{\dm \f_{\theta^-}}{\dm t} = \nabla_{\x}\f_{\theta^-} \cdot \frac{\dm \x_t}{\dm t} + \partial_t \f_{\theta^-}$ for diffusion models trained with the EDM ($\cnoise(t) = \log(\sigma_d\tan(t))$) and TrigFlow ($\cnoise(t) = t$) formulations using different time embeddings. We observe that large Fourier scales in Fourier embeddings cause instabilities. In addition, the EDM formulation suffers from numerical issues when $t\to \frac{\pi}{2}$, while TrigFlow (using positional embeddings) has stable partial derivatives for both $\x_t$ and $t$.}
+	\label{fig:main:parameterization}}
+\vspace{-.1in}
+\end{figure}
+
+
+\begin{figure}[t]
+	\begin{minipage}{0.32\linewidth}
+		\centering
+			\includegraphics[width=\linewidth]{figures/ablation/tangent_normalization_cropped.pdf}\\
+		    \small{(a) Tangent Normalization} \\
+	\end{minipage}
+	\begin{minipage}{0.32\linewidth}
+		\centering
+			\includegraphics[width=\linewidth]{figures/ablation/adaptive_weighting_cropped.pdf}\\
+		    \small{(b) Adaptive Weighting} \\
+	\end{minipage}
+	\begin{minipage}{0.32\linewidth}
+		\centering
+			\includegraphics[width=\linewidth]{figures/ablation/discrete_cropped.pdf}\\
+		    \small{(c) Discrete vs. Continuous} \\
+	\end{minipage}
+	\caption{\small{\textbf{Comparing different training objectives for consistency distillation.} The diffusion models are EDM2~\citep{karras2024edm2} pretrained on ImageNet 512$\times$512. (a) 1-step and 2-step sampling of continuous-time CMs trained by using raw tangents $\frac{\dm \f_{\theta^-}}{\dm t}$, clipped tangents $\text{clip}(\frac{\dm \f_{\theta^-}}{\dm t}, -1, 1)$ and normalized tangents $(\frac{\dm \f_{\theta^-}}{\dm t}) / (\|\frac{\dm \f_{\theta^-}}{\dm t}\| + 0.1)$. (b) Quality of 1-step and 2-step samples from continuous-time CMs trained w/ and w/o adaptive weighting, both are w/ tangent normalization. (c) Quality of 1-step samples from continuous-time CMs vs. discrete-time CMs using varying number of time steps ($N$), trained using all techniques in Sec.~\ref{sec:stabilizing}.}
+	\label{fig:main:ablations}}
+\vspace{-.2in}
+\end{figure}
+
+
+\subsection{Training Objectives}
+\label{sec:training_objective}
+
+Using the TrigFlow formulation in \secref{sec:trigflow} and techniques proposed in \secref{sec:stable_parameterization}, the gradient of continuous-time CM training in \eqref{eq:gradient_cm_general} becomes
+$$
+\nabla_{\theta} \E_{\x_t,t}\bigg[
+    -w(t)\sigma_d \sin(t) \F^\top_\theta\left(\frac{\x_t}{\sigma_d},t\right) \frac{\dm \f_{\theta^-}(\x_t,t)}{\dm t}
+\bigg].
+$$
+Below we propose additional techniques to explicitly control this gradient for improved stability.
+
+
+\textbf{Tangent Normalization. }
+As discussed in \secref{sec:stable_parameterization}, most gradient variance in CM training comes from the tangent function $\frac{\dm \f_{\theta^-}}{\dm t}$. We propose to explicitly normalize the tangent function by replacing $\frac{\dm \f_{\theta^-}}{\dm t}$ with $\frac{\dm \f_{\theta^-}}{\dm t}/(\|\frac{\dm \f_{\theta^-}}{\dm t}\| + c)$, where we empirically set $c=0.1$. Alternatively, we can clip the tangent within $[-1, 1]$, which also caps its variance. Our results in \figref{fig:main:ablations}(a) demonstrate that either normalization or clipping leads to substantial improvements for the training of continuous-time CMs.
+
+
+
+
+
+\textbf{Adaptive Weighting. }
+Previous works~\citep{song2023ict, geng2024ect} design weighting functions $w(t)$ manually for CM training, which can be suboptimal for different data distributions and network architectures. Following EDM2~\citep{karras2024edm2}, we propose to train an adaptive weighting function alongside the CM, which not only eases the burden of hyperparameter tuning but also outperforms manually designed weighting functions with better empirical performance and negligible training overhead. Key to our approach is the observation that $\nabla_\theta \mathbb{E}[\F_\theta^\top \y] = \frac{1}{2} \nabla_\theta \mathbb{E}[\|\F_\theta - \F_{\theta^-} + \y\|_2^2]$, where $\y$ is an arbitrary vector independent of $\theta$. When training continuous-time CMs using \eqref{eq:gradient_cm_general}, we have $\y=-w(t)\sigma_d\sin(t)\frac{\dm \f_{\theta^-}}{\dm t}$. This observation allows us to convert \eqref{eq:gradient_cm_general} into the gradient of an MSE objective. We can therefore use the same approach in \citet{karras2024edm2} to train an adaptive weighting function that minimizes the variance of MSE losses across time steps (details in Appendix~\ref{appendix:adaptive_weighting}).
+In practice, we find that integrating a prior weighting $w(t)=\frac{1}{\sigma_d\tan(t)}$ further reduces training variance. By incorporating the prior weighting, we train both the network $\F_\theta$ and the adaptive weighting function $w_\phi(t)$ by minimizing
+\begin{equation}
+\label{eq:objective_ctcm}
+    \mathcal{L}_{\text{sCM}}(\theta,\phi) \!\coloneqq\! \E_{\x_t,t}\left[\!
+    \frac{e^{w_\phi(t)}}{D}\left\|
+        \F_\theta\left(\frac{\x_t}{\sigma_d},t\right) - \F_{\theta^-}\left(\frac{\x_t}{\sigma_d},t\right)
+        - \cos(t)\frac{\dm \f_{\theta^-}(\x_t,t)}{\dm t}
+    \right\|_2^2 - w_\phi(t)
+    \right],
+\end{equation}
+where $D$ is the dimensionality of $\x_0$, and we sample $\tan(t)$ from a log-Normal proposal distribution~\citep{karras2022edm}, that is, $e^{\sigma_d\tan(t)} \sim \mathcal{N}(P_\text{mean}, P_\text{std}^2)$ (details in Appendix~\ref{appendix:exp}).
+
+
+
+
+
+
+
+
+
+\textbf{Diffusion Finetuning and Tangent Warmup. } 
+For consistency distillation, we find that finetuning the CM from a pretrained diffusion model can speed up convergence, which is consistent with \citet{song2023cm,geng2024ect}. Recall that in \eqref{eq:df_dt_trigflow}, the tangent $\frac{\dm \f_{\theta^-}}{\dm t}$ can be decomposed into two parts: the first term $\cos(t)(\sigma_d\F_{\theta^-} - \frac{\dm \x_t}{\dm t})$ is relatively stable, whereas the second term $\sin(t)(\x_t + \sigma_d\frac{\dm \F_{\theta^-}}{\dm t})$ may cause instability. We introduce an optional technique named as \textit{tangent warmup} by replacing the coefficient $\sin(t)$ with $r \cdot \sin(t)$, where $r$ linearly increases from $0$ to $1$ over the first 10k training iterations. We find that the tangent normalization does not affect sample quality but may reduce some gradient spikes during training.
+
+With all techniques in place, the stability of both discrete-time and continuous-time CM training substantially improves. We provide detailed algorithms for discrete-time CMs in Appendix~\ref{appendix:discrete-trigflow}, and train continuous-time CMs and discrete-time CMs with the same setting. As demonstrated in \figref{fig:main:ablations}(c), increasing the number of discretization steps $N$ in discrete-time CMs improves sample quality by reducing discretization errors, but degrades once $N$ becomes too large (after $N>1024$) to suffer from numerical precision issues. By contrast, continuous-time CMs significantly outperform discrete-time CMs across all $N$'s which provides strong justification for choosing continuous-time CMs over discrete-time counterparts. We call our model \textbf{sCM} (s for \emph{simple, stable, and scalable}), and provide detailed pseudo-code for sCM training in Appendix~\ref{appendix:algorithm}.
+
+
+
+
+
+
+

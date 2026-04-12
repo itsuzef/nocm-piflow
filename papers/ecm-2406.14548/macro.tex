@@ -1,0 +1,112 @@
+
+\setlength{\intextsep}{0pt} % no space above or below the figure
+\setlength{\columnsep}{10pt} % adjust space between text and figure
+
+% Attempt to make hyperref and algorithmic work together better:
+\newcommand{\theHalgorithm}{\arabic{algorithm}}
+
+\newcommand{\asp}[1]{\textbf{\textcolor{purple}{[AP: #1]}}}
+\newcommand{\gzy}[1]{\textcolor{blue}{\textbf{GZY: #1}}}
+
+\usepackage[capitalize]{cleveref}
+\crefname{equation}{Eq.}{Eq.}
+\crefname{figure}{Fig.}{Fig.}
+\crefname{table}{Tab.}{Tab.~}
+\crefname{section}{Sec.}{Sec.~}
+\crefname{algorithm}{Alg.}{Alg.~}
+\crefname{thm}{Theorem}{Theorem~}
+\crefname{lemma}{Lemma}{Lemma~}
+\crefname{appendix}{Appendix}{Appendix~}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% THEOREMS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{assumption}[theorem]{Assumption}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+% Todonotes is useful during development; simply uncomment the next line and comment out the line below the next line to turn off comments
+%\usepackage[disable,textsize=tiny]{todonotes}
+% \usepackage[textsize=tiny]{todonotes}
+
+% Color
+% \usepackage[dvipsnames]{xcolor}
+\usepackage{xcolor}
+\definecolor{tomato}{rgb}{1.0, 0.39, 0.28}
+\definecolor{cornflowerblue}{rgb}{0.39, 0.58, 0.93}
+
+% Abbr
+\def\ie{\textit{i.e.,~}}
+\def\eg{\textit{e.g.,~}}
+\def\etc{\textit{etc}}
+\def\etal{\textit{et al.~}}
+\def\wrt{\textit{w.r.t.~}}
+\def\vs{\textit{v.s.~}}
+\def\resp{\textit{resp.~}}
+\def\sota{state-of-the-art~}
+
+% Commands
+\newcommand{\tbf}[1]{\textbf{#1}}
+\newcommand{\ul}[1]{\underline{#1}}
+
+% Math
+\input{math_commands.tex}
+
+\def\L{\gL}
+\def\f{f_\theta}
+\def\gf{g_\theta}
+\newcommand{\F}[1]{f_\theta \left(#1\right)}
+\newcommand{\Rdim}[1]{\mathbb{R}^{#1}}
+
+\def\zstar{\rvz^\star}
+\def\z{\rvz}
+\def\x{\rvx}
+\def\y{\rvy}
+\def\g{\rvg}
+
+\def\Zstar{\rmZ^\star}
+\def\Z{\rmZ}
+\def\X{\rmX}
+\def\W{\rmW}
+\def\A{\rmA}
+\def\B{\rmB}
+\def\I{\rmI}
+
+\def\d{{\mathrm{d}}}
+\def\dist{{\mathbf{d}}}
+
+\def\p{\rvp}
+\def\c{\rvc}
+\def\q{\rvq}
+\def\h{\rvh}
+\def\u{\rvu}
+\def\flow{\rvf}
+\def\hstar{\rvh^\star}
+\def\fstar{\rvf^\star}
+\def\cstar{\rvc^\star}
+
+\def\IFT{\frac{\partial \L}{\partial \theta}}
+\def\PhantomGrad{\widehat{\frac{\partial \L}{\partial \theta}}}
+
+\def\dLdz{\frac{\partial \L}{\,\partial \zstar}}
+\def\dfdz{\frac{\partial \f}{\partial \zstar}}
+\def\J{\left(I - \dfdz\right)}
+\def\Jinline{\left( I - \partial \f / \partial \zstar \right)}
+\def\invJ{\J^{-1}}
+\def\invJinline{\Jinline^{-1}}
+
+\def\Jtheta{J_\theta \left(\zstar\right)}
+\def\Jf{J_{\f}}
+
+
+% Datasets & metrics
+\def\imgnet{ImageNet 64$\times$64}
+\def\dino{$\text{FD}_{\text{DINOv2}}$}

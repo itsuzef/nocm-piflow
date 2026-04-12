@@ -1,0 +1,62 @@
+% \section{Policy Imitation Distillation}
+\section{\methodname: Policy-Based Few-Step Generation}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1.0\linewidth]{resources/policy_v2.pdf}
+    \caption{Comparison between (a) standard flow model (teacher), (b) shortcut-predicting model, and (c) our policy-based model. The shortcut-predicting model skips all intermediate states, whereas the our-based model retains all intermediate substeps with minimal overhead. }
+    \label{fig:policy}
+\end{figure}
+
+In \methodname, we define the policy as a \emph{network-free} function $\pi \colon \R^D\times \R \to \R^D$ that maps a state $(\vx_t, t)$ to a flow velocity. A policy can be network-free if it only needs to describe a single ODE trajectory, which is fully determined by its initial state $(\vx_{t_\text{src}}, t_\text{src})$ with $t_\text{src} \ge t$. In this case, the policy for each trajectory must be dynamically predicted by a neural network conditioned on that initial state $(\vx_{t_\text{src}}, t_\text{src})$. We therefore adapt a flow model to output not a single velocity, but an entire dynamic policy that governs the full trajectory. Formally, define the policy function space $\mathcal{F}\coloneqq \Set{\pi \colon \R^D\times \R \to \R^D}$. Then, our goal is to distill a policy generator network $G_\vphi\colon \R^D\times \R \to \mathcal{F}$ with learnable parameters $\vphi$, such that $\pi(\vx_t, t) = G_\vphi(\vx_{t_\text{src}}, t_\text{src})(\vx_t, t)$. 
+
+As shown in Fig.~\ref{fig:policy}~(c), \methodname{} performs ODE-based denoising from $t_\text{src}$ to $t_\text{dst}$ via two stages:
+\begin{itemize}
+    \item A \emph{policy generation step}, which feeds the initial state $(\vx_{t_\text{src}}, t_\text{src})$ to the student network $G_\vphi$ to produce the policy $\pi$, i.e., $\pi \gets G_\vphi(\vx_{t_\text{src}}, t_\text{src})$.
+    \item Multiple \emph{policy integration substeps}, which integrates the ODE by querying the policy velocity over multiple substeps, obtaining a less noisy state by $\vx_{t_\text{dst}} \gets \vx_{t_\text{src}} + \int_{t_\text{src}}^{t_\text{dst}} \pi(\vx_t,t) \diff t$.
+\end{itemize}
+Unlike previous few-step distillation methods, \methodname{} decouples network evaluation steps from ODE integration substeps. This allows it to combine the key advantages of two paradigms: it performs only a few network evaluations for efficient generation, similar to a shortcut-predicting model, while also executing dense integration substeps, just like a standard flow matching teacher.
+Thanks to its teacher-like ODE integration process, a \methodname\ student offers unprecedented advantage in training, as we can now follow well-established imitation learning (IL) approaches to directly match the policy velocity $\pi(\vx_t, t)$ to the teacher velocity $G_\vtheta(\vx_t, t)$, as discussed later in \S~\ref{sec:imitation}.
+
+To identify the appropriate function classes of student policies for fast image generation, we need to consider the following requirements:
+\begin{itemize}
+    \item \textbf{Efficiency.} The policy should provide closed-form velocities with minimal overhead, so that rolling out dense (e.g., 100+) substeps incurs negligible cost compared to a network evaluation.
+    \item \textbf{Compatibility.} The policy should have a compact set of parameters that can be easily predicted by the student $G_\vphi$ with standard backbones (e.g., DiT~\citep{dit}).
+    \item \textbf{Expressiveness.} The policy should be able to approximate a complicated ODE trajectory starting from a certain initial state $\vx_{t_\text{src}}$.
+    \item \textbf{Robustness.} The policy should be able to handle trajectory variations that arise from perturbations to the initial state $\vx_{t_\text{src}}$. For instance, a suboptimal student network will produce an erroneous mapping from $\vx_{t_\text{src}}$ to $\pi$. This introduces the randomness that the policy needs to accommodate throughout the rollout. Consequently, the policy function should adapt its velocity output to variations in its state input $\vx_t$, which is a challenging requirement for network-free functions.
+\end{itemize}
+
+\subsection{Dynamic-\texorpdfstring{$\hat{\vx}_0^{(t)}$}{x0} Policy}
+We introduce a simple baseline policy called dynamic-$\hat{\vx}_0^{(t)}$ policy (\emph{DX} policy). DX policy defines $\pi(\vx_t, t)\coloneqq \frac{\vx_t - \hat{\vx}_0^{(t)}}{t}$, 
+where $\hat{\vx}_0^{(t)}$ approximates the posterior moment $\E_{\vx_0 \sim p(\vx_0 | \vx_t)} [\vx_0]$ in Eq.~(\ref{eq:pf_ode}). 
+Along a fixed trajectory starting from an initial state $(\vx_{t_\text{src}}, t_\text{src})$, the posterior moment is only dependent on $t$. 
+Therefore, we first predict a grid of $\hat{\vx}_0^{(t_i)}$ at $N$ evenly spaced times 
+$t_1, ..., t_N \in [t_\text{dst}, t_\text{src}]$ by a single evaluation of the student network $G_\vphi(\vx_{t_\text{src}}, t_\text{src})$. 
+This is achieved by expanding the output channels of the student network and performing $\vu$-to-$\vx_0$ reparameterization.
+Then, for arbitrary $t \in [t_\text{dst}, t_\text{src}]$, we obtain the approximated moment $\hat{\vx}_0^{(t)}$ by a linear interpolation over the grid. 
+
+Apparently, DX policy is fast, compatible, and expressive enough so that any $N$-step teacher trajectory can be matched with $N$ grid points. 
+However, its robustness is limited because $\hat{\vx}_0^{(t)}$ is not adaptive to perturbations in $\vx_t$. 
+
+\subsection{GMFlow Policy}
+\label{sec:gmpolicy}
+
+For stronger robustness, we incorporate an advanced GMFlow policy based on the closed-form GM velocity field in \citet{gmflow}.
+GMFlow policy expands the network output channels to predict a factorized Gaussian mixture (GM) velocity distribution $q(\vu | \vx_{t_\text{src}}) = \prod_{i=1}^{L} \sum_{k=1}^K A_{ik} \mathcal{N}\left(\vu_i; \vmu_{ik}, s^2\mI\right)$, where $A_{ik} \in \R_+$, $\vmu_{ik} \in \R^C$, $s \in \R_+ $ are GM parameters predicted by the network,
+$L\times C$ factorizes the data dimension $D$ into sequence length $L$ and channel size $C$, and $K$ is a hyperparameter specifying the number of mixture components. 
+\edit{Intuitively, the student network $G_\vphi$ maps the initial state $\vx_{t_\text{src}}$ to multiple denoising modes that parameterize the GMFlow policy.
+The policy then enables a closed-form velocity expression at future state $(\vx_t, t)$} for any $0 < t < t_\text{src}$ (see \S~\ref{sec:gm_u} for details). The speed and compatibility of GMFlow has already been discussed in \citet{gmflow}, thus we focus on analyzing its expresiveness and robustness.
+
+\textbf{Expressiveness.}
+With the $L\times C$ factorization, each individual $C$-dimensional GM needs to be expressive enough to approximate a $C$-dimensional chunk of the teacher trajectory.
+In \S~\ref{sec:proof}, we rigorously prove the following theorem, demonstrating GMFlow's expressiveness.
+\begin{theorem}[A GMFlow policy with $K=N\cdot C$ can accurately approximate any $N$-step trajectory]
+\label{the:gmode}
+Given pairwise distinct times $t_1,\ldots,t_N\in(0,1]$ and vectors 
+$\vx_{t_n},\,\dot{\vx}_{t_n}\in\R^C$ for $n=1,\ldots,N$, there exists a GM parameterization of $p(\vx_0)$ with $N\cdot C$ components, such that $\dot{\vx}_{t_n}$ can be approximated arbitrarily well using Eq~(\ref{eq:pf_ode}) at $t=t_n$ for every $n=1,\ldots,N$.
+\end{theorem}
+In practice, we can use $K\ll N \cdot C$ (e.g., $K=8$) since the teacher trajectory is mostly smooth. More analysis of GMFlow hyperparameters are presented in \S~\ref{sec:gmparam}.
+
+\textbf{Robustness.}
+GMFlow is highly robust against trajectory perturbation due to its probabilistic origin. Unlike DX policy, GMFlow models a fully dynamic denoising posterior (Eq.~(\ref{eq:gm_posterior})) dependent on both $\vx_t$ and $t$. 
+Leveraging its robustness, the policy can be flexibly altered via GM dropout in training (\S~\ref{sec:imitation}) and GM temperature in inference (\S~\ref{sec:gm_temp}), both improving generalization performance.

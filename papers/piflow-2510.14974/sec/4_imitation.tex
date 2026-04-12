@@ -1,0 +1,48 @@
+\begin{figure}[t]
+\centering
+\begin{minipage}[t]{0.54\linewidth}
+    \vspace{-0.8ex} % keep both sides consistent
+    \begin{algorithm}[H]
+    \small
+    \DontPrintSemicolon
+    \KwIn{$\mathit{NFE}$, teacher $G_\vtheta$, student $G_\vphi$, condition $\vc$}
+    Sample $t_\text{src}$ from $\Set{\frac{1}{\mathit{NFE}}, \frac{2}{\mathit{NFE}}, \cdots, 1}$ \\
+    Initialize $\vx_{t_\text{src}}$ (data-free or data-dependent) \\
+    {\color{student}$\pi \gets G_\vphi(\vx_{t_\text{src}}, t_\text{src},\vc)$} \\
+    {\color{detached}$\pi_\text{D} \gets \operatorname{stopgrad}(\pi)$} \\
+    $\mathcal{L}_\vphi \gets 0$ \\
+    \For{finite samples $t \sim U\left(t_\textnormal{src} - \frac{1}{\mathit{NFE}}, t_\textnormal{src}\right)$}{
+    {\color{detached}$\vx_t \gets \vx_{t_\text{src}} + \int_{t_\text{src}}^t \pi_\text{D}(\vx_t,t) \diff t$} \\
+    % \tcp*{rollout the detached policy}
+    $\mathcal{L}_\vphi \gets \mathcal{L}_\vphi + \frac{1}{2} \left\|{{\color{teacher}G_\vtheta(\vx_t, t, \vc)} - \color{student}\pi(\vx_t, t)}\right\|^2$ \\
+    }
+    $\vphi \gets \operatorname{Adam}\left(\vphi, \nabla_\vphi \mathcal{L}_\vphi \right)$ \tcp*{optimizer step}
+    % \tcp*{match the policy to the teacher}
+    \caption{On-policy $\pi$-ID.}
+    \label{alg:train_simple}
+    \end{algorithm}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.42\linewidth}
+    \vspace{0ex} % force top alignment for [t]
+    \centering
+    \includegraphics[width=\linewidth]{resources/imitation.pdf}
+    \caption{On-policy flow imitation distillation. Intermediate states are sampled along the {\color{detached}detached policy rollout}, where the loss matches the {\color{student}policy} to the {\color{teacher}teacher}.}
+    \label{fig:imitation}
+\end{minipage}
+\vspace{-0.4em}
+\end{figure}
+
+\section{\texorpdfstring{$\pi$}{pi}-ID: Policy-Based Imitation Distillation}
+\label{sec:imitation}
+
+With the policy rollout sharing the same format as the teacher’s ODE integration, 
+it is straightforward to adopt imitation learning to learn the policy by directly matching the policy's velocity to the teacher's velocity. 
+In this section, we introduce a simple policy-based imitation distillation ($\pi$-ID) algorithm based on DAgger-style~\citep{dagger} on-policy imitation.
+
+On-policy imitation learning is robust to error accumulation since it trains the policy on its own trajectory, allowing the teacher's corrective signal to steer a deviating trajectory back on track.
+As shown in Fig.~\ref{fig:imitation} and Algorithm~\ref{alg:train_simple}, for a time interval from $t_{\text{src}}$ to $t_{\text{dst}}$ (i.e., a 1-NFE segment), we first feed the initial state $(\vx_{t_{\text{src}}}, t_{\text{src}})$ to the student network $G_\vphi$ to obtain the policy $\pi$. We then sample an intermediate time $t \in (t_\text{dst}, t_\text{src}]$  and roll out a \emph{detached} policy $\pi_{\text{D}}$ from $t_{\text{src}}$ to $t$ using high-accuracy ODE integration (with a small step size of $1/128$), yielding an intermediate state $\vx_t$ on the policy trajectory. This state is fed to both the learner policy $\pi$ and the frozen teacher $G_\vtheta$, which produce their respective velocities. Finally, we compute a standard $\ell_2$ flow matching loss between the two velocities, and backpropagate its gradients through the policy $\pi$ to the student network $G_\vphi$. Because the student forward/backward pass dominates compute while policy and teacher queries are relatively cheap, we may repeat the rollout-and-matching step multiple times for additional teacher supervisions. In practice, we sample two intermediate states per student forward pass.
+
+\textbf{Data-dependent and data-free $\pi$-ID.} The initial state $\vx_{t_{\text{src}}}$ can be obtained via forward diffusion from real data $\vx_0$ (data-dependent Algorithm~\ref{alg:train_datadepend}), or via \methodname's reverse denoising from random noise $\vx_1$ (data-free Algorithm~\ref{alg:train_datafree}). Both methods have roughly the same computational cost, and comparable performance, as demonstrated 
+in the experiments (\S~\ref{sec:experiments}).  
+
+\textbf{\edit{Error bounds and convergence.}} \edit{As discussed by \citet{dagger}, on-policy imitation learning guarantees that the performance of the learned policy is bounded by the teacher's performance plus an error term that scales as $O(n\bm{\varepsilon})$, where $n$ is the number of substeps and $\varepsilon$ is the average imitation error per step, which is strictly better than the $O(n^2\bm{\varepsilon})$ compounding-error behavior of off-policy behavior cloning. Moreover, the sequence of on-policy iterates converges in performance to the best policy in the function class, under the student's capacity constraint.}

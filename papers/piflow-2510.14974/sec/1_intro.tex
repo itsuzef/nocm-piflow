@@ -1,0 +1,24 @@
+\section{Introduction}
+Diffusion and flow matching models~\citep{sohl2015deep,ddpm,song2019score,lipman2023flow,albergo2023building} have become 
+the dominant method for visual generation, delivering compelling image quality and diversity. 
+However, these models rely on a costly denoising process for inference, which integrates a probability flow ODE~\citep{song2021scorebased} over multiple timesteps, each step requiring a neural network evaluation. Commonly, the inference cost of diffusion models is quantified by the number of function (network) evaluations (NFEs).
+
+To reduce the inference cost, diffusion distillation methods compress a pre-trained multi-step model (the teacher) into a 
+student that requires only one or a few network evaluation steps.
+Existing distillation approaches avoid ODE integration by taking one or a few shortcut steps that map noise to data, where each shortcut path is predicted by the student network, referred to as a \emph{shortcut-predicting} model. 
+Learning these shortcuts is a significant challenge because they cannot be directly inferred from the teacher model. This necessitates the use of complex training methods, such as progressive distillation~\citep{salimans2022progressive, liu2022flow, instaflow}, consistency distillation~\citep{consistencymodels}, and distribution matching~\citep{ladd,yin2024onestep,yin2024improved,salimans2024multistep}. In turn, the sophisticated training often lead to degraded image quality from error accumulation or compromised diversity due to mode collapse. 
+
+To sidestep the difficulties in shortcut-predicting distillation, we propose a novel \emph{policy-based flow model} (\methodname{} or pi-Flow) paradigm: 
+given noisy data at one timestep, the student network predicts a network-free policy, which maps new noisy states to their corresponding flow velocities with negligible overhead, allowing fast and accurate ODE integration using multiple substeps of policy velocities instead of network evaluations. 
+
+To train the student network, we introduce \emph{policy-based imitation distillation} ($\pi$-ID), a DAgger-style~\citep{dagger} on-policy imitation learning (IL) method. $\pi$-ID trains the policy on its own trajectory: at visited states, we query the teacher velocity and match the policy's output to it, using the teacher’s corrective signal to teach the policy to recover from its own mistakes and reduce error accumulation. Specifically, the matching employs a standard $\ell_2$ loss aligned with the teacher’s flow matching objective, thus naturally preserving its quality and diversity.
+
+We validate our paradigm with two types of policies: a simple dynamic-$\hat{\vx}_0^{(t)}$ (DX) policy and an advanced 
+GMFlow policy based on \citet{gmflow}. Experiments show that GMFlow policy outperforms DX policy and delivers strong ImageNet 256\textsuperscript{2} FIDs at 1- and 2-NFE generation. To demonstrate its scalability, we distill FLUX.1-12B~\citep{flux2024} and Qwen-Image-20B~\citep{qwen} text-to-image models into 4-NFE \methodname{} students, which achieve state-of-the-art diversity, while maintaining teacher-level quality.
+
+We summarize the contributions of this work as follows:
+\begin{itemize}
+    \item We propose \methodname{}, a new paradigm that decouples ODE integration substeps from network evaluation steps, enabling both fast generation and straightforward distillation.
+    \item We introduce $\pi$-ID, a novel on-policy IL method for few-step \methodname{} distillation, which reduces the training objective to a simple $\ell_2$ flow matching loss.
+    \item We demonstrate strong performance and scalability of \methodname{}, particularly, its superior diversity and teacher alignment compared to other state-of-the-art 4-NFE text-to-image models.
+\end{itemize}

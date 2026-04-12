@@ -1,0 +1,11 @@
+\section{Conclusion}
+We introduced policy-based flow models (\methodname), a novel framework for few-step generation in which the network outputs a fast policy that enables accurate ODE integration via dense substeps reach the denoised state. To distill \methodname{} models, we proposed a simple on-policy imitation learning approach that reduces the training objective to a single $\ell_2$ loss, mitigating error accumulation and quality--diversity trade-offs. Extensive experiments distilling ImageNet DiT, FLUX.1-12B, and Qwen-Image-20B models show that few-step \methodname s consistently attain teacher-level image quality while significantly outperforming competitors in diversity and teacher alignment. \methodname{} offers a scalable, principled paradigm for efficient, high-quality generation and opens new directions for future research, such as exploring more robust policy families, improved distillation objectives, and extensions to other applications (e.g., video generation).
+
+\textbf{Reproducibility statement.} 
+To facilitate reproduction, we describe the detailed training procedures in Algorithms~\ref{alg:train_datadepend} and~\ref{alg:train_datafree}, and list all important hyperparameters in \S\ref{sec:hyperparam}.
+
+\ificlrfinal
+
+\textbf{Acknowledgements.} This project was partially done while Hansheng Chen was supported by the Qualcomm Innovation Fellowship and partially done while Hansheng Chen was an intern at Adobe Research. We would like to thank Jianming Zhang and Hailin Jin for their great support throughout the internship, and Xingtong Ge for the help in evaluating SenseFlow.
+
+\fi

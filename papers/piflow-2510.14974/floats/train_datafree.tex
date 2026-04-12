@@ -1,0 +1,27 @@
+\begin{algorithm}[t]
+\small
+\DontPrintSemicolon
+\KwIn{$\mathit{NFE}$, teacher $G_\vtheta$, condition distribution $p(\vc)$, shift $m$}
+\KwOut{Student $G_\vphi$}
+Initialize student params $\vphi$ \\
+\For{finite samples $\vc \sim p(\vc)$, $\vx_1 \sim \mathcal{N}(\bm{0}, \mI)$}{
+    $\tau_\text{src} \gets 1,\quad t_\text{src} \gets 1$ \\
+    $\mathcal{L}_\vphi \gets 0$ \\
+    \While{$\tau_\textnormal{src} > 0$}{
+        $\tau_\text{dst} \gets \tau_\text{src} - \frac{1}{\mathit{NFE}}$ \tcp*{can be adjusted to reduce final step size}
+        $t_\text{dst} \gets \frac{m \tau_\text{dst}}{1 + (m - 1) \tau_\text{dst}}$ \tcp*{time shifting~\citep{sd3}}
+        $\pi \gets G_\vphi(\vx_{t_\text{src}}, t_\text{src},\vc)$ \\
+        $\pi_\text{D} \gets \operatorname{stopgrad}(\pi)$~~or~~$\pi_\text{D} \gets \operatorname{dropout}(\operatorname{stopgrad}(\pi))$ \\
+        \For{finite samples $\tau \sim U(\tau_\textnormal{dst}, \tau_\textnormal{src})$}{
+            $t \gets \frac{m \tau}{1 + (m - 1) \tau}$ \\
+            $\vx_t \gets \vx_{t_\text{src}} + \int_{t_\text{src}}^t \pi_\text{D}(\vx_t,t) \diff t$ \\
+            $\mathcal{L}_\vphi \gets \mathcal{L}_\vphi + \frac{\tau_\text{src} - \tau_\text{dst}}{2} \left\|G_\vtheta(\vx_t, t, \vc) - \pi(\vx_t, t) \right\|^2$  \tcp*{can be replaced with Eq.~(\ref{eq:microwindow})}
+        }
+        $\vx_{t_\text{dst}} \gets \vx_{t_\text{src}} + \int_{t_\text{src}}^{t_\text{dst}} \pi_\text{D}(\vx_t,t) \diff t$ \\
+        $\tau_\text{src} \gets \tau_\text{dst},\quad t_\text{src} \gets t_\text{dst}$ \\
+    }
+    $\vphi \gets \operatorname{Adam}\left(\vphi, \nabla_\vphi \mathcal{L}_\vphi \right)$ \tcp*{optimizer step}
+}
+\caption{Data-free on-policy $\pi$-ID training loop with time shifting.}
+\label{alg:train_datafree}
+\end{algorithm}

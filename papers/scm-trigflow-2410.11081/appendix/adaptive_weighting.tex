@@ -1,0 +1,55 @@
+\section{Adaptive Weighting For Diffusion Models, Consistency Models and Variational Score Distillation}
+\label{appendix:adaptive_weighting}
+
+We first list the objectives of diffusion models, consistency models and variational score distillation (VSD).
+For diffusion models, as shown in \eqref{eq:appendix:trigflow_objective}, the gradient of the objective is
+\begin{equation*}
+    \nabla_{\theta}\mathcal{L}_{\text{Diff}}(\theta) = \nabla_{\theta}\E_{t,\x_0,\z} w(t)\left[ \| \sigma_d\F_\theta - \vv_t \|_2^2 \right] = \nabla_{\theta}\E_{t,\x_0,\z} \left[ w(t)\sigma_d\F_\theta^\top (\sigma_d\F_{\theta^-} - \vv_t) \right],
+\end{equation*}
+where $\F_{\theta^-}$ is the same as $\F_\theta$ but stops the gradient w.r.t. $\theta$. For VSD, the gradient of the objective is
+\begin{equation*}
+    \nabla_{\theta}\mathcal{L}_{\text{Diff}}(\theta) = \nabla_\theta \E_{t,\z,\z'}\left[
+        w(t)g_\theta(\z')^\top (\F_{\text{pretrain}} - \F_\phi)
+    \right].
+\end{equation*}
+And for continuous-time CMs parameterized by TrigFlow, the objective is
+\begin{equation*}
+    \nabla_\theta \mathcal{L}_{\text{CM}}(\theta) = \nabla_{\theta}\E_{t,\x_0,\z}\left[
+        -w(t)\sin(t)\f_\theta^\top \frac{\dm \f_{\theta^-}}{\dm t} 
+    \right],
+\end{equation*}
+where $\f_{\theta^-}$ is the same as $\f_\theta$ but stops the gradient w.r.t. $\theta$. Interestingly, all these objectives can be rewritten into a form of inner product between a neural network and a target function which has the same dimension (denoted as $D$) as the output of the neural network. Specifically, assume the neural network is $\F_\theta$ parameterized by $\theta$, we study the following objective:
+\[
+    \min_\theta \E_t\left[
+        \F_\theta^\top \y
+    \right],
+\]
+where we do not compute the gradients w.r.t. $\theta$ for $\y$. In such case, the gradient will be equivalent to
+\[
+    \nabla_\theta \E_t\left[
+        \left\|\F_\theta - \F_{\theta^-} + \y\right\|_2^2
+    \right],
+\]
+where $\F_{\theta^-}$ is the same as $\F_\theta$ but stops the gradient w.r.t. $\theta$. In such case, we can balance the gradient variance w.r.t. $t$ by training an adaptive weighting network $w_\phi(t)$ to estimate the loss norm, i.e., minimizing
+\[
+\min_\phi \E_t \left[
+    \frac{e^{w_\phi(t)}}{D}\|\F_\theta - \F_{\theta^-} + \y\|_2^2 - w_\phi(t)
+\right].
+\]
+This is the \textit{adaptive weighting} proposed by EDM2~\citep{karras2024edm2}, which balances the loss variance across different time steps, inspired by the uncertainty estimation of \citet{sener2018multi}. By taking the partial derivative w.r.t. $w$ in the above equation, it is easy to verify that the optimal $w^*(t)$ satisfies
+\[
+    \frac{e^{w^*(t)}}{D}\E\left[\|\F_\theta - \F_{\theta^-} + \y\|_2^2\right] \equiv 1.
+\]
+Therefore, the adaptive weighting reduces the loss variance across different time steps. In such case, all we need to do is to choose
+\begin{enumerate}
+    \item A prior weighting $\lambda(t)$ for $\y$, which may be helpful for further reducing the variance of $\y$. Then the objective becomes
+    \[
+        \min_{\theta,\phi} \E_t \left[
+        \frac{e^{w_\phi(t)}}{D}\|\F_\theta - \F_{\theta^-} + \lambda(t)\y\|_2^2 - w_\phi(t)
+    \right].
+    \]
+    e.g., for diffusion models and VSD, since the target is either $\y = \F-\vv_t$ or $\y = \F_{\text{pretrain}}-\F_\phi$ which are stable across different time steps, we can simply choose $\lambda(t) = 1$; while for consistency models, the target $\y = \sin(t)\frac{\dm\f}{\dm t}$ may have huge variance, we choose $\lambda(t)=\frac{1}{\sigma_d\tan(t)}$ to reduce the variance of $\lambda(t)\y$, which empirically is critical for better performance.
+    \item A proposal distribution for sampling the training $t$, which determines \textit{which part of $t$ we should focus on more}. For diffusion models, we generally need to focus on the intermediate time steps since both the clean data and pure noise cannot provide precise training signals. Thus, the common choice is to choose a normal distribution over the log-SNR of time steps, which is proposed by \citet{karras2022edm} and also known as \textit{log-normal distribution}.
+\end{enumerate}
+
+In this way, we do not need to manually choose the weighting functions, significantly reducing the tuning complexity of training diffusion models, CMs and VSD.

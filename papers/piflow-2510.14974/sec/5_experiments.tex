@@ -1,0 +1,308 @@
+\section{Experiments}
+\label{sec:experiments}
+
+To demonstrate the versatility of \methodname, we evaluate it with three distinct image generation models 
+of different scales and architectures: DiT(SiT)-XL/2 (675M)~\citep{dit,sit,attention} for ImageNet 256\textsuperscript{2}~\citep{imagenet} class-conditioned generation, FLUX.1-12B~\citep{flux2024} and Qwen-Image-20B~\citep{qwen} for text-to-image generation. 
+
+
+\subsection{Implementation Details}
+In this subsection, we discuss key implementation details essential to model performance. More training details and hyperparameter choices are presented in \S~\ref{sec:hyperparam}.
+
+\textbf{GM dropout.} 
+Dropout is a widely adopted technique in supervised/imitation learning and reinforcement learning to improve generalization~\citep{dropout,cobbe2019}. 
+For the GMFlow policy, we introduce GM dropout in training to stochastically perturb and diversify $\pi$-ID rollouts to make the policy more robust to potential trajectory variations. 
+Given the GM mixture weights $A_{ik}$ of the detached policy $\pi_{\text{D}}$, we sample a binary mask for each component $k=1,\cdots,K$ and multiply it into $A_{ik}$ synchronously across all $i=1,\cdots,L$. The masked weights are then renormalized and used for the detached rollout. By exploring alternative GM modes, this simple technique improves the policy's robustness, yielding better FID on ImageNet 256\textsuperscript{2} (\S~\ref{sec:imagenetexp}).
+
+\textbf{Handling FLUX.1 dev teacher.} On-policy imitation learning assumes the teacher is robust to out-of-distribution (OOD) intermediate states and can steer trajectories back on track. This generally holds for standard flow models with classifier-free guidance (CFG)~\citep{cfg}, which exhibit error-correction behavior~\citep{chidambaram2024what}. However, FLUX.1 dev~\citep{flux2024} is a guidance-distilled model without true CFG and is less robust to OOD inputs. To mitigate OOD exposure, we adopt a scheduled trajectory mixing strategy, which rolls out the trajectory using a mixture of teacher and student with a linearly decaying teacher ratio (see \S~\ref{sec:scheduled} for details).
+
+
+\begin{table}[t]
+\centering
+\begin{minipage}[t]{0.62\linewidth}
+    \vspace{-0.8ex} % force top alignment for [t]
+    \caption{1-NFE generation results of \methodname{} with DX and GMFlow policies on ImageNet. 
+    Tested after 40K training iterations. 
+    FM stands for standard flow matching.}
+    % \vspace{0.8ex}
+    \label{tab:imagenet_abl}
+    \centering
+    \scalebox{0.8}{%
+        \setlength{\tabcolsep}{0.4em}
+        \begin{tabular}{llcccc}
+        \toprule
+        \textbf{Policy} & \textbf{Teacher} & \textbf{FID\textdownarrow} & \textbf{IS\textuparrow} & \textbf{Precision\textuparrow} & \textbf{Recall\textuparrow} \\
+        \midrule
+        DX ($N=10$) & REPA &  4.73 & 327.6 & 0.781 & 0.514 \\
+        DX ($N=20$) & REPA & 4.44 & 329.8 & 0.786 & 0.531 \\
+        DX ($N=40$) & REPA & 4.90 & 321.8 & 0.778 & 0.537 \\
+        GM ($K=8$) & REPA & \textbf{3.07} & 336.9 & 0.789 & \textbf{0.572} \\
+        GM ($K=32$) & REPA & 3.08 & \textbf{341.7} & \textbf{0.791} & 0.562\\
+        \midrule
+        GM ($K=32$) & FM & \textbf{3.65} & \textbf{282.0} & 0.797 & \textbf{0.533} \\
+        \small{GM ($K=32$) w/o dropout} & FM & 4.14 & 279.6 & \textbf{0.799} & 0.525 \\
+        \bottomrule
+        \end{tabular}
+    }
+\end{minipage} \hfill 
+\begin{minipage}[t]{0.33\linewidth}
+    \vspace{-0.8ex} % force top alignment for [t]
+    \caption{Comparison with previous few-step DiTs on ImageNet.}
+    % \vspace{0.8ex}
+    \label{tab:imagenet_sota}
+    \centering
+    \scalebox{0.8}{%
+        % \setlength{\tabcolsep}{0.3em}
+        \begin{tabular}{lcc}
+        \toprule
+        \textbf{Model} & \textbf{NFE} & \textbf{FID\textdownarrow} \\
+        \midrule
+        iCT & 2 & 20.30 \\
+        iMM & 1\texttimes 2 & 7.77 \\
+        MeanFlow & 2 & 2.20 \\
+        FACM (REPA) & 2 & \textbf{1.52} \\
+        \textbf{\methodname{} (GM-REPA)} & 2 & 1.97 \\
+        \midrule
+        iCT & 1 & 34.24 \\
+        Shortcut & 1 & 10.60 \\
+        MeanFlow & 1 & 3.43 \\
+        \textbf{\methodname{} (GM-FM)} & 1 & 3.34 \\
+        \textbf{\methodname{} (GM-REPA)} & 1 & \textbf{2.85} \\
+        \bottomrule
+        \end{tabular}
+    }
+\end{minipage}
+% \vspace{-0.4em}
+\end{table}
+
+\subsection{ImageNet DiT}
+\label{sec:imagenetexp}
+
+Our study utilizes two pretrained teachers with the same DiT architecture: a standard flow matching (FM) DiT (the baseline in \citet{gmflow}), and the REPA DiT~\citep{yu2025repa}. Interval CFG~\citep{intervalcfg} is applied to both teachers to maximize their performance. Each \methodname{} student is initialized with the teacher weights and then fully finetuned using the $\pi$-ID loss.
+
+\textbf{Evaluation metrics.}
+We adopt the standard evaluation protocol in ADM~\citep{dhariwal2021diffusion} with the following metrics: Fréchet Inception Distance (FID)~\citep{FID}, Inception Score (IS), and Precision–Recall~\citep{prmetric}.
+
+\textbf{Comparison of DX and GMFlow policies.}
+As shown in Table~\ref{tab:imagenet_abl}, both policies yield strong 1-NFE FIDs after 40k training iterations, with the GMFlow policy 
+consistently outperforming the DX policy by a clear margin. Notably, the DX policy exhibits sensitivity to the hyperparameter $N$ (number of grid points), whereas the GMFlow policy produces consistent results across different values of $K$ (number of Gaussians).
+
+\textbf{Comparison with prior few-step DiTs.}
+In Table~\ref{tab:imagenet_sota}, we compare \methodname{} (GM policy with $K=32$) to prior few-step DiTs on ImageNet 256\textsuperscript{2}: iCT~\citep{song2024improved}, Shortcut models~\citep{frans2025one}, iMM~\citep{imm}, MeanFlow~\citep{meanflow}, and the concurrent work FACM~\citep{peng2025flowanchoredconsistencymodels}. FACM (distilled from REPA) improves MeanFlow with an auxiliary loss and attains a leading 2-NFE FID, though it still relies on the inefficient JVP operation. In contrast, \methodname{} uses a minimal training framework with no JVP and adaptive loss scalings, yet still outperforms the original MeanFlow DiT across both 1-NFE and 2-NFE generation.
+
+\textbf{Ablation study on GM dropout.}
+From the two bottom rows in Table~\ref{tab:imagenet_abl} we conclude that our standard implementation with a 0.05 GM dropout rate yields better FID and Recall compared to the setting without dropout, confirming the effectiveness of our GM dropout technique. 
+
+
+\subsection{FLUX.1-12B and Qwen-Image-20B}
+\label{sec:flux_qwen}
+
+For text-to-image generation, we distill the 12B FLUX.1 dev~\citep{flux2024} and 20B Qwen-Image~\citep{qwen} models into \methodname{} students. During student training, we freeze the base parameters inherited from the teacher and finetune only the expanded output layer along with 256-rank LoRA adapters~\citep{hu2022lora} on the feed-forward layers. For data-dependent distillation, we prepare 2.3M one-megapixel (1MP) images captioned with Qwen2.5-VL~\citep{bai2025qwen25vltechnicalreport}. In the data-free setting, we use only the generated captions as conditioning 
+inputs while keeping the same 1MP resolution when initializing the noise.
+
+\begin{table}[t]
+    \centering
+    \caption{Quantitative comparisons on COCO-10k dataset and HPSv2 prompt set.}
+    \label{tab:fluxqwen}
+    \scalebox{0.69}{%
+        \setlength{\tabcolsep}{0.35em}
+        \begin{tabular}{lcccccccccccc}
+        \toprule
+        \multirow{3}[3]{*}{\textbf{Model}} & \multirow{3}[3]{*}{\textbf{Distill method}} & \multirow{3}[3]{*}{\textbf{NFE}} & \multicolumn{5}{c}{COCO-10k prompts} & \multicolumn{5}{c}{HPSv2 prompts} \\
+        \cmidrule(lr){4-8} \cmidrule(lr){9-13} 
+        & & & \multicolumn{2}{c}{Data align.} & \multicolumn{2}{c}{Prompt align.} & Pref. align. & \multicolumn{2}{c}{Teacher align.} & \multicolumn{2}{c}{Prompt align.} & Pref. align. \\
+        \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-8} \cmidrule(lr){9-10} \cmidrule(lr){11-12} \cmidrule(lr){13-13}
+        & & & \textbf{FID\textdownarrow} & \textbf{pFID\textdownarrow} & \textbf{CLIP\textuparrow} & \textbf{VQA\textuparrow} & \textbf{HPSv2.1\textuparrow} &  \textbf{FID\textdownarrow} & \textbf{pFID\textdownarrow} & \textbf{CLIP\textuparrow} & \textbf{VQA\textuparrow} & \textbf{HPSv2.1\textuparrow} \\
+        \midrule
+        FLUX.1 dev
+            & - & 50 & 27.8 & 34.9 & 0.268 & 0.900 & 0.309 & - & - & 0.284 & 0.805 & 0.314 \\
+        \midrule
+        FLUX Turbo 
+            & GAN & 8 & \textbf{26.7} & \textbf{32.0} & 0.267 & 0.900 & 0.308 & 13.8 & 18.5 & \textbf{0.286} & \textbf{0.814} & 0.313 \\
+        Hyper-FLUX 
+            & CD+Re & 8 & 29.8 & 33.3 & \textbf{0.268} & 0.894 & 0.309 & 15.6 & 22.2 & 0.285 & 0.807 & 0.315 \\
+        \textbf{\methodname{} (GM-FLUX)} 
+            & $\pi$-ID & 8 & 29.0 & 35.4 & \textbf{0.268} & \textbf{0.901} & \textbf{0.311} & \textbf{12.6} & \textbf{15.9} & 0.285 & 0.810 & \textbf{0.316} 
+            \\
+        \midrule
+        SenseFlow (FLUX) 
+            & VSD+CD+GAN & 4 & 34.1 & 44.2 & 0.266	& 0.879 & 0.308 & 23.3 & 28.2 & 0.283 & 0.806 & \textbf{0.318} \\
+        \textbf{\methodname{} (GM-FLUX)} 
+            & $\pi$-ID & 4 & 29.8 & \textbf{36.1} & \textbf{0.269} & 0.903 & 0.308 & \textbf{14.3} & \textbf{19.2} & \textbf{0.288} & \textbf{0.816} & 0.313 \\
+        \textbf{\methodname{} (GM-FLUX)} 
+            & $\pi$-ID (data-free) & 4 & \textbf{29.7} & 36.2 & \textbf{0.269} & \textbf{0.905} & \textbf{0.310} & 14.4 & 19.7 & 0.287 & 0.813 & 0.314 \\
+        \midrule
+        Qwen-Image 
+            & - & 50\texttimes2 & 34.1 & 45.6 & 0.282 & 0.936 & 0.312 & - & - & 0.302 & 0.872 & 0.309 \\
+        \midrule
+        Qwen-Image Lightning 
+            & VSD & 4 & 37.5 & 51.6 & 0.280 & 0.935 & \textbf{0.322} & 15.6 & 19.7 & 0.299 & \textbf{0.867} & \textbf{0.328} \\
+        \textbf{\methodname{} (GM-Qwen)} 
+            & $\pi$-ID & 4 & \textbf{36.0} & 46.1 & 0.281 & 0.934 & 0.314 & \textbf{12.8} & \textbf{16.6} & 0.300 & 0.860 & 0.310 \\
+        \textbf{\methodname{} (GM-Qwen)} 
+            & $\pi$-ID (data-free) & 4 & \textbf{36.0} & \textbf{45.7} & \textbf{0.282} & \textbf{0.936} & 0.315 & 12.9 & 16.8 & \textbf{0.301} & 0.862 & 0.312 \\
+        \bottomrule
+        \end{tabular}
+    }
+\end{table}
+
+\begin{table}[t]
+    \centering
+    \caption{Quantitative comparisons on OneIG-Bench~\citep{oneig}.}
+    \label{tab:oneig}
+    \scalebox{0.8}{%
+        % \setlength{\tabcolsep}{0.35em}
+        \begin{tabular}{lccccccc}
+        \toprule
+        \textbf{Model} & \textbf{Distill Method} & \textbf{NFE} & \textbf{Alignment\textuparrow} & \textbf{Text\textuparrow} & \textbf{Diversity\textuparrow} & \textbf{Style\textuparrow}  & \textbf{Reasoning\textuparrow} \\
+        \midrule
+        FLUX.1 dev 
+            & - & 50 & 0.790 & 0.556 & 0.238 & 0.370 & 0.257 \\
+        \midrule
+        FLUX Turbo 
+            & GAN & 8 & 0.791 & 0.334 & \textbf{0.234} & \textbf{0.370} & 0.239 \\
+        Hyper-FLUX 
+            & CD+Re & 8 & 0.790 & \textbf{0.530} & 0.198 & 0.369 & 0.254 \\
+        \textbf{\methodname{} (GM-FLUX)} 
+            & $\pi$-ID & 8 & \textbf{0.792} & 0.517 & \textbf{0.234} & 0.369 & \textbf{0.256} \\
+        \midrule
+        SenseFlow (FLUX) 
+            & VSD+CD+GAN & 4 & 0.776 & 0.384 & 0.151 & 0.343 & 0.238 \\
+        \textbf{\methodname{} (GM-FLUX)} 
+            & $\pi$-ID & 4 & \textbf{0.799} & 0.437 & \textbf{0.229} & 0.360 & \textbf{0.251} \\
+        \textbf{\methodname{} (GM-FLUX)} 
+            & $\pi$-ID (data-free) & 4 & \textbf{0.799} & \textbf{0.460} & 0.224 & \textbf{0.363} & 0.249\\
+        \midrule
+        Qwen-Image 
+            & - & 50\texttimes2 & 0.880 & 0.888 & 0.194 & 0.427 & 0.306 \\
+        \midrule
+        Qwen-Image Lightning & VSD & 4 & \textbf{0.885} & \textbf{0.923} & 0.116 & 0.417 & \textbf{0.311} \\
+        \textbf{\methodname{} (GM-Qwen)} 
+            & $\pi$-ID & 4 & 0.875 & 0.892 & \textbf{0.180} & \textbf{0.434} & 0.298 \\
+        \textbf{\methodname{} (GM-Qwen)} 
+            & $\pi$-ID (data-free) & 4 & 0.881 & 0.890 & 0.176 & 0.433 & 0.300 \\
+        \bottomrule
+        \end{tabular}
+    }
+\end{table}
+
+\textbf{Evaluation protocol.}
+We conduct a comprehensive evaluation on 1024\textsuperscript{2} high-resolution image generation from three distinct prompt sets: (a) 10K captions from the COCO 2014 validation set~\citep{coco}, (b) 3200 prompts from the HPSv2 benchmark~\citep{hpsv2}, and (c) 1120 prompts from OneIG-Bench~\citep{oneig}. For the COCO and HPSv2 sets, we report common metrics including FID~\citep{FID}, patch FID (pFID)~\citep{lin2024sdxllightningprogressiveadversarialdiffusion}, CLIP similarity~\citep{clip}, VQAScore~\citep{vqascore}, and HPSv2.1~\citep{hpsv2}. On COCO prompts, FIDs are computed against real images, reflecting data alignment. On HPSv2, FIDs are computed against the 50-step teacher generations, reflecting teacher alignment. CLIP and VQAScore measure prompt alignment, while HPSv2 captures human preference alignment. For OneIG-Bench, we adopt its official evaluation protocol and metrics. All quantitative results are presented in Table~\ref{tab:fluxqwen} and \ref{tab:oneig}.
+
+\begin{figure}[t]
+    \raggedleft
+    \includegraphics[width=1.0\linewidth]{resources/viz_0_final.pdf}
+    \caption{Images generated from the same batch of initial noise by \methodname s, teachers, and VSD students (SenseFlow, Qwen-Image Lightning). \methodname{} models produce diverse structures that closely mirror the teacher's. In contrast, VSD students tend to repeat the same structure. Notably, SenseFlow mostly generates symmetric images. 
+    }
+    \label{fig:compare_teacher_vsd}
+\end{figure}
+
+
+\textbf{Competitor models.} 
+We compare \methodname{} against other few-step student models distilled from the same teacher. For FLUX, we compare against:
+4-NFE SenseFlow~\citep{senseflow}, primarily leveraging variational score distillation (VSD)~\citep{wang2023prolificdreamer}, also known as distribution matching distillation (DMD)~\citep{yin2024onestep}; 
+8-NFE Hyper-FLUX~\citep{hypersd}, trained with consistency distillation (CD)~\citep{consistencymodels} and reward models (Re)~\citep{imagereward}; 
+8-NFE FLUX Turbo, based on GAN-like adversarial distillation~\citep{GAN, sauer2025adversarial}. For Qwen-Image, we compare with the 4-NFE Qwen-Image Lighting
+based on VSD~\citep{qwen_image_lightning_2025}.
+Note that the 4-NFE FLUX.1 schnell is distilled from the closed-source FLUX.1 pro instead of the publicly available FLUX.1 dev~\citep{flux1_schnell_space_2024}, so we do not compare with it directly, but include further discussion in \S~\ref{sec:schnell}.
+
+\textbf{Strong all-around performance.}
+As shown in Table~\ref{tab:fluxqwen} and Table~\ref{tab:oneig}, \methodname{} demonstrates strong all-around performance, outperforming other few-step students on roughly 70\% of all metrics, without exhibiting obvious weaknesses in any specific area. 
+
+\textbf{Superior diversity and teacher alignment.}
+\methodname{} consistently achieves the highest diversity scores and the best teacher-referenced FIDs by clear margins, especially in the 4-NFE setting. 
+These results strongly suggest that \methodname{} effectively avoids both diversity collapse and style drift. As a result, most of its scores closely match those of the teacher, with some even slightly surpassing the teacher scores (e.g., prompt alignment and several Qwen-Image OneIG scores). Its strong teacher alignment is also evident in Fig.~\ref{fig:compare_teacher_vsd}, where \methodname{} generates structurally similar images to the teacher's from the same initial noise.
+
+\textbf{Comparison with VSD (DMD) students.} 
+VSD models are notable for high visual quality, sometimes surpassing teachers in quality and preference metrics. However, they are widely known to suffer from mode collapse, as reflected in our experiments: both SenseFlow and Qwen-Image Lightning show significant drops in diversity and FIDs. Visual examples in Fig.~\ref{fig:compare_teacher_vsd} further highlight the collapse, where different initial noises produce visually similar 
+images with only minor variations. 
+In contrast, \methodname{} maintains high quality and diversity without sacrificing either aspect.
+
+
+\textbf{Comparison with other students.}
+FLUX Turbo achieves better data alignment FIDs than the teacher due to GAN training, yet its text rendering performance is significantly weaker, as shown in Fig.~\ref{fig:text_viz}.
+Meanwhile, Hyper-FLUX often produces undesirable texture artifacts and fuzzy details, whereas \methodname{} achieves superior detail rendering, as shown in Fig.~\ref{fig:detail_viz}.
+
+\textbf{Data-dependent vs. data-free.}
+As shown in Table~\ref{tab:fluxqwen} and Table~\ref{tab:oneig}, data-dependent and data-free \methodname{} models achieve nearly identical results. This demonstrates the practicality of \methodname{} in scenarios where high-quality data is unavailable.
+
+\textbf{GMFlow vs. DX policy.}
+Consistent with prior ImageNet findings, the DX policy slightly underperforms comapred to the GMFlow policy (Table~\ref{tab:dxfluxqwen}), highlighting the latter's superior robustness.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.99\linewidth]{resources/viz_1_5_final.pdf}
+    \caption{Images generated from the same initial noise by \methodname{} and FLUX Turbo. \methodname{} renders coherent texts, whereas FLUX Turbo underperforms in text rendering.
+    }
+    \label{fig:text_viz}
+\end{figure}
+
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=1.0\linewidth]{resources/viz_1.pdf}
+    \caption{Images generated from the same initial noise by \methodname{} and Hyper-FLUX. \methodname{} produces notably finer details, as highlighted in the zoomed-in patches.
+    }
+    \label{fig:detail_viz}
+\end{figure}
+
+\begin{table}[t]
+\centering
+\begin{minipage}[t]{0.63\linewidth}
+    % \vspace{-0.8ex} % force top alignment for [t]
+    \caption{Comparisons between DX and GMFlow policies on text-to-image generation.}
+    % \vspace{0.8ex}
+    \label{tab:dxfluxqwen}
+    \centering
+    \scalebox{0.8}{%
+        \setlength{\tabcolsep}{0.3em}
+        \begin{tabular}{llccccc}
+        \toprule
+        \multirow{2}[2]{*}{\textbf{Policy}} & \multirow{2}[2]{*}{\textbf{Teacher}} & \multicolumn{3}{c}{HPSv2 prompts} & \multicolumn{2}{c}{OneIG-Bench} \\
+        \cmidrule(lr){3-5} \cmidrule(lr){6-7}
+        & & \textbf{FID\textdownarrow} & \textbf{pFID\textdownarrow} & \textbf{HPSv2.1\textuparrow} & \textbf{Text\textuparrow} & \textbf{Diversity\textuparrow}
+        \\
+        \midrule
+        DX ($N=10$) & FLUX & 14.9 & 20.9 & \textbf{0.313} & 0.397 & 0.225 \\
+        GM ($K=8$) & FLUX & \textbf{14.3} & \textbf{19.2} & \textbf{0.313} & \textbf{0.437} & \textbf{0.229} \\
+        \midrule
+        DX ($N=10$) & Qwen-Image & \textbf{12.7} & 17.0 & 0.306 & 0.869 & \textbf{0.185} \\
+        GM ($K=8$) & Qwen-Image & 12.8 & \textbf{16.6} & \textbf{0.310} & \textbf{0.892} & 0.180 \\
+        \bottomrule
+        \end{tabular}
+    }
+
+    \vspace{1.5em}
+    
+    \centering
+    \caption{\edit{Per-NFE inference time of \methodname{} models and the shortcut-predicting model (Qwen-Image Lightning). Tested on an A100 GPU with 12 CPU cores (3.0 GHz).}}
+    \edit{\label{tab:time}
+    \scalebox{0.8}{%
+        % \setlength{\tabcolsep}{0.35em}
+        \begin{tabular}{lcc}
+        \toprule
+        \textbf{Model} & \textbf{Network time (sec)} & \textbf{Policy time (sec)} \\
+        \midrule
+        Qwen-Image Lightning & 0.465 & - \\
+        \methodname{} (DX-Qwen) & 0.464 & 0.015 \\
+        \methodname{} (GM-Qwen) & 0.465 & 0.014 \\
+        \bottomrule
+        \end{tabular}
+    }}
+
+\end{minipage} \hfill 
+\begin{minipage}[t]{0.33\linewidth}
+    \vspace{-0.8ex} % force top alignment for [t]
+    \centering
+    \hspace{-3ex}\includegraphics[width=0.9\linewidth]{resources/convergence_plot.pdf}
+    \captionof{figure}{Teacher-referenced FID and Patch FID of GM-Qwen evaluated on HPSv2 prompts.}
+    \label{fig:converge}
+\end{minipage}
+% \vspace{-0.4em}
+\end{table}
+
+\textbf{Convergence.}
+Figure~\ref{fig:converge} illustrates the convergence of \methodname{} (GM-Qwen) over training iterations. Both FID and Patch FID scores initially improve rapidly, outperforming Qwen-Image Lightning within the first 400 iterations, and continue to improve steadily thereafter. This contrasts with previous
+GAN or VSD-based methods that often require frequent checkpointing and cherry-picking~\citep{senseflow}, demonstrating the scalability and robustness of our approach.
+
+\textbf{\edit{Inference time.}}
+\edit{To validate that the policies are indeed fast enough so that the overhead is negligible compared to shortcut-predicting models, we compare the inference times of 4-NFE \methodname{} models and Qwen-Image Lightning in Table~\ref{tab:time}. For \methodname{}, each policy generation step (with one network evaluation) is followed by 32 policy integration substeps on average. The results in Table~\ref{tab:time} show that 32 policy substeps cost around 15 ms in total, which is only 3\% of the network time. Therefore, the overall speed of \methodname{} is on par with shortcut-predicting models.}

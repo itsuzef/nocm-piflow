@@ -1,0 +1,470 @@
+\begin{thebibliography}{66}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Song et~al.(2020)Song, Sohl-Dickstein, Kingma, Kumar, Ermon, and
+  Poole]{song2020score}
+Yang Song, Jascha Sohl-Dickstein, Diederik~P Kingma, Abhishek Kumar, Stefano
+  Ermon, and Ben Poole.
+\newblock Score-based generative modeling through stochastic differential
+  equations.
+\newblock \emph{arXiv:2011.13456}, 2020.
+
+\bibitem[Ho et~al.(2020)Ho, Jain, and Abbeel]{ho2020denoising}
+Jonathan Ho, Ajay Jain, and Pieter Abbeel.
+\newblock Denoising diffusion probabilistic models.
+\newblock In \emph{Advances in neural information processing systems},
+  volume~33, pages 6840--6851, 2020.
+
+\bibitem[Sohl-Dickstein et~al.(2015)Sohl-Dickstein, Weiss, Maheswaranathan, and
+  Ganguli]{sohldickstein2015deep}
+Jascha Sohl-Dickstein, Eric~A. Weiss, Niru Maheswaranathan, and Surya Ganguli.
+\newblock Deep unsupervised learning using nonequilibrium thermodynamics.
+\newblock \emph{arXiv:1503.03585}, 2015.
+
+\bibitem[Song and Ermon(2020{\natexlab{a}})]{song_improved_2020}
+Yang Song and Stefano Ermon.
+\newblock Improved {Techniques} for {Training} {Score}-{Based} {Generative}
+  {Models}.
+\newblock \emph{arXiv:2006.09011}, October 2020{\natexlab{a}}.
+
+\bibitem[Song and Ermon(2020{\natexlab{b}})]{song_generative_2020}
+Yang Song and Stefano Ermon.
+\newblock Generative {Modeling} by {Estimating} {Gradients} of the {Data}
+  {Distribution}.
+\newblock \emph{arXiv:1907.05600}, 2020{\natexlab{b}}.
+
+\bibitem[Dhariwal and Nichol(2021)]{dhariwal_diffusion_2021}
+Prafulla Dhariwal and Alex Nichol.
+\newblock Diffusion {Models} {Beat} {GANs} on {Image} {Synthesis}.
+\newblock \emph{arXiv:2105.05233}, 2021.
+
+\bibitem[Rombach et~al.(2022)Rombach, Blattmann, Lorenz, Esser, and
+  Ommer]{rombach2022high}
+Robin Rombach, Andreas Blattmann, Dominik Lorenz, Patrick Esser, and Bj{\"o}rn
+  Ommer.
+\newblock High-resolution image synthesis with latent diffusion models.
+\newblock In \emph{Proceedings of the IEEE/CVF conference on computer vision
+  and pattern recognition}, pages 10684--10695, 2022.
+
+\bibitem[Esser et~al.(2024)Esser, Kulal, Blattmann, Entezari, Müller, Saini,
+  Levi, Lorenz, Sauer, Boesel, Podell, Dockhorn, English, Lacey, Goodwin,
+  Marek, and Rombach]{esser_scaling_2024}
+Patrick Esser, Sumith Kulal, Andreas Blattmann, Rahim Entezari, Jonas Müller,
+  Harry Saini, Yam Levi, Dominik Lorenz, Axel Sauer, Frederic Boesel, Dustin
+  Podell, Tim Dockhorn, Zion English, Kyle Lacey, Alex Goodwin, Yannik Marek,
+  and Robin Rombach.
+\newblock Scaling rectified flow transformers for high-resolution image
+  synthesis.
+\newblock \emph{arXiv:2403.03206}, 2024.
+
+\bibitem[Popov et~al.(2021)Popov, Vovk, Gogoryan, Sadekova, and
+  Kudinov]{popov_grad-tts_2021}
+Vadim Popov, Ivan Vovk, Vladimir Gogoryan, Tasnima Sadekova, and Mikhail
+  Kudinov.
+\newblock Grad-{TTS}: {A} {Diffusion} {Probabilistic} {Model} for
+  {Text}-to-{Speech}.
+\newblock In \emph{Proceedings of the 38th {International} {Conference} on
+  {Machine} {Learning}}, pages 8599--8608. PMLR, July 2021.
+
+\bibitem[Jeong et~al.(2021)Jeong, Kim, Cheon, Choi, and
+  Kim]{jeong_diff-tts_2021}
+Myeonghun Jeong, Hyeongju Kim, Sung~Jun Cheon, Byoung~Jin Choi, and Nam~Soo
+  Kim.
+\newblock Diff-{TTS}: {A} {Denoising} {Diffusion} {Model} for
+  {Text}-to-{Speech}.
+\newblock \emph{arXiv:2104.01409}, 2021.
+
+\bibitem[Huang et~al.(2022)Huang, Zhao, Liu, Liu, Cui, and
+  Ren]{huang_prodiff_2022}
+Rongjie Huang, Zhou Zhao, Huadai Liu, Jinglin Liu, Chenye Cui, and Yi~Ren.
+\newblock {ProDiff}: {Progressive} {Fast} {Diffusion} {Model} for
+  {High}-{Quality} {Text}-to-{Speech}.
+\newblock In \emph{Proceedings of the 30th {ACM} {International} {Conference}
+  on {Multimedia}}, {MM} '22, pages 2595--2605, New York, NY, USA, October
+  2022. Association for Computing Machinery.
+
+\bibitem[Lu et~al.(2022{\natexlab{a}})Lu, Wang, Watanabe, Richard, Yu, and
+  Tsao]{lu_conditional_2022}
+Yen-Ju Lu, Zhong-Qiu Wang, Shinji Watanabe, Alexander Richard, Cheng Yu, and
+  Yu~Tsao.
+\newblock Conditional {Diffusion} {Probabilistic} {Model} for {Speech}
+  {Enhancement}.
+\newblock In \emph{{ICASSP} 2022 - 2022 {IEEE} {International} {Conference} on
+  {Acoustics}, {Speech} and {Signal} {Processing} ({ICASSP})}, pages
+  7402--7406, May 2022{\natexlab{a}}.
+
+\bibitem[Ho et~al.(2022{\natexlab{a}})Ho, Chan, Saharia, Whang, Gao, Gritsenko,
+  Kingma, Poole, Norouzi, Fleet, and Salimans]{ho_imagen_2022}
+Jonathan Ho, William Chan, Chitwan Saharia, Jay Whang, Ruiqi Gao, Alexey
+  Gritsenko, Diederik~P. Kingma, Ben Poole, Mohammad Norouzi, David~J. Fleet,
+  and Tim Salimans.
+\newblock Imagen {Video}: {High} {Definition} {Video} {Generation} with
+  {Diffusion} {Models}.
+\newblock \emph{arXiv:2210.02303}, 2022{\natexlab{a}}.
+
+\bibitem[Ho et~al.(2022{\natexlab{b}})Ho, Salimans, Gritsenko, Chan, Norouzi,
+  and Fleet]{ho_video_2022}
+Jonathan Ho, Tim Salimans, Alexey Gritsenko, William Chan, Mohammad Norouzi,
+  and David~J. Fleet.
+\newblock Video {Diffusion} {Models}.
+\newblock \emph{Advances in Neural Information Processing Systems},
+  35:\penalty0 8633--8646, December 2022{\natexlab{b}}.
+
+\bibitem[Blattmann et~al.(2023)Blattmann, Rombach, Ling, Dockhorn, Kim, Fidler,
+  and Kreis]{blattmann_align_2023}
+Andreas Blattmann, Robin Rombach, Huan Ling, Tim Dockhorn, Seung~Wook Kim,
+  Sanja Fidler, and Karsten Kreis.
+\newblock Align {Your} {Latents}: {High}-{Resolution} {Video} {Synthesis}
+  {With} {Latent} {Diffusion} {Models}.
+\newblock \emph{arXiv:2304.08818}, 2023.
+
+\bibitem[Wu et~al.(2023)Wu, Ge, Wang, Lei, Gu, Shi, Hsu, Shan, Qie, and
+  Shou]{wu_tune--video_2023}
+Jay~Zhangjie Wu, Yixiao Ge, Xintao Wang, Stan~Weixian Lei, Yuchao Gu, Yufei
+  Shi, Wynne Hsu, Ying Shan, Xiaohu Qie, and Mike~Zheng Shou.
+\newblock Tune-{A}-{Video}: {One}-{Shot} {Tuning} of {Image} {Diffusion}
+  {Models} for {Text}-to-{Video} {Generation}.
+\newblock \emph{arXiv:2212.11565}, 2023.
+
+\bibitem[Lipman et~al.(2022)Lipman, Chen, Ben-Hamu, Nickel, and
+  Le]{lipman2022flow}
+Yaron Lipman, Ricky~TQ Chen, Heli Ben-Hamu, Maximilian Nickel, and Matthew Le.
+\newblock Flow matching for generative modeling.
+\newblock In \emph{The Eleventh International Conference on Learning
+  Representations}, 2022.
+
+\bibitem[Liu et~al.(2022{\natexlab{a}})Liu, Gong, and Liu]{liu2022flow}
+Xingchao Liu, Chengyue Gong, and Qiang Liu.
+\newblock Flow straight and fast: Learning to generate and transfer data with
+  rectified flow.
+\newblock In \emph{The Eleventh International Conference on Learning
+  Representations}, 2022{\natexlab{a}}.
+
+\bibitem[Albergo and Vanden-Eijnden(2022)]{albergo2022building}
+Michael~S Albergo and Eric Vanden-Eijnden.
+\newblock Building normalizing flows with stochastic interpolants.
+\newblock In \emph{The Eleventh International Conference on Learning
+  Representations}, 2022.
+
+\bibitem[Albergo et~al.(2023{\natexlab{a}})Albergo, Boffi, and
+  Vanden-Eijnden]{albergo2023stochastic}
+Michael~S Albergo, Nicholas~M Boffi, and Eric Vanden-Eijnden.
+\newblock Stochastic interpolants: A unifying framework for flows and
+  diffusions.
+\newblock \emph{arXiv preprint arXiv:2303.08797}, 2023{\natexlab{a}}.
+
+\bibitem[Chi et~al.(2024)Chi, Xu, Feng, Cousineau, Du, Burchfiel, Tedrake, and
+  Song]{chi_diffusion_2024}
+Cheng Chi, Zhenjia Xu, Siyuan Feng, Eric Cousineau, Yilun Du, Benjamin
+  Burchfiel, Russ Tedrake, and Shuran Song.
+\newblock Diffusion {Policy}: {Visuomotor} {Policy} {Learning} via {Action}
+  {Diffusion}.
+\newblock \emph{arXiv:2303.04137}, 2024.
+
+\bibitem[Goodfellow et~al.(2014)Goodfellow, Pouget-Abadie, Mirza, Xu,
+  Warde-Farley, Ozair, Courville, and Bengio]{goodfellow_generative_2014}
+Ian Goodfellow, Jean Pouget-Abadie, Mehdi Mirza, Bing Xu, David Warde-Farley,
+  Sherjil Ozair, Aaron Courville, and Yoshua Bengio.
+\newblock Generative {Adversarial} {Nets}.
+\newblock In \emph{Advances in {Neural} {Information} {Processing} {Systems}},
+  volume~27. Curran Associates, Inc., 2014.
+
+\bibitem[Goodfellow et~al.(2020)Goodfellow, Pouget-Abadie, Mirza, Xu,
+  Warde-Farley, Ozair, Courville, and Bengio]{goodfellow_generative_2020}
+Ian Goodfellow, Jean Pouget-Abadie, Mehdi Mirza, Bing Xu, David Warde-Farley,
+  Sherjil Ozair, Aaron Courville, and Yoshua Bengio.
+\newblock Generative adversarial networks.
+\newblock \emph{Communications of the ACM}, 63\penalty0 (11):\penalty0
+  139--144, October 2020.
+
+\bibitem[Creswell et~al.(2018)Creswell, White, Dumoulin, Arulkumaran, Sengupta,
+  and Bharath]{creswell_generative_2018}
+Antonia Creswell, Tom White, Vincent Dumoulin, Kai Arulkumaran, Biswa Sengupta,
+  and Anil~A. Bharath.
+\newblock Generative {Adversarial} {Networks}: {An} {Overview}.
+\newblock \emph{IEEE Signal Processing Magazine}, 35\penalty0 (1):\penalty0
+  53--65, January 2018.
+
+\bibitem[Metz et~al.(2017)Metz, Poole, Pfau, and
+  Sohl-Dickstein]{metz_unrolled_2017}
+Luke Metz, Ben Poole, David Pfau, and Jascha Sohl-Dickstein.
+\newblock Unrolled {Generative} {Adversarial} {Networks}.
+\newblock \emph{arXiv:1611.02163}, 2017.
+
+\bibitem[Arjovsky et~al.(2017)Arjovsky, Chintala, and
+  Bottou]{arjovsky_wasserstein_2017}
+Martin Arjovsky, Soumith Chintala, and Léon Bottou.
+\newblock Wasserstein {GAN}.
+\newblock \emph{arXiv:1701.07875}, 2017.
+
+\bibitem[Karras et~al.(2022)Karras, Aittala, Aila, and
+  Laine]{karras_elucidating_2022}
+Tero Karras, Miika Aittala, Timo Aila, and Samuli Laine.
+\newblock Elucidating the {Design} {Space} of {Diffusion}-{Based} {Generative}
+  {Models}.
+\newblock \emph{arXiv:2206.00364}, 2022.
+
+\bibitem[Song et~al.(2023)Song, Dhariwal, Chen, and
+  Sutskever]{song_consistency_2023}
+Yang Song, Prafulla Dhariwal, Mark Chen, and Ilya Sutskever.
+\newblock Consistency {Models}.
+\newblock \emph{arXiv:2303.01469}, 2023.
+
+\bibitem[Song and Dhariwal(2023)]{song_improved_2023}
+Yang Song and Prafulla Dhariwal.
+\newblock Improved {Techniques} for {Training} {Consistency} {Models}.
+\newblock \emph{arXiv:2310.14189}, 2023.
+
+\bibitem[Kim et~al.(2024{\natexlab{a}})Kim, Lai, Liao, Murata, Takida, Uesaka,
+  He, Mitsufuji, and Ermon]{kim_consistency_2024}
+Dongjun Kim, Chieh-Hsin Lai, Wei-Hsiang Liao, Naoki Murata, Yuhta Takida,
+  Toshimitsu Uesaka, Yutong He, Yuki Mitsufuji, and Stefano Ermon.
+\newblock Consistency {Trajectory} {Models}: {Learning} {Probability} {Flow}
+  {ODE} {Trajectory} of {Diffusion}.
+\newblock \emph{arXiv:2310.02279}, 2024{\natexlab{a}}.
+
+\bibitem[Salimans and Ho(2022)]{salimans_progressive_2022}
+Tim Salimans and Jonathan Ho.
+\newblock Progressive {Distillation} for {Fast} {Sampling} of {Diffusion}
+  {Models}.
+\newblock \emph{arXiv:2202.00512}, 2022.
+
+\bibitem[Zheng et~al.(2023)Zheng, Nie, Vahdat, Azizzadenesheli, and
+  Anandkumar]{zheng_fast_2023}
+Hongkai Zheng, Weili Nie, Arash Vahdat, Kamyar Azizzadenesheli, and Anima
+  Anandkumar.
+\newblock Fast {Sampling} of {Diffusion} {Models} via {Operator} {Learning}.
+\newblock \emph{arXiv:2211.13449}, 2023.
+
+\bibitem[Villani(2009)]{villani2009optimal}
+C{\'e}dric Villani.
+\newblock \emph{Optimal transport: old and new}, volume 338.
+\newblock Springer, 2009.
+
+\bibitem[Benamou and Brenier(2000)]{benamou2000computational}
+Jean-David Benamou and Yann Brenier.
+\newblock A computational fluid mechanics solution to the monge-kantorovich
+  mass transfer problem.
+\newblock \emph{Numerische Mathematik}, 84\penalty0 (3):\penalty0 375--393,
+  2000.
+
+\bibitem[Santambrogio(2015)]{santambrogio2015optimal}
+Filippo Santambrogio.
+\newblock Optimal transport for applied mathematicians.
+\newblock \emph{Birk{\"a}user, NY}, 55\penalty0 (58-63):\penalty0 94, 2015.
+
+\bibitem[Tabak and {Vanden-Eijnden}(2010)]{tabak_density_2010}
+Esteban~G. Tabak and Eric {Vanden-Eijnden}.
+\newblock Density estimation by dual ascent of the log-likelihood.
+\newblock \emph{Communications in Mathematical Sciences}, 8\penalty0
+  (1):\penalty0 217--233, 2010.
+
+\bibitem[Tabak and Turner(2013)]{tabak2013}
+E.~G. Tabak and Cristina~V. Turner.
+\newblock A family of nonparametric density estimation algorithms.
+\newblock \emph{Communications on Pure and Applied Mathematics}, 66\penalty0
+  (2):\penalty0 145--164, 2013.
+
+\bibitem[Rezende and Mohamed(2015)]{rezende_variational_2015}
+Danilo Rezende and Shakir Mohamed.
+\newblock Variational {{Inference}} with {{Normalizing Flows}}.
+\newblock In \emph{International {{Conference}} on {{Machine Learning}}}, pages
+  1530--1538. {PMLR}, June 2015.
+
+\bibitem[Dinh et~al.(2017)Dinh, {Sohl-Dickstein}, and
+  Bengio]{dinh_density_2017}
+Laurent Dinh, Jascha {Sohl-Dickstein}, and Samy Bengio.
+\newblock Density {{Estimation Using Real NVP}}.
+\newblock In \emph{International Conference on Learning Representations},
+  page~32, 2017.
+
+\bibitem[Grathwohl et~al.(2018)Grathwohl, Chen, Bettencourt, Sutskever, and
+  Duvenaud]{grathwohl_ffjord}
+Will Grathwohl, Ricky T.~Q. Chen, Jesse Bettencourt, Ilya Sutskever, and David
+  Duvenaud.
+\newblock {{FFJORD}}: {{Free}}-form {{Continuous Dynamics}} for {{Scalable
+  Reversible Generative Models}}.
+\newblock \emph{arXiv:1810.01367}, 2018.
+
+\bibitem[Chen et~al.(2019)Chen, Rubanova, Bettencourt, and
+  Duvenaud]{chen_neural_2019}
+Ricky T.~Q. Chen, Yulia Rubanova, Jesse Bettencourt, and David Duvenaud.
+\newblock Neural {Ordinary} {Differential} {Equations}.
+\newblock \emph{arXiv:1806.07366}, 2019.
+
+\bibitem[Liu et~al.(2022{\natexlab{b}})Liu, Wu, Ye, and Liu]{liu2022let}
+Xingchao Liu, Lemeng Wu, Mao Ye, and Qiang Liu.
+\newblock Let us build bridges: Understanding and extending diffusion
+  generative models.
+\newblock \emph{arXiv preprint arXiv:2208.14699}, 2022{\natexlab{b}}.
+
+\bibitem[Ma et~al.(2024)Ma, Goldstein, Albergo, Boffi, Vanden-Eijnden, and
+  Xie]{ma_sit_2024}
+Nanye Ma, Mark Goldstein, Michael~S. Albergo, Nicholas~M. Boffi, Eric
+  Vanden-Eijnden, and Saining Xie.
+\newblock {SiT}: {Exploring} {Flow} and {Diffusion}-based {Generative} {Models}
+  with {Scalable} {Interpolant} {Transformers}.
+\newblock \emph{arXiv:2401.08740}, 2024.
+
+\bibitem[Chen et~al.(2024)Chen, Goldstein, Hua, Albergo, Boffi, and
+  Vanden-Eijnden]{chen_probabilistic_2024}
+Yifan Chen, Mark Goldstein, Mengjian Hua, Michael~S. Albergo, Nicholas~M.
+  Boffi, and Eric Vanden-Eijnden.
+\newblock Probabilistic {Forecasting} with {Stochastic} {Interpolants} and
+  {F\"ollmer} {Processes}.
+\newblock \emph{arXiv:2403.13724}, 2024.
+
+\bibitem[Pooladian et~al.(2023)Pooladian, Ben-Hamu, Domingo-Enrich, Amos,
+  Lipman, and Chen]{pooladian2023multisample}
+Aram-Alexandre Pooladian, Heli Ben-Hamu, Carles Domingo-Enrich, Brandon Amos,
+  Yaron Lipman, and Ricky Chen.
+\newblock Multisample flow matching: Straightening flows with minibatch
+  couplings.
+\newblock \emph{arXiv preprint arXiv:2304.14772}, 2023.
+
+\bibitem[Tong et~al.(2023)Tong, Fatras, Malkin, Huguet, Zhang, Rector-Brooks,
+  Wolf, and Bengio]{tong_improving_2023}
+Alexander Tong, Kilian Fatras, Nikolay Malkin, Guillaume Huguet, Yanlei Zhang,
+  Jarrid Rector-Brooks, Guy Wolf, and Yoshua Bengio.
+\newblock Improving and generalizing flow-based generative models with
+  minibatch optimal transport.
+\newblock \emph{Transactions on Machine Learning Research}, 2023.
+
+\bibitem[Albergo et~al.(2023{\natexlab{b}})Albergo, Goldstein, Boffi,
+  Ranganath, and Vanden-Eijnden]{albergo_stochastic_dd_2023}
+Michael~S. Albergo, Mark Goldstein, Nicholas~M. Boffi, Rajesh Ranganath, and
+  Eric Vanden-Eijnden.
+\newblock Stochastic interpolants with data-dependent couplings.
+\newblock \emph{arXiv:2310.03725}, 2023{\natexlab{b}}.
+
+\bibitem[Zhang and Chen(2023)]{zhang_fast_2023}
+Qinsheng Zhang and Yongxin Chen.
+\newblock Fast {Sampling} of {Diffusion} {Models} with {Exponential}
+  {Integrator}.
+\newblock \emph{arXiv:2204.13902}, 2023.
+
+\bibitem[Jolicoeur-Martineau et~al.(2021)Jolicoeur-Martineau, Li,
+  Piché-Taillefer, Kachman, and Mitliagkas]{jolicoeur-martineau_gotta_2021}
+Alexia Jolicoeur-Martineau, Ke~Li, Rémi Piché-Taillefer, Tal Kachman, and
+  Ioannis Mitliagkas.
+\newblock Gotta {Go} {Fast} {When} {Generating} {Data} with {Score}-{Based}
+  {Models}.
+\newblock \emph{arXiv:2105.14080}, 2021.
+
+\bibitem[Liu et~al.(2022{\natexlab{c}})Liu, Ren, Lin, and
+  Zhao]{liu_pseudo_2022}
+Luping Liu, Yi~Ren, Zhijie Lin, and Zhou Zhao.
+\newblock Pseudo {Numerical} {Methods} for {Diffusion} {Models} on {Manifolds}.
+\newblock \emph{arXiv:2202.09778}, 2022{\natexlab{c}}.
+
+\bibitem[Lu et~al.(2022{\natexlab{b}})Lu, Zhou, Chen, Li, and
+  Zhu]{lu_dpm-solver_nodate}
+Cheng Lu, Yuhao Zhou, Jianfei Chen, Chongxuan Li, and Jun Zhu.
+\newblock {DPM}-{Solver}: {A} {Fast} {ODE} {Solver} for {Diffusion}
+  {Probabilistic} {Model} {Sampling} in {Around} 10 {Steps}.
+\newblock \emph{arXiv:2206.00927}, 2022{\natexlab{b}}.
+
+\bibitem[Watson et~al.(2021)Watson, Ho, Norouzi, and
+  Chan]{watson_learning_2021}
+Daniel Watson, Jonathan Ho, Mohammad Norouzi, and William Chan.
+\newblock Learning to {Efficiently} {Sample} from {Diffusion} {Probabilistic}
+  {Models}.
+\newblock \emph{arXiv:2106.03802}, 2021.
+
+\bibitem[Watson et~al.(2022)Watson, Chan, Ho, and
+  Norouzi]{watson_learning_2022}
+Daniel Watson, William Chan, Jonathan Ho, and Mohammad Norouzi.
+\newblock Learning {Fast} {Samplers} for {Diffusion} {Models} by
+  {Differentiating} {Through} {Sample} {Quality}.
+\newblock \emph{arXiv:2202.05830}, 2022.
+
+\bibitem[Nichol and Dhariwal(2021)]{nichol_improved_2021}
+Alex Nichol and Prafulla Dhariwal.
+\newblock Improved {Denoising} {Diffusion} {Probabilistic} {Models}.
+\newblock \emph{arXiv:2102.09672}, 2021.
+
+\bibitem[Lai et~al.(2023{\natexlab{a}})Lai, Takida, Uesaka, Murata, Mitsufuji,
+  and Ermon]{lai_equivalence_2023}
+Chieh-Hsin Lai, Yuhta Takida, Toshimitsu Uesaka, Naoki Murata, Yuki Mitsufuji,
+  and Stefano Ermon.
+\newblock On the {Equivalence} of {Consistency}-{Type} {Models}: {Consistency}
+  {Models}, {Consistent} {Diffusion} {Models}, and {Fokker}-{Planck}
+  {Regularization}.
+\newblock \emph{arXiv:2306.00367}, 2023{\natexlab{a}}.
+
+\bibitem[Lai et~al.(2023{\natexlab{b}})Lai, Takida, Murata, Uesaka, Mitsufuji,
+  and Ermon]{lai_improving_2023}
+Chieh-Hsin Lai, Yuhta Takida, Naoki Murata, Toshimitsu Uesaka, Yuki Mitsufuji,
+  and Stefano Ermon.
+\newblock Improving {Score}-based {Diffusion} {Models} by {Enforcing} the
+  {Underlying} {Score} {Fokker}-{Planck} {Equation}.
+\newblock \emph{arXiv:2210.04296}, 2023{\natexlab{b}}.
+
+\bibitem[Shen et~al.(2022)Shen, Wang, Kale, Ribeiro, Karbasi, and
+  Hassani]{shen_self-consistency_2022}
+Zebang Shen, Zhenfu Wang, Satyen Kale, Alejandro Ribeiro, Aim Karbasi, and
+  Hamed Hassani.
+\newblock Self-{Consistency} of the {Fokker}-{Planck} {Equation}.
+\newblock \emph{arXiv:2206.00860}, 2022.
+
+\bibitem[Boffi and Vanden-Eijnden(2023)]{boffi_probability_2023}
+Nicholas~M. Boffi and Eric Vanden-Eijnden.
+\newblock Probability flow solution of the {Fokker}--{Planck} equation.
+\newblock \emph{Machine Learning: Science and Technology}, 4\penalty0
+  (3):\penalty0 035012, July 2023.
+
+\bibitem[Daras et~al.(2023)Daras, Dagan, Dimakis, and
+  Daskalakis]{daras_consistent_2023}
+Giannis Daras, Yuval Dagan, Alexandros~G. Dimakis, and Constantinos Daskalakis.
+\newblock Consistent {Diffusion} {Models}: {Mitigating} {Sampling} {Drift} by
+  {Learning} to be {Consistent}.
+\newblock \emph{arXiv:2302.09057}, 2023.
+
+\bibitem[Kim et~al.(2024{\natexlab{b}})Kim, Kim, Kim, and
+  Ye]{kim_generalized_2024}
+Beomsu Kim, Jaemin Kim, Jeongsol Kim, and Jong~Chul Ye.
+\newblock Generalized {Consistency} {Trajectory} {Models} for {Image}
+  {Manipulation}.
+\newblock \emph{arXiv:2403.12510}, October 2024{\natexlab{b}}.
+
+\bibitem[Li and He(2024)]{li_bidirectional_2024}
+Liangchen Li and Jiajun He.
+\newblock Bidirectional {Consistency} {Models}.
+\newblock \emph{arXiv:2403.18035}, September 2024.
+
+\bibitem[Luhman and Luhman(2021)]{luhman_knowledge_2021}
+Eric Luhman and Troy Luhman.
+\newblock Knowledge {Distillation} in {Iterative} {Generative} {Models} for
+  {Improved} {Sampling} {Speed}.
+\newblock \emph{arXiv:2101.02388}, January 2021.
+
+\bibitem[Hartman(2002)]{hartman2002ordinary}
+Philip Hartman.
+\newblock \emph{Ordinary Differential Equations}.
+\newblock Society for Industrial and Applied Mathematics, second edition, 2002.
+\newblock \doi{10.1137/1.9780898719222}.
+
+\bibitem[Kingma and Ba(2017)]{kingma2017adam}
+Diederik~P. Kingma and Jimmy Ba.
+\newblock Adam: A method for stochastic optimization.
+\newblock \emph{arXiv:1412.6980}, 2017.
+
+\bibitem[Raissi et~al.(2019)Raissi, Perdikaris, and
+  Karniadakis]{raissi_physics-informed_2019}
+M.~Raissi, P.~Perdikaris, and G.~E. Karniadakis.
+\newblock Physics-informed neural networks: {A} deep learning framework for
+  solving forward and inverse problems involving nonlinear partial differential
+  equations.
+\newblock \emph{Journal of Computational Physics}, 378:\penalty0 686--707,
+  2019.
+
+\bibitem[Song et~al.(2022)Song, Meng, and Ermon]{song_denoising_2022}
+Jiaming Song, Chenlin Meng, and Stefano Ermon.
+\newblock Denoising {Diffusion} {Implicit} {Models}.
+\newblock \emph{arXiv:2010.02502}, 2022.
+
+\end{thebibliography}

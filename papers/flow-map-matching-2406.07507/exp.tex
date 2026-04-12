@@ -1,0 +1,201 @@
+\section{Numerical Realizations}
+\label{sec:exp}
+In this section, we study the efficacy of the four methods introduced in~\cref{sec:theory}:
+the Lagrangian map distillation discussed in~\cref{prop:distill}, the Eulerian map distillation discussed in~\cref{prop:backward_loss}, the direct training approach of~\cref{prop:fmm}, and the progressive flow map matching approach of~\cref{prop:fmmd}.
+%
+We consider their performance on a two-dimensional checkerboard dataset, as well as in the high-dimensional setting of image generation, to highlight differences in their training efficiency and performance.
+
+To ensure that the boundary conditions on the flow map $\hat X_{s,t}$ defined in~\eqref{eqn:flow_map_dyn:L} are enforced, in all experiments, we parameterize the map using the ansatz
+\begin{equation}
+	\label{eq:map:anstaz}
+	X_{s,t}(x) = x + (t-s) v^\theta_{s,t}(x),
+\end{equation}
+where $v^\theta_{s,t}(x) : [0,T]^2 \times \mathbb R^d \rightarrow \mathbb R^d$ is a neural network with parameters~$\theta$.
+
+
+\subsection{2D Illustration}
+\begin{figure}[t]
+	\centering
+	\includegraphics[width=1.0\linewidth]{figs/checker_comp_kl2b.pdf}
+	\caption{\textbf{Two-dimensional results.}
+	%
+	Comparison of the various map-matching procedures on the 2D checkerboard dataset, with the results from the probability flow ODE of a stochastic interpolant integrated using $N=80$ discretization steps as reference (top, first panel from left).
+	%
+	The one-step map obtained by FMM when learning on $(s,t)=[0,1]^2$ (top, second panel) performs as well as SI. Moreover, the accuracy improves if we allow four steps instead of one (top, third panel).
+	%
+	This four-step map can be accurately distilled into a one-step map via PFMM (top, fourth panel).
+	%
+	The one-step map obtained by distilling the pre-trained $b$ via LMD (top, fifth panel) performs reasonably well too, and is better than the one-step map obtained by distilling the same $b$ via EMD (top, sixth panel).
+	%
+	A KL-divergence between each model distribution and the target is provided to quantify performance, indicating that FMM, its progressive distillation, and LMD are closest to the probability flow ODE baseline. The bottom row indicates, by color, how points from the Gaussian base are assigned by each of the respective maps. The yellow dots are points that mistakenly land outside the checkerboard. These results indicate that the primary source of error in each case is handling the discontinuity of the optimal map at the edges of the checker. See Appendix \ref{app:exp:checker} for more details.}
+	\label{fig:checker}
+\end{figure}
+%
+As a simple illustration of our method, we consider learning the flow map connecting a two-dimensional Gaussian distribution to the checkerboard distribution presented in~\cref{fig:checker}. Note that this example is challenging because the target density is supported on a compact set, and because the target is discontinuous at the edge of this set.
+%
+This mapping can be achieved, as discussed in~\cref{sec:theory}, in various ways: (a) implicitly, by solving~\eqref{eqn:ode} with a learned velocity field using stochastic interpolants (or a diffusion model), (b) directly, using the flow map matching objective in~\eqref{eq:obj:match}, (c) progressively matching the flow map using \eqref{eq:obj:match:D}, or (d/e) distilling the map using the Eulerian \eqref{eqn:L_backward} or Lagrangian \eqref{eqn:distillation_loss} losses.
+%
+In each case, we use a fully connected neural network with $512$ neurons per hidden layer and $6$ layers to parameterize either a velocity field $\hat b_t(x)$ or a flow map $\hat X_{s,t}(x)$.
+%
+We optimize each loss using the Adam~\citep{kingma2017adam} optimizer for $5\times 10^4$ training iterations.
+%
+The results are presented in~\cref{fig:checker}, where we observe that using the one-step $\hat X_{0,1}(x)$ directly learned by minimizing~\eqref{eq:obj:match} over the entire interval $(s, t) \in [0, 1]^2$ performs worse than learning with $|t-s| < 0.25$ and sampling with 4 steps.
+%
+With this in mind, we use the 4-step map as a teacher to minimize the PFMM loss, which produces a high-performing one-step map.
+%
+We also note that the EMD loss performs worse than the LMD loss when distilling the map from a learned velocity field.
+
+\subsection{Image Generation}
+
+\begin{figure}[b!]
+	\centering
+	\begin{overpic}[width=0.48\textwidth]{figs/multistep_fmm-crop.pdf}
+		\centering
+		\put(0,61){\textbf{A}}
+	\end{overpic}
+	\begin{overpic}[width=0.51\textwidth]{figs/losses_and_fids-2.pdf}
+		\centering
+		\put(2,58){\textbf{B}}
+	\end{overpic}
+	\caption{%
+		%
+		(A) Qualitative comparison between the standard stochastic interpolant approach (SI), Lagrangian map distillation (LMD), Eulerian map distillation (EMD), and progressive flow map matching (PFMM).
+		%
+		SI produces good images for a sufficiently large number of steps, but performs poorly for few steps.
+		%
+		LMD performs well in the very-few step regime, and outperforms EMD significantly.
+		%
+		PFMM performs well at any number of steps, though performs slightly worse than LMD in the very-few step regime.
+		%
+		%
+		(B) Quantitative comparison between EMD and LMD on both CIFAR-10 and ImageNet $32\times32$.
+		%
+		Despite both having the same minimizer, LMD trains faster, and attains a lower loss value and a lower FID for a fixed number of training steps.
+	}
+	\label{fig:performance_comp}
+\end{figure}
+%
+
+Motivated by the above results, we consider a series of image generation experiments on the CIFAR-10 and ImageNet-$32\times32$ datasets.
+%
+For comparison, we benchmark the method against alternative techniques that seek to lower the number of steps needed to produce samples with stochastic interpolant models, e.g. by straightening the ODE trajectories using minibatch OT \citep{pooladian2023multisample, tong_improving_2023}.
+%
+We train all of our models from scratch, so as to control the design space of the comparison.
+%
+For clarity, we label when benchmark numbers are quoted from the literature.
+\begin{table}[t!]
+	\centering
+	\begin{tabular}{lcccccccc}
+		\toprule
+		\multirow{2}{*}{Method} & \multicolumn{2}{c}{N=2} & \multicolumn{2}{c}{N=4} & \multirow{2}{*}{Baseline}                \\
+		\cmidrule(lr){2-3} \cmidrule(lr){4-5}
+		                        & FID                     & T-FID                   & FID                       & T-FID &      \\
+		\midrule
+		SI                      & 112.42                  & -                       & 34.84                     & -     & 5.53 \\
+		EMD                     & 48.32                   & 34.19                   & 44.35                     & 30.74 & 5.53 \\
+		LMD                     & 7.13                    & 1.27                    & 6.04                      & 1.05  & 5.53 \\
+		PFMM                    & 18.35                   & 7.02                    & 11.14                     & 1.52  & 8.44 \\
+		\bottomrule
+	\end{tabular}
+	\caption{Comparison of various distillation methods using FID and Teacher-FID metrics on the CIFAR-10 dataset. Note that for PFMM, no velocity model (e.g. from a stochastic interpolant) is needed. It relies solely on the minimization of \eqref{eq:obj:match} and \eqref{eq:obj:match:D}.
+		%
+		Baseline indicates the FID of the teacher model (a velocity field for EMD and LMD integrated with
+		an adaptive fifth-order Runge-Kutta scheme, and a flow map for PFMM) against the true data.
+		%
+	}
+	\label{tab:comparison}
+\end{table}
+
+For learning of the flow map, we use a U-Net architecture following~\citep{dhariwal_diffusion_2021}. For LMD and EMD that require a pre-trained velocity field to distill, we also use a U-Net architecture for $b$.
+%
+Because the flow map $X_{s, t}$ is a function of two times, we modify the architecture.
+%
+Both $s$ and $t$ are embedded identically to $t$ in the original architecture.
+%
+The result is concatenated and treated like $t$ in the original architecture for downstream layers.
+%
+We benchmark the performance of the methods using the Frechet Inception Distance (FID), which computes a measure of similarity between real images from the dataset and those generated by our models.
+%
+In addition, we compute what we denote as the Teacher-FID (T-FID).
+%
+This metric computes the same measure of similarity, but now between images generated by the teacher model and those generated by the distilled model, rather than leveraging the original dataset.
+%
+This measure allows us to directly benchmark the convergence of the distillation method, as it captures discrepancies between the distribution of samples generated by the teacher and the distribution of samples generated by the student.
+%
+In addition, this allows us to benchmark accuracy independent of the overall performance of the teacher, as our teacher models were trained with limited compute.
+
+
+\paragraph{Sampling efficiency}
+%
+In Table \ref{tab:comparison}, we compute the FID and T-FID for the stochastic interpolant, Eulerian, Lagrangian, and progressive distillation models on 2 and 4-step generation for CIFAR-10.
+%
+The stochastic interpolant was trained to a baseline FID (sampling with an adaptive solver) of 5.53, and was used as the teacher for EMD and LMD.
+%
+The teacher for PFMM was an FMM model trained with $|t-s| < 0.25$ to an FID of 8.44 using 8-step sampling. We observe that LMD and EMD methods can effectively distill their teachers and obtain low T-FID scores.
+%
+In addition, the 2 and 4-step samples from these methods far outperform the stochastic interpolant. This sampling efficiency is also apparent in the left side of~\cref{fig:performance_comp}, in which with just 1 to 4 steps, the LMD and PFMM methods can produce effective samples, particularly when compared to the flow matching approach.
+
+%
+\begin{wraptable}[14]{r}{0.5\textwidth} % 'r' for right side, '0.5\textwidth' for width
+	\vspace{2.5mm}
+	\centering
+	\begin{tabular}{cccc}
+		\toprule
+		$\mathbf{N}$ & \textbf{DDPM} & \textbf{BatchOT} & \textbf{FMM (Ours)} \\
+		\midrule
+		20           & 63.08         & \textbf{7.71}    & 9.68                \\
+		8            & 232.97        & 15.64            & \textbf{12.61}      \\
+		6            & 275.28        & 22.08            & \textbf{14.48}      \\
+		4            & 362.37        & 38.86            & \textbf{16.90}      \\
+		\bottomrule
+	\end{tabular}
+	\caption{FID scaling with number of function evaluations $N$ to produce a sample on ImageNet-$32\times32$.
+		%
+		We show a comparison between DDPM~\citep{ho2020denoising} and multi-sample Flow Matching using the BatchOT method \citep{pooladian2023multisample} to flow map matching.
+		%
+		The first two columns are quoted from \citet{pooladian2023multisample}.
+		%
+		Note that no distillation is used here, but rather direct minimization of \eqref{eq:obj:match}, using $|t-s| < 0.25$.
+	}
+	\label{tab:scaling}
+\end{wraptable}
+%
+Without any distillation, FMM can also produce effective few-step maps.
+%
+Training an FMM model on the ImageNet-$32\times32$ dataset, we observe (Table \ref{tab:scaling}) that FMM achieves much better few-step FID when compared to denoising diffusion models (DDPM), and better FID than mini-batch OT interpolant methods \citep{pooladian2023multisample}.
+%
+In the higher-step regime, the interpolant methods perform marginally better.
+
+\paragraph{Eulerian vs Lagrangian distillation}
+Remarkably, we find a stark performance gap between the Eulerian and Lagrangian distillation schemes.
+%
+This is evident in both parts of~\cref{fig:performance_comp}, where we see that higher-step sampling with EMD only marginally improves image quality, and where the LMD loss for both CIFAR10 and ImageNet-$32\times32$ converges an order of magnitude faster than the EMD loss.
+%
+The same holds for FIDs over training, given in the right-most plot in the figure.
+%
+Note that both LMD and EMD loss functions have a global minimum at 0, so that the loss plots suggest continued training will improve distillation quality, but at very different rates.
+
+\subsubsection{Efficient Style Transfer}
+%
+To illustrate some of the downstream tasks facilitated by our approach, we now describe a means of performing style transfer with the two-time invertible flow map that we call ``consistency style transfer''.
+%
+%
+A class conditional sample $x_1$ with class label $y$ can be partially inverted to an earlier time $s'$ via $X_{1,s'}(x_1; y)$ for $s' < 1$.
+%
+From here, replacing the class label with $y' \neq y$, we can resample the flow map $X_{s', 1}(X_{1, s'}(x_1; y); y')$ to sample the conditional distribution associated to $y'$ while maintaining the style of the original class.
+%
+We demonstrate this principle in Figure \ref{fig:style}, which shows that maps discretized with $n=8$ step can be used convert between classes.
+%
+\begin{figure}[t]
+	\centering
+	\vspace{-20pt} % adjust spacing as needed
+	\includegraphics[width=0.5\linewidth]{figs/style-transfer-paper.pdf}
+	\caption{Consistency style transfer on CIFAR-10. Original class-conditional images from the dataset (top row) are pushed backward in time to $X_{1, s'=0.3}(x_1; y)$ and then pushed forward using a new class. The original styles of the images are maintained, while their subjects are replaced with those from the new class (bottom row).}
+	\label{fig:style}
+\end{figure}
+%
+This serves both as verification of the cycle consistency as well as an illustration of the potential applications of the two-time flow map.
+%
+In practice, the extent of the preserved style depends on how far back in time towards the Gaussian base at $s'=0$ we push the original sample.
+%
+Here, we use $s'=0.3$.

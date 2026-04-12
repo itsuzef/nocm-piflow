@@ -1,0 +1,148 @@
+
+\section{Learning the trajectory with neural operator}
+% \arash{Currently we don't explicitly say what the goal of disillation is and what the input to the distilled model is and what the expected output is. Readers cannot get this from our problem statement or the background section very easily. Make it explicit by starting the paragraph with something like: The goal of distillation-based sampling methods is to ....}
+\paragraph{Problem statement.}
+% As shown in the prior work \cite{salimans2021progressive}, the intermediate steps of the ODE trajectories are important for training-based distillation methods as they can provide intermediate information on the ground truth trajectory and result in better generalization and sample quality. 
+Our goal is to learn a neural operator that given any initial condition $\rvx(T)\sim \mathcal{N}(0,\mathbf{I})$, predicts the probability flow trajectory $\{\rvx(t)\}_{s}^{0}$ with time flowing from $s$ to $0$ defined in equation~\ref{eq:ode_soln}, where the endpoint $\rvx(0) \in \sR^d$ is the data. 
+Let $D=[0, s], 0 < s \leq T$ be the temporal domain. 
+Let $\mathcal{A}$ be the finite-dimensional space of the initial condition, and $\mathcal{U}=\mathcal{U}(D; \mathbb{R}^d)$ denote the space of the target continuous time functions with output value in $\sR^d$. 
+We build a neural operator $\gG_{\theta}$ parameterized by $\theta$ to approximate the solution operator $\gG^\dagger$ by minimizing the error as follows
+\begin{equation}
+    \min_{\theta} \E_{\rvx_T \sim \gN(0,\mathbf{I})} \gL\left(\gG_{\theta}\left(\rvx_T\right) - \gG^\dagger\left(\rvx_T\right)\right),
+    \label{eq:}
+\end{equation}
+where 
+% $\mathcal{L}: \mathcal{U} \times \mathcal{U} \rightarrow \mathbb{R}_+$
+$\mathcal{L}: \mathcal{U}  \rightarrow \mathbb{R}_+$ 
+is some loss functional such as $L^{p}$-norm for some $p\geq 1$. From the exact solution $\rvx(t)$ in equation~\ref{eq:ode_soln}, we know the solution operator $\gG^\dagger: \mathcal{A} \rightarrow \mathcal{U}$ exists and is a unique weighted integral operator of the score function. In other words, 
+% Following the construction of diffusion models, we have that 
+the solution operator corresponds to the underlying diffusion ODE, i.e., a mapping from a $\rvx(T)\sim \mathcal{N}(0,\mathbf{I})$ to the probability flow trajectory $\{\rvx(t)\}_{s}^{0}$. 
+It is a regular operator, i.e., a member of operator set in the neural operator theory that can be approximated~\citep{kovachki2021neural,kovachki2021universal}. More formally,
+
+\begin{proposition} [\citet{kovachki2021neural,kovachki2021universal}]
+The class of neural operators defined in equation~\ref{eq:fno_layers} approximates the solution map of the diffusion ODE, i.e., a mapping from $\rvx(T)\sim \mathcal{N}(0,\mathbf{I})$ to the probability flow trajectory $\{\rvx(t)\}_{s}^{0}$, arbitrarily well. 
+% \weili{which class of neural operators it refers to? }
+\end{proposition}
+This implies that the proposed architecture has the required capacity to learn to output the continuous time probability flow trajectory $\{\rvx(t)\}_{s}^{0}$ in one model call. 
+
+
+
+
+
+
+% We explain the details of how to compute the power spectrum in the appendix~\ref{sec:spectrum}. 
+% \arash{Make sure you explain what energy spectrum is in the appendix and what you mean by the frequency modes.}
+
+% From equation~\ref{eq:ode_soln}, we see that given an initial condition $\rvx(T)$, for any pixel location $(x,y)$, the trajectory $\{\rvx(t)\}$ at this location can be viewed as a function of time $u: [0, T] \rightarrow \mathbb{R}^3$.
+% One of our key observation is that given an initial condition $\rvx(T)$ of the probability flow ODE, the trajectory $\{\rvx(t)\}_{t=T}^{0}$ has a compact power spectrum over the temporal dimension. We compute 
+
+
+\vspace{-0.1in}
+\paragraph{Temporal convolution block in Fourier space.}
+Inspired by the weighted integral form of the exact ODE solution in equation~\ref{eq:ode_soln}, we build our temporal convolution block with Fourier integral operator $\mathcal{K}$ to efficiently model the trajectory.  
+% our temporal convolution operator leverages the Fourier convolution theorem to enable fast global temporal convolution.  
+% Its inverse transform $\mathcal{F}^{-1}$ is defined as
+% \begin{equation}
+%     \left(\mathcal{F}^{-1} \hat{u}\right)_{j}(t) = \int_{D} \hat{u}_j(k) \exp\left(2\pi i kt \right) \df k.
+% \end{equation}
+% The Fourier integral operator $\mathcal{K}_{\phi}$ parameterized by $\phi$ is defined as 
+% \begin{equation}
+%     \left(\mathcal{K}_{\phi} u \right)(t) = \mathcal{F}^{-1} \left(R_{\phi} \cdot (\mathcal{F}u)\right)(t) = \int_{D} (\mathcal{F}^{-1}R_{\phi})(t)u(t) \df t,
+% \end{equation}
+% where $R_{\phi}\in  \ell ^2(\mathbb{Z}; \mathbb{C}^{\dout \times \din})$ is the Fourier transform of a kernel function parameterized by $\phi$ that we learn from data, and the second equality holds by the convolution theorem and reveals the kernel integration form.
+Given an input function $u: D\rightarrow \sR^d$, our temporal convolution layer $\gT$ is defined as
+\begin{equation}
+    (\gT u)(t) = u(t) +  \sigma \left(\left(\gK u \right)(t)\right),
+\end{equation}
+where $\sigma$ is a point-wise nonlinear function, and $\gK$ is a Fourier convolution operator defined in equation \ref{eq:fourier_conv} parameterized by $R$. Note that our proposed temporal convolution layer differs slightly from the FNO layer given in equation \ref{eq:fno_layers}. 
+% Compared to the Fourier layer in the original FNO architecture,
+Specifically, we move the nonlinear activation function  right after the Fourier convolution operator $\gK$ and replace the linear pointwise operator $\gW$ with an identity shortcut, which preserves the high-frequency information without extra cost and also leads to a better optimization landscape~\cite{he2016deep}. 
+We have not observed the advantages of using a more general linear layer. The identity map is shown to be sufficient and more attractive because it is computationally efficient. Furthermore, we note that, by convolution theorem, we have 
+\begin{equation}
+   (\gK u)(t) = \int_{D} (\mathcal{F}^{-1}R)(\tau)u(t-\tau) \df \tau, \forall t\in D. \label{eq:fourier_int}
+\end{equation}
+Notably, the integral form in equation~\ref{eq:fourier_int} inherently possesses a structural similarity to the core diffusion process in equation~\ref{eq:ode_soln}, meaning that the temporal convolution layer implicitly parameterize the ODE solution trajectory. 
+% Plus, the universal approximation properties of FNO allow us to efficiently learn the solution operator that maps the initial condition to the diffusion model trajectory, i.e., a function in time. \weili{Not sure what do you mean here. For example, how does the "universal approx properties" have anything to do with the temporal conv layer? What does the "remote similarity" imply?}
+
+% To have a more concrete explanation of the temporal convolution block, we describe it in a practical discrete case. 
+In practice, we use the discrete Fourier transforms for computational efficiency.
+Suppose the temporal domain $D$ is discretized into $M$ points. 
+For ease of understanding, we also assume the codomains of the input and output functions of the temporal convolution block are both in $\sR^d$. 
+ The input function $u(t)$ is represented as a tensor in $\sR^{M\times d}$. $R$ is a complex-valued parameter in $\sC^{J\times d \times d}$, where $J$ is the maximal number of modes that we can choose. For all $u$, we truncate the modes higher than $J$ and then have $\gF(u) \in \sC^{J\times d}$. The pointwise product of Fourier transforms of input and kernel functions is given by
+\begin{align}
+    R \cdot (\gF u)_{j,k} = \sum_{l=1}^{d} R_{j,k,l} (\gF u)_{j,l}, 
+\end{align}
+for all $ j\in \{1,\dots, J\}, k\in \{1,\dots, d\}$. Accordingly, $\gF$ and $\gF^{-1}$ are realized by the fast Fourier transform algorithm. 
+Figure~\ref{fig:dfno_arch} demonstrates the implementation details of the temporal convolution layers. Note that the temporal convolution layer only operates over the temporal dimension and hidden feature channel dimension and thus treats the pixel dimension as the same as the batch dimension. In other words, $d$ in the above example corresponds to the number of channel dimensions in practice. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\vspace{-0.1in}
+\paragraph{Architecture of DSNO.}
+As demonstrated in Figure~\ref{fig:dfno_arch}, the architecture of DSNO is built on top of any existing architecture of diffusion models, by adding our proposed temporal convolution layers to each level of the U-Net structure. The dark blue blocks are the modules in the existing diffusion model backbone, which treat the temporal dimension the same as the batch dimension and only work on the pixel and channel dimension. The yellow blocks are the Fourier temporal convolution blocks, which only perform on the temporal and channel dimension. Therefore, our model is highly parallelizable and adds minimal computation complexity to the original backbone. Again, suppose the temporal domain is discretized into $\{t_1, \dots, t_M\}$. The DSNO takes as input the time embeddings at these times and the initial condition. The feature map of the first convolution layer is repeated $M$ times over the temporal dimension as the initial feature at different times.
+% \weili{When you say "at different times", can we make it more clear how we specify the time steps for these replicated Gaussian and also their time embeddings?}
+Each feature representation is combined with the corresponding time embedding in the following ResNet blocks. 
+
+\vspace{-0.1in}
+\paragraph{Training of DSNO}
+Training DSNO is a standard operator learning setting. The training objective is a weighted integral of the error: 
+\begin{equation}
+    \min_{\theta} \E_{\rvx_T\sim \gN(0, \mathbf{I})} \int_D \lambda(t)\|\gG_{\theta}(\rvx_T)(t) - \gG^{\dagger}(\rvx_T)(t)\| \df t, 
+\end{equation}
+where $\theta$ is the parameter of DSNO, $\lambda(t)$ is the weighting function, $\rvx_{T}$ is the initial condition, and $\|\cdot\|$ is a norm. In practice, we optimize over $\theta$ to minimize the empirical-risk similar to ~\citet{kovachki2021neural}:
+\begin{equation}
+    \min_{\theta} \frac{1}{N}\sum_{j=1}^{N}\frac{1}{M}\sum_{i=1}^{M} \lambda(t_i)\|\gG_{\theta}(\rvx_T^{(j)})(t_i) - \gG^{\dagger}(\rvx_T^{(j)})(t_i)\|,
+\end{equation}
+where $\{t_1,\dots, t_M\}$ are discrete points in the temporal domain, and $\gG^{\dagger}(\rvx_T^{(j)})(t_i)$ can be generated from any existing solver or sampling method. 
+% \weili{We can give more details of how we specify the weighting function.}
+\vspace{-0.1in}
+\paragraph{Parallel decoding}
+As shown in the top two yellow blocks in Figure~\ref{fig:dfno_arch}, the proposed Fourier temporal convolution block can predict images at different times in parallel. 
+% \weili{If this is the only place to refer Fig 2, maybe it's better to move it here}
+Given any input function $u(t)$, we can compute the Fourier coefficient $R\cdot \gF u$ and then call the inverse Fourier transform at all $t_i$ in parallel to generate output for different times at once. 
+Plus, the other modules of DSNO treat temporal dimension like batch dimension and can perform in parallel for different $t_i$s. Therefore, DSNO is capable of efficient parallel decoding. 
+Note that the effectiveness of our parallel decoding is based on the fact that the solutions of the diffusion ODE at different times are conditionally independent given the initial condition. Parallel decoding has shown its efficiency in transformers-based models~\cite{chang2023muse} and language models~\cite{ghazvininejad2019mask} for discrete tokens generation in the spatial domain. DSNO is the first parallel decoding method for continuous diffusion ODE trajectory, which is in temporal domain.   
+
+% Parallel decoding is mainly used for the discrete tokens in the language models~\cite{ghazvininejad2019mask} and vision transformers~\cite{chang2023muse}, which can predict multiple tokens with only one model forward pass. 
+\vspace{-0.1in}
+\paragraph{Compact power spectrum.}
+% Learning the solution operator $\gG^\dagger$ is a challenging task in general. 
+% However, the exponentially weighted integral form may indicate that the spectral density of the trajectory decays fast. 
+We examine the spectrum of the probability flow ODE trajectories generated from several publicly available pre-trained diffusion models in the literature, and observe that the ODE trajectories always have a compact energy spectrum over the temporal dimension. See more details in Appendix~\ref{sec:spectrum}. 
+ % We know the universal approximation property allows neural operators to solve more general problems beyond the ones with a compact spectrum. But 
+The smoothness of the diffusion ODE trajectory means the high-frequency modes do not contribute much to the learning objective. Therefore, DSNO built upon the stacks of Fourier temporal convolution layers can model the underlying solution operator of diffusion ODEs more efficiently with a relatively small number of discretization steps $M$. 
+ % We examine the spectrum of trajectories generated from several publicly available pre-trained diffusion models in the literature. The spectrum of ODE trajectories sampled from existing diffusion models can be found in the appendix~\ref{sec:spectrum}. 
+
+
+% \subsubsection{Paragraphs and Footnotes}
+
+% Within each section or subsection, you should further partition the
+% paper into paragraphs. Do not indent the first line of a given
+% paragraph, but insert a blank line between succeeding ones.
+
+% You can use footnotes\footnote{Footnotes
+% should be complete sentences.} to provide readers with additional
+% information about a topic without interrupting the flow of the paper.
+% Indicate footnotes with a number in the text where the point is most
+% relevant. Place the footnote in 9~point type at the bottom of the
+% column in which it appears. Precede the first footnote in a column
+% with a horizontal rule of 0.8~inches.\footnote{Multiple footnotes can
+% appear in each column, in the same order as they appear in the text,
+% but spread them across columns and pages if possible.}
+

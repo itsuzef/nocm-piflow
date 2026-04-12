@@ -1,0 +1,36 @@
+# Personal / local docs
+personal-docs/
+
+# PDFs (binary, large — generate from source)
+*.pdf
+
+# Paper source archives
+papers/*/source.tar.gz
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Editors
+.idea/
+*.swp
+*.swo
+
+# Env files
+.env
+.env.local

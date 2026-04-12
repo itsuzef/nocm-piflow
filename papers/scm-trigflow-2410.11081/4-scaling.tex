@@ -1,0 +1,331 @@
+
+\begin{figure}[t]
+    \begin{minipage}{0.49\linewidth}
+    \centering
+        \begin{minipage}{0.50\linewidth}
+		\centering
+            \includegraphics[width=\linewidth]{figures/experiments/scaling_in64_cropped.pdf}\\
+            \small{ImageNet 64$\times$ 64}
+        \end{minipage}        
+        \begin{minipage}{0.48\linewidth}
+		\centering
+            \includegraphics[width=\linewidth]{figures/experiments/scaling_in512_cropped.pdf}\\
+            \small{ImageNet 512$\times$ 512}
+        \end{minipage} \\
+        \vspace{.1cm} 
+        \small{(a) FID ($\downarrow$) as a function of single forward flops.}
+    \end{minipage}
+    \begin{minipage}{0.49\linewidth}
+    \centering
+        \begin{minipage}{0.48\linewidth}
+		\centering
+            \includegraphics[width=\linewidth]{figures/experiments/cd_scaling_in64_cropped.pdf}\\
+            \small{ImageNet 64$\times$ 64}
+        \end{minipage}        
+        \begin{minipage}{0.49\linewidth}
+		\centering
+            \includegraphics[width=\linewidth]{figures/experiments/cd_scaling_in512_cropped.pdf}\\
+            \small{ImageNet 512$\times$ 512}
+        \end{minipage} \\
+        \vspace{.1cm} 
+        \small{(b) FID ratio ($\downarrow$) as a function of single forward flops.}
+    \end{minipage}
+    \vspace{-.1in}
+	\caption{\small{\textbf{sCD scales commensurately with teacher diffusion models}. We plot the (a) FID and (b) FID ratio against the teacher diffusion model (at the same model size) on ImageNet 64$\times$64 and 512$\times$512. sCD scales better than sCT, and has a \textit{constant offset} in the FID ratio across all model sizes, implying that sCD has the same scaling property of the teacher diffusion model. Furthermore, the offset diminishes with more sampling steps.}
+	\label{fig:exp:scaling}}
+\vspace{-.3in}
+\end{figure}
+
+\begin{figure}[t]
+	\begin{minipage}{0.32\linewidth}
+		\centering
+			\includegraphics[width=\linewidth]{figures/experiments/vsd_Precision_cropped.pdf}\\
+		    \small{(a) Precision score ($\uparrow$)} \\
+	\end{minipage}
+	\begin{minipage}{0.32\linewidth}
+		\centering
+			\includegraphics[width=\linewidth]{figures/experiments/vsd_Recall_cropped.pdf}\\
+		    \small{(b) Recall score ($\uparrow$)} \\
+	\end{minipage}
+	\begin{minipage}{0.32\linewidth}
+		\centering
+			\includegraphics[width=\linewidth]{figures/experiments/vsd_FID_cropped.pdf}
+		    \small{(c) FID score ($\downarrow$)} \\
+	\end{minipage}
+	\caption{\small{\textbf{sCD has higher diversity compared to VSD}: Sample quality comparison of the EDM2~\citep{karras2024edm2} diffusion model, VSD~\citep{wang2024prolificdreamer,yin2024dmd}, sCD, and the combination of VSD and sCD, across varying guidance scales. All models are of EDM2-M size and trained on ImageNet 512$\times$512.}
+	\label{fig:exp:vsd_cd_comparison}}
+\end{figure}
+
+
+
+
+
+
+
+\begin{table}[t]
+\centering
+\caption{\small{Sample quality on unconditional CIFAR-10 and class-conditional ImageNet 64$\times$ 64.}}
+\label{tab:cifar_in64}
+\begin{minipage}{0.45\textwidth}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcc}
+\multicolumn{3}{l}{\textbf{Unconditional CIFAR-10}} \\
+\toprule
+\textbf{METHOD} & \textbf{NFE} ($\downarrow$) & \textbf{FID} ($\downarrow$) \\
+\midrule
+\multicolumn{3}{l}{\textbf{Diffusion models \& Fast Samplers}} \\
+\midrule
+Score SDE (deep)~\citep{song2020score} & 2000 & 2.20 \\
+EDM~\citep{karras2022edm} & 35 & 2.01 \\
+Flow Matching~\citep{lipman2022flowmatching} & 142 & 6.35 \\
+OT-CFM~\citep{tong2023improving} & 1000 & 3.57 \\
+DPM-Solver~\citep{lu2022dpm} & 10 & 4.70 \\
+DPM-Solver++~\citep{lu2022dpm++} & 10 & 2.91 \\
+DPM-Solver-v3~\citep{zheng2023dpmv3} & 10 & 2.51 \\
+\midrule
+\multicolumn{3}{l}{\textbf{Joint Training}} \\
+\midrule
+Diffusion GAN~\citep{xiao2021diffusion-GAN} & 4 & 3.75 \\
+Diffusion StyleGAN~\citep{wang2022diffusion-stylegan} & 1 & 3.19 \\
+StyleGAN-XL~\citep{sauer2022stylegan-xl} & 1 & 1.52 \\
+CTM~\citep{kim2023ctm} & 1 & \textbf{1.87} \\
+Diff-Instruct~\citep{luo2024diff-instruct} & 1 & 4.53 \\
+DMD~\citep{yin2024dmd} & 1 & 3.77 \\
+SiD~\citep{zhou2024SiD} & 1 & 1.92 \\
+\midrule
+\multicolumn{3}{l}{\textbf{Diffusion Distillation}} \\
+\midrule
+DFNO (LPIPS)~\citep{zheng2023dfno} & 1 & 3.78 \\
+2-Rectified Flow~\citep{rectified_flow} & 1 & 4.85 \\
+PID (LPIPS)~\citep{tee2024PID} & 1 & 3.92 \\
+Consistency-FM~\citep{yang2024consistency-flow-matching} & 2 & 5.34 \\
+PD~\citep{salimans2022progressive} & 1 & 8.34 \\
+& 2 & 5.58 \\
+TRACT~\citep{berthelot2023tract} & 1 & 3.78 \\
+& 2 & 3.32 \\
+CD (LPIPS)~\citep{song2023cm} & 1 & \textbf{3.55} \\
+ & 2 & 2.93 \\
+\textbf{sCD (ours)} & 1 & 3.66 \\
+& 2 & \textbf{2.52} \\
+\midrule
+\multicolumn{3}{l}{\textbf{Consistency Training}} \\
+\midrule
+iCT~\citep{song2023ict} & 1 & 2.83 \\
+& 2 & 2.46 \\
+iCT-deep~\citep{song2023ict} & 1 & \textbf{2.51} \\
+& 2 & 2.24 \\
+ECT~\citep{geng2024ect} & 1 & 3.60 \\
+& 2 & 2.11 \\
+\textbf{sCT (ours)} & 1 & 2.85 \\
+& 2 & \textbf{2.06} \\
+\bottomrule
+\end{tabular} %
+}
+\end{minipage}
+\begin{minipage}{0.45\textwidth}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcc}
+\multicolumn{3}{l}{\textbf{Class-Conditional ImageNet 64$\times$64}} \\
+\toprule
+\textbf{METHOD} & \textbf{NFE} ($\downarrow$) & \textbf{FID} ($\downarrow$) \\
+\midrule
+\multicolumn{3}{l}{\textbf{Diffusion models \& Fast Samplers}} \\
+\midrule
+ADM~\citep{diffusion_beat_gan} & 250 & 2.07 \\
+RIN~\citep{jabri2022rin} & 1000 & 1.23 \\
+DPM-Solver~\citep{lu2022dpm} & 20 & 3.42 \\
+EDM (Heun)~\citep{karras2022edm} & 79 & 2.44 \\
+EDM2 (Heun)~\citep{karras2024edm2} & 63 & 1.33 \\
+\midrule
+\multicolumn{3}{l}{\textbf{Joint Training}} \\
+\midrule
+StyleGAN-XL~\citep{sauer2022stylegan-xl} & 1 & 1.52 \\
+Diff-Instruct~\citep{luo2024diff-instruct} & 1 & 5.57 \\
+EMD~\citep{xie2024EMD} & 1 & 2.20 \\
+DMD~\citep{yin2024dmd} & 1 & 2.62 \\
+DMD2~\citep{yin2024dmd2} & 1 & \textbf{1.28} \\
+SiD~\citep{zhou2024SiD} & 1 & 1.52 \\
+CTM~\citep{kim2023ctm} & 1 & 1.92 \\
+& 2 & 1.73 \\
+Moment Matching~\citep{salimans2024multistepmoment} & 1 & 3.00 \\
+& 2 & 3.86 \\
+\midrule
+\multicolumn{3}{l}{\textbf{Diffusion Distillation}} \\
+\midrule
+DFNO (LPIPS)~\citep{zheng2023dfno} & 1 & 7.83 \\
+PID (LPIPS)~\citep{tee2024PID} & 1 & 9.49 \\
+TRACT~\citep{berthelot2023tract} & 1 & 7.43 \\
+& 2 & 4.97 \\
+PD~\citep{salimans2022progressive} & 1 & 10.70 \\
+\quad\quad (reimpl. from \citet{heek2024multistepcm}) & 2 & 4.70 \\
+CD (LPIPS)~\citep{song2023cm} & 1 & 6.20 \\
+& 2 & 4.70 \\
+MultiStep-CD~\citep{heek2024multistepcm} & 1 & 3.20 \\
+& 2 & 1.90 \\
+\textbf{sCD (ours)} & 1 & \textbf{2.44} \\
+& 2 & \textbf{1.66} \\
+\midrule
+\multicolumn{3}{l}{\textbf{Consistency Training}} \\
+\midrule
+iCT~\citep{song2023ict} & 1 & 4.02 \\
+& 2 & 3.20 \\
+iCT-deep~\citep{song2023ict} & 1 & 3.25 \\
+& 2 & 2.77 \\
+ECT~\citep{geng2024ect} & 1 & 2.49 \\
+& 2 & 1.67 \\
+\textbf{sCT (ours)} & 1 & \textbf{2.04} \\
+& 2 & \textbf{1.48} \\
+\bottomrule
+\end{tabular} %
+}
+\end{minipage}
+\vspace{-.2in}
+\end{table}
+
+
+
+
+
+
+
+\begin{table}[t]
+\centering
+\caption{\small{Sample quality on class-conditional ImageNet 512$\times$ 512. $^\dagger$Our reimplemented teacher diffusion model based on EDM2~\citep{karras2024edm2} but with modifications in Sec.~\ref{sec:stable_parameterization}.}}
+\label{tab:in512}
+\begin{minipage}{0.48\textwidth}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccc}
+\toprule
+\textbf{METHOD} & \textbf{NFE} ($\downarrow$) & \textbf{FID} ($\downarrow$) & \textbf{\#Params} \\
+\midrule
+\multicolumn{4}{l}{\textbf{Diffusion models}} \\
+\midrule
+ADM-G~\citep{diffusion_beat_gan} & 250$\times$2 & 7.72 & 559M \\
+RIN~\citep{jabri2022rin} & 1000 & 3.95 & 320M \\
+U-ViT-H/4~\citep{bao2023uvit} & 250$\times$2 & 4.05 & 501M \\
+DiT-XL/2~\citep{peebles2023DiT} & 250$\times$2 & 3.04 & 675M \\
+SimDiff~\citep{hoogeboom2023simple} & 512$\times$2 & 3.02 & 2B\\
+VDM++~\citep{kingma2024diffusion_elbo} & 512$\times$2 & 2.65 & 2B \\
+DiffiT~\citep{hatamizadeh2023diffit} & 250$\times$2 & 2.67 & 561M \\
+DiMR-XL/3R~\citep{liu2024DiMR} & 250$\times$2 & 2.89 & 525M \\
+D{\tiny{IFFU}}SSM-XL~\citep{yan2024diffusion_without_attention} & 250$\times$2 & 3.41 & 673M \\
+DiM-H~\citep{teng2024dim} & 250$\times$2 & 3.78 & 860M \\
+U-DiT~\citep{tian2024u-dit} & 250 & 15.39 & 204M \\
+SiT-XL~\citep{ma2024sit} & 250$\times$2 & 2.62 & 675M \\
+Large-DiT~\citep{LLaMA2_Accessory_GitHub_largeDiT} & 250$\times$2 & 2.52 & 3B\\
+MaskDiT~\citep{zheng2023mask-dit} & 79$\times$2 & 2.50 & 736M \\
+DiS-H/2~\citep{fei2024DiS} & 250$\times$2 & 2.88 & 900M \\
+DRWKV-H/2~\citep{fei2024diffusion-rwkv} & 250$\times$2  & 2.95 & 779M \\
+EDM2-S~\citep{karras2024edm2} & 63$\times$2 & 2.23 & 280M \\
+EDM2-M~\citep{karras2024edm2} & 63$\times$2 & 2.01 & 498M \\
+EDM2-L~\citep{karras2024edm2} & 63$\times$2 & 1.88 & 778M \\
+EDM2-XL~\citep{karras2024edm2} & 63$\times$2 & 1.85 & 1.1B \\
+EDM2-XXL~\citep{karras2024edm2} & 63$\times$2 & \textbf{1.81} & 1.5B \\
+\midrule
+\multicolumn{4}{l}{\textbf{GANs \& Masked Models}} \\
+\midrule
+BigGAN~\citep{brock2018biggan} & 1 & 8.43 & 160M \\
+StyleGAN-XL~\citep{sauer2022stylegan-xl} & 1$\times$2 & 2.41 & 168M \\
+VQGAN~\citep{esser2021VQGAN} & 1024 & 26.52 & 227M \\
+MaskGIT~\citep{chang2022maskgit} & 12 & 7.32 & 227M \\
+MAGVIT-v2~\citep{yu2023language} & 64$\times$2 & 1.91 & 307M \\
+MAR~\citep{li2024MAR} & 64$\times$2 & \textbf{1.73} & 481M \\
+VAR-$d$36-s~\citep{tian2024VAR} & 10$\times$2 & 2.63 & 2.3B \\
+\bottomrule
+\end{tabular}
+}
+\end{minipage}
+\begin{minipage}{0.48\textwidth}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccc}
+\toprule
+\textbf{METHOD} & \textbf{NFE} ($\downarrow$) & \textbf{FID} ($\downarrow$) & \textbf{\#Params} \\
+\midrule
+\multicolumn{4}{l}{\textbf{$^\dagger$Teacher Diffusion Model}} \\
+\midrule
+EDM2-S~\citep{karras2024edm2} & 63$\times$2 & 2.29 & 280M \\
+EDM2-M~\citep{karras2024edm2} & 63$\times$2 & 2.00 & 498M \\
+EDM2-L~\citep{karras2024edm2} & 63$\times$2 & 1.87 & 778M \\
+EDM2-XL~\citep{karras2024edm2} & 63$\times$2 & 1.80 & 1.1B \\
+EDM2-XXL~\citep{karras2024edm2} & 63$\times$2 & 1.73 & 1.5B \\
+\midrule
+\multicolumn{4}{l}{\textbf{Consistency Training (sCT, ours)}} \\
+\midrule
+sCT-S (ours) & 1 & 10.13 & 280M \\
+& 2 & 9.86 & 280M \\ 
+sCT-M (ours) & 1 & 5.84 & 498M \\
+& 2 & 5.53 & 498M \\ 
+sCT-L (ours) & 1 & 5.15 & 778M \\
+& 2 & 4.65 & 778M \\ 
+sCT-XL (ours) & 1 & 4.33 & 1.1B \\
+& 2 & 3.73 & 1.1B \\ 
+sCT-XXL (ours) & 1 & 4.29 & 1.5B \\
+& 2 & 3.76 & 1.5B \\
+\midrule
+\multicolumn{4}{l}{\textbf{Consistency Distillation (sCD, ours)}} \\
+\midrule
+sCD-S & 1 & 3.07 & 280M \\
+& 2 & 2.50 & 280M \\ 
+sCD-M & 1 & 2.75 & 498M \\
+& 2 & 2.26 & 498M \\ 
+sCD-L & 1 & 2.55 & 778M \\
+& 2 & 2.04 & 778M \\ 
+sCD-XL & 1 & 2.40 & 1.1B \\
+& 2 & 1.93 & 1.1B \\ 
+sCD-XXL & 1 & \textbf{2.28} & 1.5B \\ 
+& 2 & \textbf{1.88} & 1.5B \\
+\bottomrule
+\end{tabular} %
+}
+
+\end{minipage}
+\end{table}
+
+
+
+
+
+
+
+
+
+
+\section{Scaling up Continuous-Time Consistency Models}
+Below we test all the improvements proposed in previous sections by training large-scale sCMs on a variety of challenging datasets.
+
+
+\subsection{Tangent Computation in Large-Scale Models}
+\label{sec:jvp_large_scale}
+The common setting for training large-scale diffusion models includes using half-precision (FP16) and Flash Attention~\citep{dao2022flashattention,dao2023flashattention2}. As training continuous-time CMs requires computing the tangent $\frac{\dm \f_{\theta^-}}{\dm t}$ accurately, we need to improve numerical precision and also support memory-efficient attention computation, as detailed below.
+
+\textbf{JVP Rearrangement. }
+Computing $\frac{\dm \f_{\theta^-}}{\dm t}$ involves calculating $\frac{\dm \F_{\theta^-}}{\dm t} = \nabla_{\x_t}\F_{\theta^-}\cdot \frac{\dm \x_t}{\dm t} + \partial_t \F_{\theta^-}$, which can be efficiently obtained via the Jacobian-vector product (JVP) for $\F_{\theta^-}(\frac{\cdot}{\sigma_d}, \cdot)$ with the input vector $(\x_t, t)$ and the tangent vector $(\frac{\dm \x_t}{\dm t}, 1)$. However, we empirically find that the tangent may overflow in intermediate layers when $t$ is near 0 or $\frac{\pi}{2}$. To improve numerical precision, we propose to rearrange the computation of the tangent. Specifically, since the objective in \eqref{eq:objective_ctcm} contains $\cos(t)\frac{\dm \f_{\theta^-}}{\dm t}$ and $\frac{\dm \f_{\theta^-}}{\dm t}$ is proportional to $\sin(t)\frac{\dm \F_{\theta^-}}{\dm t}$, we can compute the JVP as:
+\begin{equation*}
+    \cos(t)\sin(t)\frac{\dm \F_{\theta^-}}{\dm t} = \left(\nabla_{\frac{\x_t}{\sigma_d}}\F_{\theta^-}\right) \cdot \left(\cos(t)\sin(t)\frac{\dm \x_t}{\dm t}\right) + \partial_t \F_{\theta^-}\cdot (\cos(t)\sin(t)\sigma_d),
+\end{equation*}
+which is the JVP for $\F_{\theta^-}(\cdot,\cdot)$ with the input $(\frac{\x_t}{\sigma_d}, t)$ and the tangent $(\cos(t)\sin(t)\frac{\dm \x_t}{\dm t}, \allowbreak \cos(t)\sin(t)\sigma_d)$. This rearrangement greatly alleviates the overflow issues in the intermediate layers, resulting in more stable training in FP16.
+
+\textbf{JVP of Flash Attention. }
+Flash Attention~\citep{dao2022flashattention,dao2023flashattention2} is widely used for attention computation in large-scale model training, providing both GPU memory savings and faster training. However, Flash Attention does not compute the Jacobian-vector product (JVP). To fill this gap, we propose a similar algorithm (detailed in Appendix~\ref{appendix:flash_attn_jvp}) that efficiently computes both softmax self-attention and its JVP in a single forward pass in the style of Flash Attention, significantly reducing GPU memory usage for JVP computation in attention layers.
+
+
+
+
+
+\subsection{Experiments}
+To test our improvements, we employ both consistency training (referred to as \textbf{sCT}) and consistency distillation (referred to as \textbf{sCD}) to train and scale continuous-time CMs on CIFAR-10~\citep{Krizhevsky09cifar10}, ImageNet 64$\times$64 and ImageNet 512$\times$512~\citep{deng2009imagenet}. We benchmark the sample quality using FID~\citep{heusel2017gans}. We follow the settings of Score SDE~\citep{song2020score} on CIFAR10 and EDM2~\citep{karras2024edm2} on both ImageNet 64$\times$64 and ImageNet 512$\times$512, while changing the parameterization and architecture according to \Cref{sec:stable_parameterization}. We adopt the method proposed by \citet{song2023cm} for two-step sampling of both sCT and sCD, using a fixed intermediate time step $t=1.1$. For sCD models on ImageNet 512$\times$512, since the teacher diffusion model relies on classifier-free guidance (CFG)~\citep{ho2021classifier}, we incorporate an additional input $s$ into the model $\F_\theta$ to represent the guidance scale~\citep{meng2023distillation}. We train the model with sCD by uniformly sampling $s\in[1,2]$ and applying the corresponding CFG to the teacher model during distillation (more details are provided in Appendix~\ref{appendix:exp}). For sCT models, we do not test CFG since it is incompatible with consistency training. 
+
+\textbf{Training compute of sCM. }
+We use the same batch size as the teacher diffusion model across all datasets. The effective compute per training iteration of sCD is approximately twice that of the teacher model. We observe that the quality of two-step samples from sCD converges rapidly, achieving results comparable to the teacher diffusion model using less than 20\% of the teacher training compute. In practice, we can obtain high-quality samples after only 20k finetuning iterations with sCD.
+
+\textbf{Benchmarks. }
+In \Cref{tab:cifar_in64,tab:in512}, we compare our results with previous methods by benchmarking the FIDs and the number of function evaluations (NFEs). First, sCM outperforms all previous few-step methods that do not rely on joint training with another network and is on par with, or even exceeds, the best results achieved with adversarial training. Notably, the 1-step FID of sCD-XXL on ImageNet 512$\times$512 surpasses that of StyleGAN-XL~\citep{sauer2022stylegan-xl} and VAR~\citep{tian2024VAR}. Furthermore, the two-step FID of sCD-XXL outperforms all generative models except diffusion and is comparable with the best diffusion models that require $63$ sequential steps. Second, the two-step sCM model significantly narrows the FID gap with the teacher diffusion model to within 10\%, achieving FIDs of 2.06 on CIFAR-10 (compared to the teacher FID of 2.01), 1.48 on ImageNet 64×64 (teacher FID of 1.33), and 1.88 on ImageNet 512×512 (teacher FID of 1.73). Additionally, we observe that sCT is more effective at smaller scales but suffers from increased variance at larger scales, while sCD shows consistent performance across both small and large scales.
+
+\textbf{Scaling study. }
+Based on our improved training techniques, we successfully scale continuous-time CMs without training instability. We train various sizes of sCMs using EDM2 configurations (S, M, L, XL, XXL) on ImageNet 64$\times$64 and 512$\times$512, and evaluate FID under optimal guidance scales, as shown in Fig.~\ref{fig:exp:scaling}.
+First, as model FLOPs increase, both sCT and sCD show improved sample quality, showing that both methods benefit from scaling. Second, compared to sCD, sCT is more compute efficient at smaller resolutions but less efficient at larger resolutions. Third, sCD scales predictably for a given dataset, maintaining a consistent relative difference in FIDs across model sizes. This suggests that the FID of sCD decreases at the same rate as the teacher diffusion model, and therefore \emph{sCD is as scalable as the teacher diffusion model}. As the FID of the teacher diffusion model decreases with scaling, the \textit{absolute} difference in FID between sCD and the teacher model also diminishes. Finally, the relative difference in FIDs decreases with more sampling steps, and the sample quality of the two-step sCD becomes on par with that of the teacher diffusion model.
+
+\textbf{Comparison with VSD. }
+Variational score distillation (VSD)~\citep{wang2024prolificdreamer,yin2024dmd} and its multi-step generalization~\citep{xie2024EMD,salimans2024multistepmoment} represent another diffusion distillation technique that has demonstrated scalability on high-resolution images~\citep{yin2024dmd2}.
+We apply one-step VSD from time $T$ to $0$ to finetune a teacher diffusion model using the EDM2-M configuration and tune both the weighting functions and proposal distributions for fair comparisons. As shown in \figref{fig:exp:vsd_cd_comparison}, we compare sCD, VSD, a combination of sCD and VSD (by simply adding the two losses), and the teacher diffusion model by sweeping over the guidance scale. We observe that VSD has artifacts similar to those from applying large guidance scales in diffusion models: it increases fidelity (as evidenced by higher precision scores) while decreasing diversity (as shown by lower recall scores). This effect becomes more pronounced with increased guidance scales, ultimately causing severe mode collapse. In contrast, the precision and recall scores from two-step sCD are comparable with those of the teacher diffusion model, resulting in better FID scores than VSD.
+

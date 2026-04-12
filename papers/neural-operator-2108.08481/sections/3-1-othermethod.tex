@@ -1,0 +1,278 @@
+\section{Neural Operators and Other Deep Learning Models}
+\label{sec:framework}
+
+In this section, we provide a discussion on the recent related methods, in particular, DeepONets, and demonstrate that their architectures are subsumed by generic neural operators when neural operators are parametrized inconsistently ~\ref{sec:deeponets}. When only applied and queried on fixed grids, we show neural operator architectures subsume neural networks and, furthermore, we show how transformers are special cases of neural operators~\ref{sec:transformers}.
+
+
+\subsection{DeepONets}
+\label{sec:deeponets}
+
+We will now draw a parallel between the recently proposed DeepONet architecture in \citet{lu2019deeponet}, a map from finite-dimensional spaces to function spaces, and the neural operator framework. \nk{We will show that if we use a particular, point-wise parameterization of the first kernel in a NO and discretize the integral operator, we obtain a DeepONet. However, such a parameterization breaks the notion of discretization invariance because the number of parameters depends on the discretization of the input function. Therefore such a model cannot be applied to arbitrarily discretized functions and its number of parameters goes to infinity as we take the limit to the continuum. This phenomenon is similar to our discussion in subsection~\ref{sec:graphneuraloperator} where a NO parametrization which is inconsistent in function space and breaks discretization invariance yields a CNN.
+We propose a modification to the DeepONet architecture, based on the idea of the LNO, which addresses this issue and gives a discretization invariant neural operator.}
+
+\begin{proposition}
+\label{prop:deeponet}
+A neural operator with a point-wise parameterized first kernel and discretized integral operators yields a DeepONet.
+\end{proposition}
+
+
+%We first show how techniques in neural operators, i.e., introducing linear integral operator,  allow for modifying DeepONet architecture to full stack operator learning, i.e., maps between function spaces. We denote the resulting model the DeepONet-Operator model.  In fact, we show that a particular variant of 
+%functions from the DeepONets class is a special case of a single hidden layer neural operator construction once discretized appropriately. 
+
+%\begin{proposition}\label{prop:deeponet}
+%The followings are stated,
+
+%$i)$ DeepONet architectures require the evaluation of the input functions on fixed grids to be provided, therefore, this model class is subsumed by neural operators, when neural operators are also applied to the mentioned fixed input grids. 
+
+%$ii)$ The modified DeepONet model, DeepONet-Operator, is a neural operators, therefore, it is discretization invariant model. 
+
+%$iii)$ When limiting the  DeepONet-Operator model to the same grid that DeepONet is defined, DeepONet-Operator is identical to its corresponding DeepONet model.
+
+%\end{proposition}
+
+\begin{proof}
+We work with \eqref{eq:singlehiddenlayer} where we choose \(W_0 = 0\) and denote \(b_0\) by \(b\). For simplicity, we will consider only real-valued functions i.e. \(d_a = d_u = 1\) and set \(d_{v_0} = d_{v_1} = n \) and \( d_{v_2} = p\)
+for some \(n, p \in \N\).
+Define \(\cP : \R \to \R^n\) by \(\cP(x) = (x,\dots,x)\) and 
+\(\cQ: \R^p \to \R\) by \(\cQ(x) = x_1 + \dots + x_p\). Furthermore let \(\kappa^{(1)}: D' \times D \to \R^{p \times n}\) be defined by some \(\kappa^{(1)}_{jk} : D' \times D \to \R\) for \(j=1,\dots,p\) and \(k=1,\dots,n\). Similarly let 
+\(\kappa^{(0)}: D \times D \to \R^{n \times n}\) be given as \(\kappa^{(0)}(x,y) = \text{diag}(\kappa^{(0)}_1(x,y), \dots, \kappa^{(0)}_n(x,y))\) for some \(\kappa^{(0)}_1, \dots \kappa^{(0)}_n : D \times D \to \R\). Then \eqref{eq:singlehiddenlayer} becomes 
+\[(\G_\theta (a))(x) = \sum_{k=1}^p \sum_{j=1}^n \int_D \kappa^{(1)}_{jk}(x, y) \sigma \left ( \int_D \kappa^{(0)}_j (y,z) a(z) \: \text{d}z + b_j(y) \right ) \: \text{d}y\]
+where \(b(y) = (b_1(y),\dots,b_n(y))\) for some \(b_1,\dots,b_n : D \to \R\). Let \(x_1,\dots,x_q \in D\) be the points at which the input function \(a\) is evaluated and denote by \(\tilde{a} = \big( a(x_1), \dots, a(x_q) \big ) \in \R^q\) the vector of evaluations.
+Choose \(\kappa^{(0)}_{j} (y,z) = \mathds{1}(y) w_j(z)\) for some \(w_1,\dots,w_n : D \to \R\) where \(\mathds{1}\) denotes the constant function taking the value one. Let
+\[w_j(x_l) = \frac{q}{|D|} \tilde{w}_{jl}\]
+for \(j=1,\dots,n\) and \(l=1,\dots,q\) where \(\tilde{w}_{jl} \in \R\) are some constants. Furthermore let \(b_j (y) = \tilde{b}_j \mathds{1}(y)\) for some constants \(\tilde{b}_j \in \R\). Then the Monte Carlo approximation of the inner-integral yields
+\[(\G_\theta (a))(x) = \sum_{k=1}^p \sum_{j=1}^n \int_D \kappa^{(1)}_{jk}(x, y) \sigma \left ( \langle \tilde{w}_j, \tilde{a} \rangle_{\R^q} + \tilde{b}_j \right ) \mathds{1}(y) \: \text{d}y\]
+where \(\tilde{w}_j = \big ( \tilde{w}_{j1}, \dots, \tilde{w}_{jq} \big ) \). Choose \(\kappa^{(1)}_{jk}(x,y) = (\tilde{c}_{jk} / |D|) \varphi_k (x) \mathds{1}(y)\) for some constants \(\tilde{c}_{jk} \in \R\) and functions \(\varphi_1, \dots, \varphi_p : D' \to \R\). Then we obtain
+\begin{equation}
+\label{eq:likedeeponet}
+(\G_\theta (a))(x) = \sum_{k=1}^p \left ( \sum_{j=1}^n \tilde{c}_{jk} \sigma \left ( \langle \tilde{w}_j, \tilde{a} \rangle_{\R^q} + \tilde{b}_j \right ) \right ) \varphi_k(x) = \sum_{k=1}^p G_k(\tilde{v}) \varphi_k (x)
+\end{equation}
+where \(G_k : \R^q \to \R\) can be viewed as the components of a single hidden layer neural network \(G : \R^q \to \R^p\) with parameters \(\tilde{w}_{jl}, \tilde{b}_j, \tilde{c}_{jk}\). The set of maps \(\varphi_1,\dots,\varphi_p\) form the \textit{trunk net} while \(G\) is the \textit{branch net} of a DeepONet. Our construction above can clearly be generalized to yield arbitrary depth branch nets by adding more kernel integral layers, and, similarly, the trunk net can be chosen arbitrarily deep by parameterizing each \(\varphi_k\) as a deep neural network. 
+\end{proof}
+
+\nk{
+Since the mappings \(w_1,\dots,w_n\) are point-wise parametrized based on the input values \(\tilde{a}\), it is clear that the construction in the above proof is not discretization invariant. In order to make this model a discretization invariant neural operator, we propose DeepONet-Operator where, for each $j$, we replace the inner product in the finite dimensional space $\langle \tilde{w}_j, \tilde{a} \rangle_{\R^q}$ with an appropriate inner product in the function space $\langle w_j, a \rangle$. 
+
+\begin{equation}
+\label{eq:likedeeponet-operator}
+(\G_\theta (a))(x) = \sum_{k=1}^p \left ( \sum_{j=1}^n \tilde{c}_{jk} \sigma \left ( \langle {w}_j, {a} \rangle + \tilde{b}_j \right ) \right ) \varphi_k(x)
+\end{equation}
+This operation is a projection of function $a$ onto $w_j$. Parametrizing $w_j$ by neural networks makes DeepONet-Operator a discretization invariant model.
+}
+
+\iffalse
+
+Choose each \(\kappa^{(1)}_j(x,y) = w_j(y) \varphi_j(x)\) for some \(w_1,\dots,w_n :D \to \R\) and \(\varphi_1,\dots,\varphi_n :D' \to \R\) then we obtain
+\begin{equation}
+\label{eq:likedeeponet}
+(\G_\theta (a))(x) = \sum_{j=1}^n G_j(a) \varphi_j(x)
+\end{equation}
+where \(G_1,\dots,G_n : \A \to \R\) are functionals defined as
+\begin{equation}
+\label{eq:functionals}
+G_j(a) = \int_D w_j(y) \sigma \left ( \int_D \kappa^{(0)}_j (y,z) a(z) \: \text{d} z + b_j(y) \right ) \: \text{d} y.
+\end{equation}
+
+The set of maps \(\varphi_1,\dots,\varphi_n\) form the \textit{trunk net} while the functionals \(G_1,\dots,G_n\) form the \textit{branch net} of a DeepONet. The only difference between DeepONet(s) and \eqref{eq:likedeeponet} is the parametrization used for the functionals \(G_1,\dots,G_n\). Following \cite{chen1995universal}, DeepONet(s) define the functional \(G_j\) as maps between finite dimensional spaces. Indeed, they are viewed as \(G_j : \R^q \to \R\) and defined to map pointwise evaluations \((a(x_1),\dots,a(x_q))\) of \(a\) for some set of points \(x_1,\dots,x_q \in D\). We note that, in practice, this set of evaluation points is not known \textit{a priori} and could potentially be very large. \hold{ The proof of Theorem \ref{thm:main_compact} shows that if we instead define the functionals \(G_j\) directly in function space via \eqref{eq:functionals}, the set of evaluation points can be discovered \textit{automatically} by learning the kernels \(\kappa^{(0)}_j\) and weighting functions \(w_j\).} 
+
+Indeed we show that \eqref{eq:functionals} can approximate the functionals defined by DeepONet(s) to arbitrary accuracy, thereby making DeepONet(s) a special case of neural operators.  
+
+\fi
+
+%Note however that parameterizing as suggested by \eqref{eq:likedeeponet} yields an approximation that is inconsistent in function space since the number of parameters used to define \(G\) is \textit{not independent} of the discretization used for \(a\). Therefore, the number of parameters in a DeepONet grows as we refine the discretization of \(a\), blowing up in the continuum. 
+
+\nk{
+There are other ways in which the issue can be resolved for DeepONets. For example, by fixing the set of points on which the input function is evaluated independently of its discretization, by taking local spatial averages as in \citep{lanthaler2021error} or more generally by taking a set of linear functionals on $\A$ as input to
+a finite-dimensional branch neural network (a generalization to DeeONet-Operator) as in
+the specific PCA-based variant on DeepONet in \citep{de2022cost}.} We demonstrate numerically in Section~\ref{sec:numerics} that, when applied in the standard way, the error incurred by DeepONet(s) grows with the  discretization of \(a\) while it remains constant for neural operators.
+
+\paragraph{Linear Approximation and Nonlinear Approximation.}
+We point out that parametrizations of the form \eqref{eq:likedeeponet} fall within the class of \textit{linear} approximation methods since the nonlinear space \(\G^\dagger(\A)\) is approximated by the linear space \(\text{span}\{\varphi_1,\dots,\varphi_p\}\) \citep{devore1998nonlinear}. The quality of the best possible linear approximation to a nonlinear space is given by the Kolmogorov \(n\)-width where \(n\) is the dimension of the linear space used in the approximation \citep{pinkus1985nwidths}. The rate of decay of the \(n\)-width as a function of \(n\) quantifies how well the linear space approximates the nonlinear one. It is well know that for some problems such as the flow maps of advection-dominated PDEs, the \(n\)-widths decay very slowly; hence a very large \(n\) is needed for a good approximation for such problems \citep{cohendevore}. This can be limiting in practice as more parameters are needed in order to describe more basis functions \(\varphi_j\) and therefore more data is needed to fit these parameters. 
+
+On the other hand, we point out that parametrizations of the form
+\eqref{eq:F}, and the particular case \eqref{eq:singlehiddenlayer},  constitute (in general) a form of \textit{nonlinear} approximation. The benefits of nonlinear approximation are well understood in the setting of function approximation, see e.g. \citep{devore1998nonlinear}, however the theory for the operator setting is still in its infancy \citep{bonito2020nonlinear, cohen2020optimal}. We observe numerically in Section~\ref{sec:numerics} that nonlinear parametrizations such as \eqref{eq:singlehiddenlayer} outperform linear ones such as DeepONets or the low-rank method introduced in Section \ref{sec:lowrank} when implemented with similar numbers of parameters.
+\hold{We acknowledge, however, that the theory presented in Section~\ref{sec:approximation} is based on the reduction to a linear approximation and therefore does not capture the benefits of the nonlinear approximation. Furthermore, in practice, we have found that deeper architectures than \eqref{eq:singlehiddenlayer} (usually four to five layers are used in the experiments of Section~\ref{sec:numerics}), perform better. The benefits of depth are again not captured in our analysis in Section~\ref{sec:approximation}
+either. We leave further theoretical studies of approximation
+properties as an interesting avenue of investigation for future work.}
+
+\paragraph{Function Representation.}
+An important difference between neural operators, introduced here, PCA-based
+operator approximation, introduced in \cite{Kovachki} and DeepONets, introduced
+in \cite{lu2019deeponet}, is the manner in which the output function space is finite-dimensionalized. Neural operators as implemented in this
+paper typically use the same finite-dimensionalization in both the input and output function spaces; however different variants of the neural operator idea use different
+ finite-dimensionalizations. As discussed in Section \ref{sec:four_schemes}, the GNO and MGNO are finite-dimensionalized using pointwise values as the nodes of graphs; the FNO is
+ finite-dimensionalized in Fourier space, requiring finite-dimensionalization on a uniform grid in real space; the Low-rank neural operator is finite-dimensionalized on a product space formed from the
+ Barron space of neural networks. The PCA approach finite-dimensionalizes in the span of PCA modes. DeepONet, on the other hand, uses different input and output space finite-dimensionalizations; in its basic form it uses pointwise (grid)
+ values on the input (branch net) whilst its output (trunk net) is represented as a function in Barron space. There also exist POD-DeepONet variants that 
+ finite-dimensionalize the output in the span of PCA modes \cite{lu2021comprehensive}, bringing them
+ closer to the method introduced in \cite{Kovachki}, but with a different 
+ finite-dimensionalization of the input space.
+
+As is widely quoted, ``all models are wrong, but some are useful'' \cite{box1976science}.
+For operator approximation, 
+each finite-dimensionalization has its own induced biases and limitations,
+and therefore works best on a subset of problems. Finite-dimensionalization introduces a trade-off between flexibility and representation power of the resulting approximate architecture.
+The Barron space representation (Low-rank operator and DeepONet) is usually the most generic and flexible as it is widely applicable. However this can lead to induced biases and reduced representation power on specific problems; in practice, DeepONet sometimes needs problem-specific feature engineering and architecture choices as studied in \cite{lu2021comprehensive}. We conjecture that these problem-specific features compensate
+for the induced bias and reduced representation power that the basic form of the
+method \citep{lu2019deeponet} sometimes exhibits.
+The PCA (PCA operator, POD-DeepONet) and graph-based (GNO, MGNO) discretizations are also generic, but more specific compared to the DeepONet representation; for this reason
+POD-DeepONet can outperform DeepONet on some problems \citep{lu2021comprehensive}.
+On the other hand, the uniform grid-based representation FNO is the most specific of
+all those operator approximators considered in this paper: in its basic form it
+applies by discretizing the input functions, assumed to be specified on a periodic
+domain, on a uniform grid. As shown in Section \ref{sec:numerics} FNO usually works
+out of the box on such problems. But, as a trade-off, it requires substantial 
+additional treatments to work well on non-uniform geometries, such as extension, interpolation (explored in
+\cite{lu2021comprehensive}), and Fourier continuation \citep{bruno2007accurate}.
+
+
+\subsection{Transformers as a Special Case of Neural Operators}
+\label{sec:transformers}
+\nk{
+We will now show that our neural operator framework can be viewed as a  continuum generalization to the popular transformer architecture \citep{vaswani2017attention} which has been extremely successful in natural language processing tasks \citep{devlin2018bert, brown2020language} and, more recently, is becoming a popular choice in computer vision tasks \citep{dosovitskiy2020image}. The parallel stems from the fact that we can view sequences of arbitrary length as arbitrary discretizations of functions. Indeed, in the context of natural language processing,  we may think of a sentence as a ``word''-valued function on, for example, the domain \([0,1]\). Assuming our function is linked to a sentence with a fixed semantic meaning, adding or removing words from the sentence simply corresponds to refining or coarsening the discretization of \([0,1]\). We will now make this intuition precise in the proof of the following statement. 
+\begin{proposition}\label{prop:attention}
+The attention mechanism in transformer models is a special case of a neural operator layer.
+\end{proposition}
+\begin{proof}
+We will show that by making a particular choice of the nonlinear integral kernel operator \eqref{eq:kernelop3} and discretizing the integral by a Monte-Carlo approximation, a neural operator layer reduces to a pre-normalized, single-headed attention, transformer block as originally proposed in \citep{vaswani2017attention}.
+For simplicity, we assume \(d_{v_t} = n \in \N\) and that \(D_t = D\) for any \(t=0,\dots,T\), the bias term is zero, and \(W = I\) is the identity. Furthermore, to simplify notation, we will drop the layer index \(t\) from \eqref{eq:onelayer} and, employing \eqref{eq:kernelop3}, obtain
+\begin{equation}
+    \label{eq:liketransformer}
+    u(x) = \sigma \left( v(x) + \int_D \kappa_v(x,y,v(x),v(y)) v(y) \: \text{d}y \right ) \qquad \forall x \in D
+\end{equation}
+a single layer of the neural operator where \(v: D \to \R^n \) is the input function to the layer and we denote by \(u: D \to \R^n\) the output function. We use the notation \(\kappa_v\) to indicate that the kernel depends on the entirety of the function \(v\) as well as on its pointwise values $v(x)$ and $v(y).$ While this is not explicitly done in \eqref{eq:kernelop3}, it is a straightforward generalization. We now pick a specific form for kernel, in particular, we assume \(\kappa_v : \R^n \times \R^n \to \R^{n \times n}\) does not explicitly depend on the spatial variables \((x,y)\) but only on the input pair \((v(x),v(y))\). Furthermore, we let 
+\[\kappa_v(v(x),v(y)) = g_v(v(x),v(y)) R\]
+where \(R \in \R^{n \times n}\) is a matrix of free parameters i.e. its entries are concatenated in \(\theta\) so they are learned, and \(g_v: \R^n \times \R^n \to \R\) is defined as
+\[g_v(v(x),v(y)) = \left ( \int_D \text{exp}\left( \frac{\langle A v(s), Bv(y) \rangle}{\sqrt{m}} \right ) \: \text{d}s \right )^{-1} \text{exp} \left ( \frac{\langle A v(x), Bv(y) \rangle}{\sqrt{m}} \right ).\]
+Here \(A,B \in \R^{m \times n}\) are again matrices of free parameters, \(m \in \N\) is a hyperparameter, and \(\langle \cdot, \cdot \rangle\) is the Euclidean inner-product on \(\R^m\). Putting this together, we find that \eqref{eq:liketransformer} becomes
+\begin{equation}
+    \label{eq:continoustransformer}
+    u(x) = \sigma \left ( v(x) + \int_D \frac{\text{exp} \left ( \frac{\langle A v(x), Bv(y) \rangle}{\sqrt{m}} \right )}{\int_D \text{exp}\left( \frac{\langle A v(s), Bv(y) \rangle}{\sqrt{m}} \right ) \: \text{d}s} R v(y) \: \text{d}y \right ) \qquad \forall x \in D.
+\end{equation}
+Equation \eqref{eq:continoustransformer} can be thought of as the continuum limit of a transformer block. To see this, we will discretize to obtain the usual transformer block.
+
+To that end, let \(\{x_1,\dots,x_k\} \subset D\) be a uniformly-sampled, \(k\)-point discretization of \(D\) and denote \(v_j = v(x_j) \in \R^n\) and
+\(u_j = u(x_j) \in \R^n\) for \(j=1,\dots,k\). Approximating the inner-integral in \eqref{eq:continoustransformer} by Monte-Carlo, we have
+\[\int_D \text{exp}\left( \frac{\langle A v(s), Bv(y) \rangle}{\sqrt{m}} \right ) \: \text{d}s \approx \frac{|D|}{k} \sum_{l=1}^k \text{exp} \left ( \frac{\langle A v_l, B v(y) \rangle}{\sqrt{m}} \right ).\]
+Plugging this into \eqref{eq:continoustransformer} and using the same approximation for the outer integral yields
+\begin{equation}
+    \label{eq:discretetransformer}
+    u_j = \sigma \left ( v_j + \sum_{q=1}^k \frac{\text{exp} \left ( \frac{\langle A v_j, Bv_q \rangle}{\sqrt{m}} \right )}{\sum_{l=1}^k \text{exp} \left ( \frac{\langle A v_l, B v_q \rangle}{\sqrt{m}} \right )} R v_q \right ), \qquad j=1,\dots,k.
+\end{equation}
+Equation \eqref{eq:discretetransformer} can be viewed as a Nystr{\"o}m approximation of \eqref{eq:continoustransformer}. Define the vectors \(z_q \in \R^k\) by
+\[z_q = \frac{1}{\sqrt{m}} (\langle Av_1, Bv_q \rangle, \dots, \langle Av_k, Bv_q \rangle), \qquad q=1,\dots,k.\]
+Define \(S : \R^k \to \Delta_k\), where \(\Delta_k\) denotes the \(k\)-dimensional probability simplex, as the softmax function
+\[S(w) = \left ( \frac{\text{exp}(w_1)}{\sum_{j=1}^k \text{exp}(w_j)}, \dots, \frac{\text{exp}(w_k)}{\sum_{j=1}^k \text{exp}(w_j)} \right ), \qquad \forall w \in \R^k.\]
+Then we may re-write \eqref{eq:discretetransformer} as
+\[u_j = \sigma \left ( v_j + \sum_{q=1}^k S_j (z_q) R v_q \right ), \qquad j=1,\dots,k.\]
+Furthermore, if we re-parametrize \(R = R^{\text{out}} R^{\text{val}}\) where \(R^{\text{out}} \in \R^{n \times m}\) and \(R^{\text{val}} \in \R^{m \times n}\) are matrices of free parameters, we obtain
+\[u_j = \sigma \left ( v_j + R^{\text{out}}\sum_{q=1}^k S_j (z_q) R^{\text{val}} v_q \right ), \qquad j=1,\dots,k\]
+which is precisely the single-headed attention, transformer block with no layer normalization applied inside the activation function. In the language of transformers, the matrices \(A\), \(B\), and \(R^{\text{val}}\) correspond to the \textit{queries}, \textit{keys}, and \textit{values} functions respectively. We note that tricks such as layer normalization \citep{ba2016layer} can be  adapted in a
+straightforward manner to the continuum setting and incorporated into \eqref{eq:continoustransformer}. Furthermore multi-headed self-attention can be realized by simply allowing \(\kappa_v\) to be a sum over multiple functions with form \(g_v R\) all of which have separate trainable parameters. Including such generalizations yields the continuum limit of the transformer as implemented in practice. We do not pursue this here as our goal is simply to draw a parallel between the two methods.
+\end{proof}
+
+%
+
+Even though transformers are special cases of neural operators, the standard attention mechanism is memory and computation intensive, as seen in Section~\ref{sec:problems}, compared to neural operator architectures developed here \eqref{eq:kernelop1}-\eqref{eq:kernelop3}. The high computational complexity of transformers is evident is \eqref{eq:continoustransformer} since we must evaluate a \textit{nested} integral of \(v\) for each \(x \in D\). Recently, efficient attention mechanisms have been explored, e.g. long-short~\cite{zhu2021long} and adaptive FNO-based attention mechanisms~\citep{guibas2021adaptive}. However, many of the efficient vision transformer architectures~\citep{choromanski2020rethinking,dosovitskiy2020image} like ViTs are {\em not} special cases of neural operators since they use CNN layers to generate tokens, which are not discretization invariant. 
+
+%Recently more efficient transformer architectures have been proposed e.g. \citep{choromanski2020rethinking} and some have been applied to computer vision tasks. 
+
+%Moreover, the ideas from the current work have been recently explored in the Transformer setting where FNO style layers are used for efficient global convolutions~\citep{guibas2021adaptive}. To this end, we leave as interesting future work experimenting and comparing these architectures to the neural operator both on problems in scientific computing and more traditional machine learning tasks.
+}
+
+\iffalse
+Sometimes we will have preprocessing and feature engineer before 
+step 1. In applications considered in this paper we typically create a vector field made up of $x, a(x)$ and a smoothed version of $a(x)$, $a_{\epsilon}(x)$, and its derivatives. Our motivation for using smoothing of $a$
+is that, in all the examples considered, the map being modeled
+is itself smoothing. Throughout this paper, to be concrete, the
+smoothing is performed by means of convolution with a centered isotropic Gaussian with variance $5$ and, furthermore, the only derivative
+we use is the gradient $\nabla a_{\epsilon}(x)$.
+Thus $h(x)=\bigl(x,a(x),a_{\epsilon}(x),\nabla a_{\epsilon}(x)\bigr)$ and so ${d_h}=2(d+1)$.
+Of course other possibilities for both the smoothing and the
+derivatives used may be considered. 
+\fi
+
+\iffalse
+This has the structure of a deep neural network with the key difference being that it is defined on spaces of functions. In an overview, in Step 1. we lift the preprocessed input functions from space $(D, \R^{d_a})$ to higher dimension representation $(D, \R^{d_v})$ to increase the expressiveness of neural networks; in Step 2. we apply the linear, non-local kernel integral operators and nonlinear, local (pointwise) activation functions for iteration $T$; and in Step 3. we project the higher dimension function back to the space of target dimension $(D, \R^{d_u})$.
+\fi
+
+\iffalse
+\paragraph{The overall structure of neural operator $\F$}
+The neural operator $\cF_{\theta}$ has the following form:
+\begin{equation}
+\label{eq:F}
+    \cF_{\theta} \coloneqq \cQ \circ \sigma(W_{T} + \cK_{T}) \circ \cdots \circ \sigma(\cW_1 + \cK_1) \circ \cP
+\end{equation}
+The general structure of neural operator is an operator-level analog to the standard function-level neural networks. Similar to neural networks which alternate between linear transformation (matrix-vector multiplications) and nonlinear transformation (activation functions), the neural operators alternate between non-local linear integral operator $(\cW + \cK)$ and local nonlinear activation functions $\sigma$. By combining these two, neural operators has strong expressiveness that can approximates complex operator raising in PDEs. ($\cW$ and $\cK$ can be fixed or varied in different iterations/layers, but we will just denote them as the same.)
+$\cP$ and $\cQ$ are local affine transformation that lift to and project from the higher dimensional space. $\cW$ is a local linear transformation; $\cK$ is a kernel-like operator; and $\sigma$ is the local activation. Steps 1.2. and 3. all contain the network parameters to be optimized. $\theta$ is the set of all the parameters used in $\cW, \cK, \cP, \cQ$. Concatenating the parameters from each steps gives unknown $\theta=(P,p,Q,q,W,\phi)$ and the Steps 1.--3. define the map $u=\cF_{\theta}(a) = \cF(a;\theta)$.
+
+\subsection{Step 1. lifting }
+\label{ssec:step1}
+To increase the expressiveness of the neural network, we lift the preprocessed input $a(x) \in \R^{d_a}$ to a higher dimensional representation/channel space $\R^{d_v}$ (Step 1.). And after the main transformation (Step 2.) we then project the higher dimensional representation back to the target solution space $\R$ (Step 3).
+The mappings in steps 1. and 3. are purely local, arising from
+pointwise application of the same affine transformations at every
+point $x \in D$; Define affine transformations $\cP:a \mapsto v$ as follows:
+\begin{align*}
+\cP:&\ v_0(x)=P\ a(x)+p
+\end{align*}
+here the matrix and vector $P \in \R^{d_a \times d_v}
+p \in \R^{d_v}$ are all parameters to learn.
+
+
+\subsection{Step 2. iterative integration} 
+\label{ssec:step2}
+The second step is the main transformation, having the general form of the integration operator:
+
+\begin{definition}[Iterative updates]
+For each iteration, we update the representation $v_t \mapsto v_{t+1}$ by applying integration operator $\cK$, linear transformation $\cW$, and activation function $\sigma$:
+\begin{equation}\label{def:int}
+v_{t+1}(x) \coloneqq \sigma\Big( \cW v_t(x) 
++ \bigl(\cK(a;\phi)v_t\bigr)(x) \Big)
+\end{equation}
+where $\cK: \A \times \Theta_{\cK} \to \mathcal{L}(\U^{d_v},\U^{d_v})$ is a bounded linear operator on $\U^{d_v}$, depending on the input function $a$ and parametrized by a set of parameters $\phi \in \Theta_{\cK}$.
+\end{definition}
+
+$\cK(a;\phi)$ works like a convolution kernel; it is defined as an integration transformation: 
+\begin{definition}[Kernel integration $\cK$]
+\begin{equation}
+\label{def:K_int}
+\bigl(\cK(a;\phi)v\bigr)(x) \coloneqq  
+\int_{D} \kappa\big(x,y,a(x),a(y);\phi\big) v(y) \mathrm{d}y. 
+\end{equation}
+where $\kappa_{\phi}: \R^{2d+2} \to \R^{d_v \times d_v}$ is a neural network parametrized by $\phi$. It can be viewed as the kernel function $\kappa_a(\cdot,\cdot): \R^2 \to \R^{d_v \times d_v}$ that output the transformation for each pair $(x,y)$. Sometimes we will abbreviate $\kappa\big(x,y,a(x),a(y);\phi\big)$ by $\kappa\big(x,y\big)$
+\begin{equation}
+\label{def:K_int_short}
+\bigl(\cK(a;\phi)v\bigr)(x) \coloneqq  
+\int_{D} \kappa\big(x,y\big) v(y) \mathrm{d}y. 
+\end{equation}
+\end{definition}
+
+
+Plug in the kernel integral, the iterative update \eqref{def:int} can be written as
+\begin{equation}
+\label{def:neural_operator}
+v_{t+1}(x) \coloneqq \sigma\Big( W v_t(x) + 
+\int_{D} \kappa\big(x,y,a(x),a(y);\phi\big) v(y) \mathrm{d}y \Big).  
+\end{equation}
+
+We will show several examples of $\cK$ in the next section.
+The matrix $W \in \R^{d_v \times d_v}$ is a linear transformation applied locally to $v(x)$. The activation function $\sigma$ is also local and applied pointwise at each point $x \in D$ (Nemitskiy operator); we use the ReLU function $\sigma$ throughout this paper. 
+
+Notice it is possible to either use different parameterization $\cW_{t}, \cK_{t}$ for each layer or to fix them as the same $\cW_{t} = \cW , \cK_{t} = \cK$. In the first case, the iterative update is understood as a fixed point iteration; in the second case, it can be viewed as a Runge-Kutta method with $T$ stages for time-dependent problems. In practice, allowing the layers to be different makes the neural network more expressiveness and slightly more accurate, while fixing them can reduce the number of parameters.
+
+\subsection{Step 3. projection}
+\label{ssec:step3}
+As discussed above, we lifted the representation to a higher dimension representation space for better expressiveness. After the iterative updates, we project the representation from the higher dimension representation space back to the target space.
+\begin{align*}
+\cQ:&\ u(x)= Q_2\ \sigma \big( Q_1\ v_T(x)+q_1 \big) + q_2
+\end{align*}
+The projection $\cQ$ is of the similar form of $\cP$: it is a simple, pointwise mapping. But we require it to be nonlinear. Usually we use two layers of neural network with an activation function $\sigma$ and width $h$. 
+Again the matrices and vectors $Q_1 \R^{d_v \times d_h},  Q_2 \in \R^{d_h \times d_u}
+q_1 \R^{d_h}, q_2 \in \R^{d_u}$are all parameters to learn.
+\fi
+
+
+
+
+
+

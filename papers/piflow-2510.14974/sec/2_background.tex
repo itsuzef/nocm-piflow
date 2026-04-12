@@ -1,0 +1,21 @@
+\section{Preliminaries}
+\label{sec:preliminaries}
+
+In this section, we briefly introduce flow matching models~\citep{lipman2023flow, liu2022flow} 
+and the notations used in this paper. 
+
+Let $p(\vx_0)$ denote the (latent) data probability density, where $\vx_0 \in \R^D$ is a data point. A standard flow model defines an interpolation between a data sample and a random Gaussian noise $\bm{\epsilon} \sim \mathcal{N}(\bm{0}, \mI)$, yielding the diffused noisy data $\vx_t=\alpha_t \vx_0 + \sigma_t \bm{\epsilon}$, where $t \in (0, 1]$ denotes the diffusion time, and $\alpha_t = 1 - t, \sigma_t = t$ are the linear flow noise schedule. The optimal transport map across all marginal densities $p(\vx_t) = \int_{\R^D} \mathcal{N}(\vx_t; \alpha_t \vx_0, \sigma_t^2 \mI) p(\vx_0) \diff \vx_0$ can be described by the following probability flow ODE~\citep{song2021scorebased,liu2022rectifiedflowmarginalpreserving}:
+\begin{equation}
+    \frac{\diff \vx_t}{\diff t} = \dot{\vx}_t = \frac{\vx_t - \E_{\vx_0 \sim p(\vx_0 | \vx_t)} [\vx_0]}{t} = \frac{\vx_t - \int_{\R^D} \vx_0 p( \vx_0 | \vx_t) \diff \vx_0}{t},
+    \label{eq:pf_ode}
+\end{equation}
+with the denoising posterior $p(\vx_0 | \vx_t) \coloneqq \frac{\mathcal{N}\left(\vx_t; \alpha_t \vx_0, \sigma_t^2 \mI\right) p(\vx_0)}{p(\vx_t)}$.
+At test time, the model can generate samples by first initializing the noise $\vx_1 \gets \bm{\epsilon}$ and then solving the ODE to obtain $\lim_{t\to0}\vx_t$. 
+
+% \textbf{Flow Matching.} 
+In practice, flow matching models approximate the ODE velocity $\frac{\diff \vx_t}{\diff t}$ using a neural network $G_\vtheta(\vx_t,t)$ with learnable parameters $\vtheta$, trained using the $\ell_2$ flow matching loss:
+\begin{equation}
+    \mathcal{L}_\vtheta = \E_{t,\vx_0,\vx_t} \left[ \frac{1}{2} \left\| \vu - G_\vtheta(\vx_t,t) \right\|^2 \right], \quad \text{with sample velocity}\ \vu \coloneqq \frac{\vx_t - \vx_0}{t}.
+    \label{eq:l2fm}
+\end{equation}
+Since each velocity query requires evaluating the network (Fig.~\ref{fig:policy}~(a)), flow matching models couple sampling efficiency with solver precision. Despite the progress in advanced solvers~\citep{Karras2022edm,deis,dpmsolver,dpmpp,unipc}, high-quality sampling typically requires over 10 steps due to inherent ODE truncation error, making it computationally expensive.

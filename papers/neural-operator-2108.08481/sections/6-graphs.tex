@@ -1,0 +1,36 @@
+
+
+
+\section{Translation to Graphs}
+\label{sec:graph}
+To work on arbitrary discretization, we implement our kernel integral operator via graph neural network. Graph is a very general structure. For any discretization $D_j = \{x_1, \ldots, x_n\}$, we can easily define a graph representation. The continuous integration will become a summation, which is usually called the message passing on graphs. In this case, The kernel matrix $K$ is equivalent to the corresponding adjacency matrix of the the graph.
+
+\begin{definition}[Graph]
+A directed graph is a pair $G = (V, E)$, where $V = \{x_1, \ldots, x_n \}$ is the set of nodes and $E \subset \{(x,y) | (x,y) \in V \times V\}$ is the set of edges, consisting ordered pairs of vertices. Define the neighborhood $\mathcal{N}$ of a node as $\mathcal{N}(x) = \{y\in V | (y,x) \in E \}$.
+
+Further, for each node $x \in V$, let $f(x) \in \R^{d_f}$ be the features of this node. For each edge $(x,y) \in E$, let $e(x,y) \in \R^{d_e}$ be the features of this edge.  
+\end{definition}
+
+The message passing is an update algorithm used to update the features of nodes. The updated feature of node $x$ is the aggregation of messages of its neighborhood:
+\[v_{t+1}(x) = \sum_{y \in \mathcal{N}(x)} m\big(e(x,y)\big) v_t(y)\]
+where $m$ is the some message functions, which is equivalent to the kernel function $\kappa$ defined in \ref{def:K_int}.
+
+\subsection{Message passing graph networks.}
+Message passing graph networks comprise a standard architecture employing edge features \citep{gilmer2017neural}. If we properly construct the graph on the spatial domain $D$ of the PDE, the kernel integration can be viewed as an aggregation of messages.
+Given node features $v_t(x) \in \mathbb{R}^{n}$, edge features $e(x,y) \in \mathbb{R}^{n_e}$, and a graph $G$, the message passing neural network with averaging aggregation is
+\begin{equation}\label{eq:mpnn}
+v_{t+1}(x) =  \sigma\Bigl(W v_t(x) + 
+\frac{1}{|\mathcal{N}(x)|} \!\!\sum_{y \in \mathcal{N}(x)} \!\!\!\kappa_{\phi}\big(e(x,y)\big) v_t(y)\Bigr)\!\!
+\end{equation}
+where $W \!\!\in\! \mathbb{R}^{n \times n}$, $\mathcal{N}(x)$ is the neighborhood of $x$ according to the graph, $\kappa_{\phi}\big(e(x,y)\big)$ is a neural network taking as input edge features and as output a matrix in $\mathbb{R}^{n \times n}$. \\
+
+\subsection{Graph construction.} 
+Let the vertices $V$ be all the nodes in the discretization.
+It is obvious that if we $e(x,y) \!=\! (x,y,a(x),a(y)) \!\in \!\R^{2(d+1)}$, we recover the discrete version of our kernel integration \ref{eq:K_sum} defined in section \ref{sec:framework}. 
+The graph structure gives us the freedom to choose the integral domain, as the neighborhood $\mathcal{N}(x)$ for each point. For example, if we want to do the full integration, we set $\mathcal{N}(x) = V$ for all $x$. In this case, the graph is a complete graph and the adjacency matrix is a full matrix. If we want to integration on a ball $B(x,r)$, we can let $\mathcal{N}(x) = {y \in B(x,r)| y \in V}$. Then the adjacency matrix is near diagonal. It can be seen, by using message passing, the support of integration is designed by the connectivity of the graph. The sparse structure of the kernel matrix is equivalent to that of the adjacency matrix.
+
+\paragraph{Adaptive graph and Quadrature}
+Uniformly sampling the nodes is equivalent to the Monte Carlo quadrature where the error converges with $1/\sqrt{m}$. In practice, this is usually sufficient, since the error of each graph is again averaged out when we compute the kernel network. It is possible to use adaptive graphs which corresponds to more sophisticated quadrature. For example,  \cite{pfaff2020learning} using the sizing field techniques to build the adaptive mesh.
+
+
+In the following experiments, we will use the graph structure for the graph neural operator and multipole graph neural operator, where the graphs help to formulate the domain and sampling measure in the integral. On the other hand, in the low-rank neural operator and Fourier neural operator, we do integration without any sampling, so the graphs strutures are not necessary.

@@ -1,0 +1,13 @@
+\section{Trig-flow Parametrization} \label{app:trigflow}
+
+Let's apply the tangent formulation of \cite{lu2025simplifyingstabilizingscalingcontinuoustime} to our operator:
+\begin{align}
+    \frac{d f_{\theta^{-}}(\mathbf{x}_t, t)}{dt} = -cos(t)\left(\sigma_d F_{\theta^{-}}\left(\frac{\mathbf{x}_t}{\sigma_d} \right) - \frac{d\mathbf{x}}{dt}\right) - sin(t) \left(\mathbf{x} + \sigma_d \left(\frac{d F_{\theta^{-}}\left(\frac{\mathbf{x}_t}{\sigma_d} \right)}{dt} \right) \right)
+\end{align}
+\noindent We can write the following : 
+\begin{align}
+   \frac{d \mathcal{G}_{\theta^{-}}(\mathbf{x}_t, t)\left[ \epsilon \right]}{dt} \sim\frac{d f_{\theta^{-}}(\mathbf{x}_t, t)}{dt} \\   
+    G_{\theta^{-}}(\mathbf{x}_t, t)\left[ \epsilon \right] \sim F_{\theta^{-}}(\mathbf{x}_t, t) \\ 
+\end{align}
+
+Since the other elements of vectors $\frac{d \mathcal{G}_{\theta^{-}}(\mathbf{x}_t, t)\left[ :\epsilon \right]}{dt}$ and $G_{\theta^{-}}(\mathbf{x}_t, t)\left[ :\epsilon \right]$ are updated using the same gradient, we can assume that they follow the same stability properties. Additional experiments would be required to further support this finding.

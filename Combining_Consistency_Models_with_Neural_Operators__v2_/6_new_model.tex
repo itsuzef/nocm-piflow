@@ -1,0 +1,84 @@
+\section{A Neural Operator for Image Diffusion}
+
+\subsection{Notations and Context}
+
+\noindent \textbf{Diffusion Model Equation}. Diffusion Model \cite{song2021scorebasedgenerativemodelingstochastic} learn to reverse the following noising process:
+\begin{align*}
+  \mathbf{x}_t = \alpha_t \mathbf{x}_0 + \sigma_t z \: \: \mbox{where} \: z \sim \mathcal{N}(0, 1)
+\end{align*}
+\noindent By solving the following SDE:
+\begin{align}
+  \frac{d\mathbf{x}(t)}{dt} = \left[ \alpha_t - \frac{1}{2}\sigma_t \nabla \log p_t(\mathbf{x}_t) \right] dt \label{eq:sde}
+\end{align}
+\noindent and integrating iteratively over the entire trajectory $[T, 0]$. Eq~\ref{eq:sde} is usually replaced by a PF-ODE:
+\begin{align*}
+  \frac{d\mathbf{x}(t)}{dt} = -ts_{\phi}(x(t), t)
+\end{align*}
+\noindent Where $s_{\phi}(x(t), t)$ is a score model. Sampling using this approach requires multiple, costly iterative calls to this model:
+
+\begin{align*}
+  \mathbf{x}_0 = \mathbf{x}_T + \int^{0}_T \frac{d \mathbf{x}_t}{dt}dt
+\end{align*}
+
+\noindent Where T = 1000 is usually taken. \\
+
+\noindent \textbf{Consistency Models}. Consistency Models \cite{song2023consistencymodels} are trained to directly estimate the cleaned image from any given state $t$ :  $f(\mathbf{x}_t, t) = \mathbf{x}_0$. CM are usually parametrized as such:
+\begin{align}
+  f(\mathbf{x}_t, t) = c_{skip}(t) \mathbf{x}_t + c_{out}(t) F_{\theta}(\mathbf{x}_t, t)
+\end{align}
+\noindent Where $F_{\theta}(\mathbf{x}_t, t)$ is usually a trained UNet. CM have the ability to sample images in a single model forward pass. However, training on a continuous time grid rather than a discrete one require extensive design and experiments (parametrization \cite{lu2025simplifyingstabilizingscalingcontinuoustime}, noise scheduling \cite{geng2024consistencymodelseasy}, discretization \cite{song2023improvedtechniquestrainingconsistency}). \\
+
+\noindent \textbf{Neural Operator}. \cite{duruisseaux2026fourierneuraloperatorsexplained} formally define the Neural Operator $\mathcal{T}$ as a mapping between 2 functions $f$ and $g$:
+\begin{align}
+  f & \in \mathcal{F}_{in}, \: \: g \in \mathcal{F}_{out} \\
+  \mathcal{T} : \mathcal{F}_{in} & \mapsto \mathcal{F}_{out} \\
+  f & \mapsto \mathcal{T}(f) = g
+\end{align}
+
+\subsection{Replacing the score model by a NO} \label{NO}
+
+\noindent \cite{dong2025datadrivenstochasticclosuremodeling} and \cite{liu2025difffnodiffusionfourierneural} describe models that replaced traditional SDE solvers by a NO. Formally,
+
+\begin{align}
+  f(t) & = (\mathbf{x}_t, t) \\
+  \mathcal{T}(\mathbf{x}_t, t) & = \frac{d\mathbf{x}_t}{dt}
+\end{align} 
+\noindent Then, the image is reconstructed using standard diffusion equation:
+\begin{align*}
+  \mathbf{x}_0 = \mathbf{x}_T + \int^{0}_T \mathcal{T}(\mathbf{x}_t, t)dt
+\end{align*}
+\noindent In this set-up, we still have to integrate over a large number of timesteps. However, \cite{dong2025datadrivenstochasticclosuremodeling} uses a scheduling function that divide the number of timesteps by 100. Moreover, \cite{liu2025difffnodiffusionfourierneural} have improved the forward pass time threefold. It seems that using a Neural Operator in place of a traditional U-Net greatly improves forward pass time, reducing the need for a one-shot consistency model.
+
+\subsection{Replacing the consistency function by a NO}
+
+\begin{align}
+  f(t) & = (\mathbf{x}_t, t) \\
+  \mathcal{T}(\mathbf{x}_t, t) & = \mathbf{x}_0
+\end{align} 
+
+\noindent This approach has not been studied in the litterature. The difficulty lies in:
+\begin{itemize}
+\item \textbf{Choice of architecture}. UNets are well-known and studied architectures for DM. Replacing it by a NO would necessitate thorough exploration of the design space to achieve maximal performance.
+\item \textbf{Dimmension of the output}. NO are mappings from function to function. However, the consistency function of CM maps a function to a fixed point $\mathbf{x}_0$. Can NO be adapted to such cases ?
+\end{itemize}
+
+\subsection{Defining the dataset on the function space}
+
+We must first transform our dataset from discrete ($\mathbf{x} \sim \mathbb{R}^d$) to the functional space. \\
+
+\noindent \textbf{Trajectories as functions of time}. $f(\mathbf{x}, t) = \mathbf{x}_t$ \\
+
+\noindent \textbf{SDF}. \cite{lim2025scorebaseddiffusionmodelsfunction} Have used 2D signed distance functions on the MNIST Dataset by applying a distance transform to each data point, before using a Denoising Diffusion Operator to perform upsampling to $64\times64$ resolution. Distance functions map each points to the distance of the closest boundary pixel. \\
+
+\noindent \textbf{functa}. \cite{dupont2022datafunctadatapoint} introduce the concept of \textit{functa}, which replaces tabular data by a parametrized MLP. Formally, a functa is a parametrized function $h_{\theta}$ that maps coordinates to features (RGB values):
+\begin{align*}
+  h_{\theta} & : \mathbb{R}^{d \times d} \mapsto [0, 255] \\
+             & h_{\theta}(x, y) = \mathbf{x}[x, y]
+\end{align*}
+
+\noindent \textbf{Time functa}. Since we are considering trajectories, we could also define our input data as functa applied on trajectories:
+\begin{align*}
+  h_{\theta} & : \mathbb{R}^{T \times d \times d} \mapsto [0, 255] \\
+             & h_{\theta}(t, x, y) = \mathbf{x}_t[x, y]
+\end{align*}
+

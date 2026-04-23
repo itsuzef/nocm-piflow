@@ -1,0 +1,137 @@
+\section{Self-Training Loss} \label{app:loss}
+
+In this section, we re-visit the proof of \cite{song2023consistencymodels}'s Theorem~2 with our own operator $\mathcal{G}_{\theta}$. Theorem~2 stipulates that:
+\begin{align}
+    \mathcal{L}_{\Phi}\left(\theta, \theta^{-}; \phi \right) & = \mathcal{L}_{\Theta}\left(\theta, \theta^-\right) + o(\Delta_t) \\
+    \mathcal{L}_{\Theta}\left(\theta, \theta^-\right) & = \mathbb{E}\left[ \lambda(t_n) d \left(\mathcal{G}_{\theta}(\mathbf{x} + t_{n+1}z, t_{n+1}), \mathcal{G}_{\theta^-}(\mathbf{x} + t_nz, t_{n}) \right)\right]
+\end{align}
+
+\noindent We start by recalling that:
+\begin{align}
+    \widehat{\mathbf{x}}_{t_n}^{\phi} &= \mathbf{x}_{t_{n + 1}} + (t_n - t_{n+1}) \Phi(\mathbf{x}_{t_{n+1}}, t_{n+1}; \phi) \\
+     &= \mathbf{x}_{t_{n + 1}} + (t_{n+1} - t_n)t_{n+1}\nabla \log P_{t_{n+1}}(\mathbf{x}_{tn_{n+1}}) \\ 
+     & \text{using} \: \Phi(\mathbf{x}_{t_{n+1}}, t_{n+1}; \phi) = -t_{n+1} S_{\phi}(\mathbf{x}_{t_{n+1}}, t_{n+1}) \label{proof:xhat}
+\end{align}
+
+\noindent Then, we write the Taylor expansion of $\mathcal{G}_{\theta^-}(\widehat{\mathbf{x}}_{t_{n}}^{\phi}, t_{n})$ at the point $(\mathbf{x}_{t_{n+1}}, t_{n+1})$:
+\begin{align}
+   \mathcal{G}_{\theta^-}(\widehat{\mathbf{x}}_{t_{n}}^{\phi}, t_{n}) & = \mathcal{G}_{\theta^-}(\mathbf{x}_{t_{n+1}} + (t_{n+1} - t_n)t_{n+1}\nabla \log P_{t_{n+1}}(\mathbf{x}_{t_{n+1}}), t_n) & \text{from} \ref{proof:xhat} \\
+   & = \mathcal{G}_{\theta^-}(\mathbf{x}_{t_{n+1}}, t_{n+1}) + J_1\mathcal{G}_{\theta^-}(\mathbf{x}_{t_{n+1}}, t_{n+1})\Delta \mathbf{x} \\ 
+   & \: + J_2\mathcal{G}_{\theta^-}(\mathbf{x}_{t_{n+1}}, t_{n+1})\Delta t + \lVert R \rVert \label{proof:taylor}
+\end{align}
+\noindent Where $J_1$ and $J_2$ are the Jacobian with respect to the first and second argument of $\mathcal{G}_{\theta^-}$ respectively, $\Delta \mathbf{x} = (t_{n+1} - t_n)t_{n+1}\nabla \log P_{t_{n+1}}(\mathbf{x}_{tn_{n+1}})$ and $\Delta t = (t_n - t_{n + 1})$ (because we are expanding from $(\mathbf{x}_{t_{n}}, t_{n})$ to $(\mathbf{x}_{t_{n+1}}, t_{n+1})$). Lastly, assuming that the second derivatives of $\mathcal{G}_{\theta^-}$ are bounded:
+\begin{align}
+    \lVert R \rVert & \leq C \left( \lVert \Delta \mathbf{x}\rVert^2 + | \Delta t|^2 + \lVert \Delta \mathbf{x}\rVert |\Delta t| \right)
+\end{align} 
+\noindent Where:
+\begin{align}
+    \lVert \Delta \mathbf{x}\rVert^2 &= \lVert (t_{n+1} - t_n)t_{n+1}\nabla \log P_{t_{n+1}}(\mathbf{x}_{t_{n+1}}) \rVert^2\\
+    & \approx O(| t_{n+1} - t_n|)
+\end{align}
+\noindent because everything is bounded except $t_{n+1} - t_n$
+\begin{align}
+    \lVert \Delta t\rVert^2 &= | t_n - t_{n + 1}|^2 \\
+    & \approx  O(| t_{n+1} - t_n|)
+\end{align}
+\begin{align}
+    \lVert \Delta \mathbf{x}\rVert |\Delta t| & = \lVert (t_{n+1} - t_n)t_{n+1}\nabla \log P_{t_{n+1}}(\mathbf{x}_{t_{n+1}}) \rVert | t_n - t_{n + 1}| \\
+    & \approx O(| t_{n+1} - t_n|)
+\end{align}
+\noindent Because everything is bounded except $t_{n+1} - t_n$. We can then conclude that $\lVert R \rVert \approx O(| t_{n+1} - t_n|)$ \label{proof:O}. \\
+
+\noindent Then, we can directly apply the Lemma 1 from \cite{song2023consistencymodels}:
+\begin{align}
+    \nabla \log P_t(\mathbf{x}_t) = - \mathbb{E} \left[\frac{\mathbf{x}_t - \mathbf{x}}{t^2} | \mathbf{x}_t \right]
+\end{align}
+\noindent Then $\Delta \mathbf{x}$ becomes:
+\begin{align}
+    \Delta \mathbf{x} & = (t_{n+1} - t_n)t_{n+1}\nabla \log P_{t_{n+1}}(\mathbf{x}_{tn_{n+1}}) \\
+    & = (t_{n+1} - t_n)t_{n+1} - \mathbb{E} \left[\frac{\mathbf{x}_{t_{n +1}} - \mathbf{x}}{t_{n+1}^2} | \mathbf{x}_{t_{n+1}} \right] \\
+    & = \frac{t_n - t_{n+1} }{t_{n+1}}\mathbb{E} \left[\mathbf{x}_{t_{n +1}} - \mathbf{x}| \mathbf{x}_{t_{n+1}} \right] \label{proof:deltaX}
+\end{align}
+
+\noindent Let's now set:
+\begin{align}
+    a & = \mathcal{G}_{\theta}(\mathbf{x}_{t_{n+1}}, t_{n+1}) \\
+    y_0 & = \mathcal{G}_{\theta^-}(\mathbf{x}_{t_{n+1}}, t_{n+1}) \\
+    \Delta y &= J_1\mathcal{G}_{\theta^-}(\mathbf{x}_{t_{n+1}}, t_{n+1})\Delta \mathbf{x} + J_2\mathcal{G}_{\theta^-}(\mathbf{x}_{t_{n+1}}, t_{n+1})\Delta t
+\end{align}
+We can then rewrite the distance function $d_{DL}$ from the Distillation Loss \ref{def:loss}:
+\begin{align}
+    d_{DL} & = d \left(\mathcal{G}_{\theta}(\mathbf{x}_{t_{n+1}}, t_{n+1}), \mathcal{G}_{\theta}(\widehat{\mathbf{x}}_{t_{n}}^{\phi}, t_{n}) \right) & \text{now we plug \ref{proof:taylor} and \ref{proof:O}} \\
+    & = d (\mathcal{G}_{\theta}(\mathbf{x}_{t_{n+1}}, t_{n+1}), \mathcal{G}_{\theta^-}(\mathbf{x}_{t_{n+1}}, t_{n+1}) +  J_1\mathcal{G}_{\theta^-}(\mathbf{x}_{t_{n+1}}, t_{n+1})\Delta \mathbf{x}  \\
+    & \: + J_2\mathcal{G}_{\theta^-}(\mathbf{x}_{t_{n+1}}, t_{n+1})\Delta t + \lVert R \rVert ) \\
+    & = d(a ,y_0 + \Delta y)
+\end{align}
+\noindent Then, it's Taylor expansion on the second argument only (with associated Jacobian $J_3$:
+\begin{align}
+    d_{DL} & = d(a, y_0 + \Delta y) \\
+           & = d(a, y_0) + J_3 d(a, y_0) \Delta y + O(|t_{n+1} - t_n |^2)
+\end{align}
+
+\noindent At this point, the Distillation Loss can be expressed like this:
+
+\begin{align}
+    \mathcal{L}_{\Phi}(\theta, \theta^-) &= \mathbb{E}\left[ \lambda(t_n) d_{DL}\right] \\
+    & = \mathbb{E}\left[ \lambda(t_n) d(a, y_0) + \lambda(t_n) J_3 d(a, y_0) \Delta y + \lambda(t_n) O(|t_{n+1} - t_n |^2) \right] \\
+    & = \mathbb{E}\left[ \lambda(t_n) d(a, y_0) + \lambda(t_n) J_3 d(a, y_0) \Delta y\right] + \mathbb{E}\left[O(|t_{n+1} - t_n |^2) \right] \\
+    & = \mathbb{E}\left[ \lambda(t_n) d(a, y_0) + \lambda(t_n) J_3 d(a, y_0) (J_1\mathcal{G}_{\theta^-}(\mathbf{x}_{t_{n+1}}, t_{n+1})\Delta \mathbf{x} + J_2\mathcal{G}_{\theta^-}(\mathbf{x}_{t_{n+1}}, t_{n+1})\Delta t )\right] \\
+    + & \mathbb{E}\left[O(|t_{n+1} - t_n |^2) \right] \label{proof:loss1}
+\end{align}
+
+\noindent Now, by employing the tower property, we can plug \ref{proof:deltaX}:
+\begin{align}
+     \Delta \mathbf{x} & = \frac{t_n - t_{n+1} }{t_{n+1}}\mathbb{E} \left[\mathbf{x}_{t_{n +1}} - \mathbf{x}| \mathbf{x}_{t_{n+1}} \right]\\
+     \mathbb{E}\left[\Delta \mathbf{x} \right] &= \mathbb{E}\left[\frac{t_n - t_{n+1} }{t_{n+1}}(\mathbf{x}_{t_{n +1}} - \mathbf{x}) \right]  \\
+     \Delta \mathbf{x} &= \frac{t_n - t_{n+1} }{t_{n+1}}(\mathbf{x}_{t_{n +1}} - \mathbf{x}) & \text{only in $\mathbb{E}$!} \label{proof:edeltaX}
+\end{align}
+
+\noindent Then we can re-write $\Delta y$:
+\begin{align}
+    \Delta y & = J_1\mathcal{G}_{\theta^-}(\mathbf{x}_{t_{n+1}}, t_{n+1})\Delta \mathbf{x} + J_2\mathcal{G}_{\theta^-}(\mathbf{x}_{t_{n+1}}, t_{n+1})\Delta t \\
+    & = J_1\mathcal{G}_{\theta^-}(\mathbf{x}_{t_{n+1}}, t_{n+1})\frac{t_n - t_{n+1} }{t_{n+1}}(\mathbf{x}_{t_{n +1}} - \mathbf{x}) + J_2\mathcal{G}_{\theta^-}(\mathbf{x}_{t_{n+1}}, t_{n+1})\Delta t
+\end{align}
+\noindent That we re-arrange setting $\Delta_{\mathbf{x}}^{bis} = \frac{t_n - t_{n+1} }{t_{n+1}}(\mathbf{x}_{t_{n +1}} - \mathbf{x})$:
+\begin{align}
+    \Delta y & = J_1\mathcal{G}_{\theta^-}(\mathbf{x}_{t_{n+1}}, t_{n+1}) \Delta_{\mathbf{x}}^{bis} + J_2\mathcal{G}_{\theta^-}(\mathbf{x}_{t_{n+1}}, t_{n+1})\Delta t
+\end{align}
+\noindent Then we remark that:
+\begin{align}
+    y_0 + \Delta y & = y_0 + J_1\mathcal{G}_{\theta^-}(\mathbf{x}_{t_{n+1}}, t_{n+1}) \Delta_{\mathbf{x}}^{bis} + J_2\mathcal{G}_{\theta^-}(\mathbf{x}_{t_{n+1}}, t_{n+1})\Delta t
+\end{align}
+\noindent Is the Taylor expansion of $\mathcal{G}_{\theta^-}$ at the point $(\mathbf{x}_{t_{n+1}} + \Delta_{\mathbf{x}}^{bis}, t_n)$. 
+\noindent We can finally plug this back into the loss expression from \ref{proof:loss1}:
+\begin{align}
+    \mathcal{L}_{\Phi}(\theta, \theta^-) &= \mathbb{E}\left[ \lambda(t_n) d(a, y_0) + \lambda(t_n) J_3 d(a, y_0) (J_1\mathcal{G}_{\theta^-}(\mathbf{x}_{t_{n+1}}, t_{n+1})\Delta \mathbf{x} + J_2\mathcal{G}_{\theta^-}(\mathbf{x}_{t_{n+1}}, t_{n+1})\Delta t )\right] \\
+    + & \mathbb{E}\left[O(|t_{n+1} - t_n |^2) \right] \\
+    & = \mathbb{E}\left[ \lambda(t_n) ( d(a, y_0) + J_3 d(a, y_0) \Delta y)\right] + \mathbb{E}\left[O(|t_{n+1} - t_n |^2) \right]
+\end{align}
+
+\noindent That is again the Taylor expansion of $d$ at the point $a , y_0 + \Delta y$:
+\begin{align}
+    \mathcal{L}_{\Phi}(\theta, \theta^-) & = \mathbb{E}\left[ \lambda(t_n) d(a, y_0 + \Delta y) \right] + \mathbb{E}\left[O(|t_{n+1} - t_n |^2) \right] 
+\end{align}
+
+\noindent We can then rewrite it by recalling that:
+\begin{align}
+    y_0 + \Delta y & = \mathcal{G}_{\theta^-}(\mathbf{x}_{t_{n+1}} + \Delta_{\mathbf{x}}^{bis}, t_n) + O(|t_{n+1} - t_n|^2) \\
+    a & = \mathcal{G}_{\theta}(\mathbf{x}_{t_{n+1}}, t_{n+1}) \\
+   \mathcal{L}_{\Phi}(\theta, \theta^-) & = \mathbb{E}\left[ \lambda(t_n) d(\mathcal{G}_{\theta}(\mathbf{x}_{t_{n+1}}, t_{n+1}), \mathcal{G}_{\theta^-}(\mathbf{x}_{t_{n+1}} + \Delta_{\mathbf{x}}^{bis}, t_n) \right] \\
+   & \: + \mathbb{E}\left[O(|t_{n+1} - t_n |^2) \right]  
+\end{align}
+
+\noindent Lastly, we write:
+\begin{align}
+    \mathbf{x}_{t_{n+1}} & = \mathbf{x} + t_{n+1}z \\
+    \Delta_{\mathbf{x}}^{bis} &= \frac{t_n - t_{n+1} }{t_{n+1}}(\mathbf{x}_{t_{n +1}} - \mathbf{x}) \\
+    \Delta_{\mathbf{x}}^{bis} + \mathbf{x}_{t_{n+1}} &= \mathbf{x} + t_{n+1}z +\frac{t_n - t_{n+1} }{t_{n+1}}(\mathbf{x} + t_{n+1}z - \mathbf{x}) \\
+   & = x + t_{n}z 
+\end{align}
+\noindent Which we can finally plug back into the loss:
+\begin{align}
+    \mathcal{L}_{\Phi}(\theta, \theta^-) & = \mathbb{E}\left[ \lambda(t_n) d(\mathcal{G}_{\theta}(\mathbf{x}_{t_{n+1}}, t_{n+1}), \mathcal{G}_{\theta^-}(\mathbf{x}_{t_{n+1}} + \Delta_{\mathbf{x}}^{bis}, t_n) \right] \\
+    & \: + \mathbb{E}\left[O(|t_{n+1} - t_n |^2) \right] \\
+    & = \mathbb{E}\left[ \lambda(t_n) d(\mathcal{G}_{\theta}(\mathbf{x}_{t_{n+1}}, t_{n+1}), \mathcal{G}_{\theta^-}(x + t_{n}z , t_n) \right] \\ 
+    & \: + \mathbb{E}\left[O(|t_{n+1} - t_n |^2) \right]  
+\end{align}
+\noindent That ends the proof! 

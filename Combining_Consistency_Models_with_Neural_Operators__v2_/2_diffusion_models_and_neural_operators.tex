@@ -1,0 +1,88 @@
+\section{Diffusion models and Neural Operators} \label{sec:diffno}
+
+\subsection{Diffusion Models}
+
+Diffusion Models generate images by first converting data to noise, applying layers of Gaussian perturbation to the input data $\x$. Then, they recreate the data from noise, by reversing the noising process, that is, applying sequential denoising. The diffusion process can be written as follows:
+
+\begin{align}
+    \mathbf{d}\x_t = \mu(\x_t, t)\mathbf{d}t + \sigma(t)\mathbf{d}\mathbf{w}_t       
+\end{align}
+
+\noindent with $t \in [\epsilon, T]$ is the time, $0 < \epsilon < T$ are a fixed constant, $\mu$ and $\sigma$ are the drift and diffusion coefficients. Lastly, $\mathbf{w}$ is the standard Brownian motion. We also denote the distribution of $\x_t$ as $p_t(\x)$. A property of this Stochastic Differential Equation (SDE) is the existence of an Ordinary Differential Equation (ODE), called the Probability Flow (PF) ODE, whose solutions follows the desired distribution $p_t(\x)$
+
+\begin{align}
+    \mathbf{d}\x_t & = \left[ \mu(\x_t, t) - \frac{1}{2}\sigma(t)^2 \nabla \log p_t (\x_t)\right] \mathbf{d}t  \label{eq:pfode}
+\end{align}
+
+\noindent Where $s(\x_t, t) = \nabla \log p_t (\x_t)$ is the score function of $p_t(\x_t)$. By setting $\mu$ and $\sigma$ accordingly, and assuming that we have a trained score model $s_\Phi(\x_t, t)$ that approximates $s(\x_t, t)$, this equation becomes:
+\begin{align}
+    \frac{\mathbf{d}\x_t}{\mathbf{d}t} & = -t s_\Phi(\x_t, t) 
+\end{align}
+
+\noindent It's then possible to generate a sample $\hat{\x}_{t_n}^{\phi}$ from the following :
+\begin{align}
+    \hat{\x}_{t_n}^{\phi}  = \x_{t_{n+1}} - (t_n - t_{n+1})t_{n+1}s_\Phi(\x_t, t) \label{eq:ODE}
+\end{align}
+
+\subsection{Consistency Models}
+
+Consistency Models (\cite{song2023consistencymodels}) learn a function $f_{\theta}$ that maps any point of the trajectory $\mathbf{x}_t $ to the last point of the trajectory $\mathbf{x}_{\epsilon}$:
+
+\begin{align}
+  f_{\theta}(\mathbf{x}_t, t) &= \widehat{\mathbf{x}}_{\epsilon} \;, \; \forall t \in \: ]\epsilon, T\:] \\
+  f_{\theta}(\mathbf{x}_{\epsilon}, t) &= \mathbf{x}_{\epsilon} \: \: \text{(Boundary Condition)}
+\end{align}
+
+\noindent Consitency Models have two training modes : Consistency Distillation (CD) and Consistency Training (CT). 
+
+\subsubsection{Consistency Distillation}
+Consistency Distillation trains from a pre-trained score model by optimizing the following loss:
+
+\begin{align}
+    \mathcal{L}_{\Phi} \left(\theta, \theta^-; \phi \right) &= \mathbb{E}\left[ \lambda(t_n) d \left(f_{\theta} (\mathbf{x}_{t_{n+1}}, t_{n+1}), f_{\theta^-} (\widehat{\mathbf{x}}_{t_{n}}^{\phi}, t_{n}) \right)\right] \label{def:loss}
+\end{align}
+\noindent Where $\hat{\x}_{t_n}^{\phi}$ are obtained using the model to be distilled (Equation~\ref{eq:ODE}), and $d$ is a metric function.
+
+\subsubsection{Consistency Training}
+Consistency Training allows the model to train without a score model. Based on the definition of the noising process:
+\begin{align}
+    \x_{t_n} = \x + t_nz \label{def:xtn}
+\end{align}
+\noindent where $z \sim \mathcal{N}(0, 1)$. The self-training loss is then:
+\begin{align}
+    \mathcal{L}_{\Theta} \left(\theta, \theta^-\right) &= \mathbb{E}\left[ \lambda(t_n) d \left(f_{\theta}(\x + t_{n+1}z, t_{n+1}), f_{\theta^-}(\x + t_nz, t_{n}) \right)\right] \label{def:selfloss}
+\end{align}
+
+\subsubsection{CD vs CT}
+
+From the different papers, we observe that generally, CD yields better FID score than CT. However, It requires significant additional computational time to train the original score model to distill from. Moreover, the most recent studies \cite{} show that for smaller datasets (CIFAR-10), the self-training models where able to achieve better FID than CD. 
+
+\subsection{Neural Operators}
+
+Several data-driven approaches for solving PDE have been studied during the last decade \cite{, }, particularly Physics-Informed Neural Networks (PINNs) \cite{cai2021physics, cuomo2022scientific, DBLP:journals/corr/abs-2111-03794}. Among them, Neural Operators \cite{DBLP:journals/corr/abs-2003-03485} learn mappings between infinite dimensional spaces. For instance, they can provide a discretization-invariant map between function spaces \cite{DBLP:journals/corr/abs-2108-08481}, allowing them to solve PDE. \\
+
+\noindent Let $\mathcal{A}$ and $\mathcal{U}$ be two Banach spaces such as $\mathcal{F}^{\dagger} : \mathcal{A} \mapsto \mathcal{U}$. Neural Operators aim at estimating the mapping $\mathcal{F}^{\dagger}$ by constructing a parametric map $\Theta$ :
+\begin{align}
+    \mathcal{F} : \mathcal{A} \times \Theta \mapsto \mathcal{U}
+\end{align}
+\noindent To learn $\mathcal{F}$, one has to solve the following:
+\begin{align}
+    \min_{\theta \in \Theta} \mathbb{E} \left[ C(\mathcal{F}(a, \theta), \mathcal{F}^{\dagger}(a)) \right]
+\end{align}
+\noindent where $\{a_j,  \mathcal{F}^{\dagger}(a_j)\}_j$ are observations of the PDE, and $C$ is a cost function. \\
+
+\subsubsection{Analogies with consistency models}
+
+Diffusion models aim at solving the PDE defined in Equation~\ref{eq:pfode}. Typically, Neural Operators could accomplish this task by learning a mapping between $\x_T$ and $\x_{\epsilon}$ : $\x_{\epsilon} = f_{\theta}(\x_T)$ where $\mathcal{A}$ is the space of the initial condition (the noise) and $\mathcal{U}$ is the solution space of continuous-time functions (the clean image). Even though Neural Operators seem appropriate for training Diffusion Models, to the best of our knowledge, only \cite{zheng2023fastsamplingdiffusionmodels} uses NO for image generation.
+
+\subsection{Challenges and contributions}
+
+In this paper, we propose to build a Neural Operator and train it for image generation. We think that NO, and particularly Fourier NO, could significantly improve the performances and representation capabilities of Consistency Models. The challenges arising from this task are numerous:
+\begin{itemize}
+    \item \textbf{Training target}. Neural Operator's target $\mathcal{F}(a, \theta)$ is a continuous-time function from $\mathcal{U}$, whereas the output of Consistency Models $f_{\theta}(\mathbf{x}_t, t) = \widehat{\mathbf{x}}_{\epsilon}$ is the clean image. Practically, we evaluate the function $\mathcal{F}$ at fixed discretized points, so $\mathcal{F}(a, \theta)$ is a denoising trajectory $\{\x_t \}_{t \in [\epsilon, T]} \in \mathbb{R}^{T \times C \times H \times W}$. In consistency models, $f(\x_t) = \x_{\epsilon} \in \mathbb{R}^{C \times W \times H}$.
+    \item \textbf{Model design and architecture} We want to build a Neural Operator composed of Spectral Convolution layers, that can be trained in consistency. This is, using the NO model, and the CM training algorithm. Every elements of both NO and CM have to be carefully reviewed to make sure that they are coherent (temporal embedding, activation functions, etc...).
+    \item \textbf{Self-training.} While \cite{song2023consistencymodels} introduce a self-training loss \ref{def:selfloss}, Neural Operators need a dataset of observations $\{a_j,  \mathcal{F}^{\dagger}(a_j)\}_j$ to be trained. The definition of a self-training loss for Neural Operators would be a significant advance in the PDE solving domain. We have to understand what makes a Consistency Model trainable without Distillation and how can we apply it to Neural Operators. \item \textbf{Flexible-Input NO} Neural Operator are trained on a fixed, discretized time grid : the time dimension is integrated directly in the NN architecture. Thus, the network always forecasts trajectory at each of these steps, always starting from their initial conditions. Do our Flexible-Input Neural Operator still make sense ? Can we still implement training without diffusion without it ?
+
+    Neural Operators act like a Foosball or Table Football: the input $\x_T$ is used to predict the entire trajectory $\{\x_t \}_{t \in [\epsilon, T[}$. If we want to use a Neural Operator with a different input that the initial conditions $\x_T$, then we have to modify the model architecture in some way that make sense. 
+    \item \textbf{Performances.} The results of \cite{zheng2023fastsamplingdiffusionmodels} lack competitiveness against the most advanced sampling methods. We aim to improve those performances.
+\end{itemize}

@@ -1,0 +1,25 @@
+\section{Model Implementation}
+
+The FINOWrapper class provides different functions to use the TDDPMM model from DSNO :
+\begin{itemize}
+    \item Data loading and trajectory noising helpers
+    \item Self-training by enforcing consistency property
+    \item Sandbox prediction and testing
+\end{itemize}
+
+
+\begin{algorithm}
+\caption{Training epoch of FINO}
+\begin{algorithmic}
+    \State Draw $\x$ from training data
+    \State $n \sim U[0, N]$
+    \State $t \gets t_{embs}[n]$
+    \State $\{\x_t\}_{t \in t_{embs}} \gets generate\_noise(\x)$
+    \State $\x_{t_n} \gets \{\x_t\}_{t \in t_{embs}}[t_n]$
+    \State $\mathbf{y}_{t_n} \gets \G_{\theta^-}(\x_{t_n})$ \Comment{N x d}
+
+    \State $\x_{t_{n+1}} \gets \{\x_t\}_{t \in t_{embs}}[t_{n+1}]$
+    \State $\mathbf{y}_{t_{n+1}} \gets \G_{\theta}(\x_{t_{n+1}})$ \Comment{N x d}
+    \State $\mathcal{L}_{\Theta}(\mathbf{y}_{t_n}, \mathbf{y}_{t_{n+1}})$
+    \end{algorithmic}
+\end{algorithm}

@@ -1,0 +1,92 @@
+\section{Loss in Continuous Time} \label{app:continuous}
+
+In this section, we examine the proof of \cite{song2023consistencymodels}'s Theorem 6 and check if it applies to our operator $\mathcal{G}$. We start by defining:
+
+\begin{align}
+    \Delta u & = \frac{1}{N - 1} \\
+    u_n & = \frac{n - 1}{N - 1} \\
+    t_n & = \tau(u_n) \\
+    [H(\mathbf{x})]_{i, j} & = \frac{\delta^2d(y, x)}{\delta y_i \delta y_j} \lvert_{x=  y} \label{def:H}
+\end{align}
+
+\noindent We start by proving that : 
+
+\begin{align}
+    & \lim_{N \rightarrow + \infty} (N - 1)\nabla_{\theta}\mathcal{L}_{\Theta}(\theta, \theta^{-}) = \mathcal{L}_{\Omega}(\theta, \theta^{-}) \\
+    & = \mathbb{E} \left[ \frac{\lambda(t)}{(\tau^{-1})^{'}(t)}\mathcal{G}_{\theta}(\mathbf{x}_t, t)^T H(\mathcal{G}_{\theta^{-}}(\mathbf{x}_t, t)) \frac{d \mathcal{G}_{\theta^{-}}(\mathbf{x}_t, t)}{dt} \right]
+\end{align} 
+
+\noindent Let's start by recalling that :
+\begin{align}
+        \mathcal{L}_{\Theta}(\theta, \theta^{-}) & = \mathbb{E}\left[ \lambda(t_n) d \left(\mathcal{G}_{\theta}(\mathbf{x} + t_{n+1}z, t_{n+1}), \mathcal{G}_{\theta^-}(\mathbf{x} + t_nz, t_{n}) \right)\right] & \: \text{from} \: \ref{def:selfloss} \\
+        (N - 1) \mathcal{L}_{\Theta}(\theta, \theta^{-}) & = \frac{1}{\Delta u}\mathbb{E}\left[ \lambda(t_n) d \left(\mathcal{G}_{\theta}(\mathbf{x} + t_{n+1}z, t_{n+1}), \mathcal{G}_{\theta^-}(\mathbf{x} + t_nz, t_{n}) \right)\right] 
+\end{align}
+
+\noindent Now, we set:
+\begin{align}
+    y &= \mathcal{G}_{\theta^-}(\mathbf{x} + t_nz, t_{n}) \\
+    \epsilon & = \mathcal{G}_{\theta}(\mathbf{x} + t_{n+1}z, t_{n+1}) - \mathcal{G}_{\theta^-}(\mathbf{x} + t_nz, t_{n})
+\end{align}
+
+\noindent Then
+\begin{align}
+    d \left(\mathcal{G}_{\theta}(\mathbf{x} + t_{n+1}z, t_{n+1}), \mathcal{G}_{\theta^-}(\mathbf{x} + t_nz, t_{n}) \right) = d(y + \epsilon, y) 
+\end{align}
+
+\noindent Applying the second-order Taylor expansion :
+\begin{align}
+    d(y + \epsilon, y) & = d(y, y) +\nabla_y d(y,y) \epsilon + \frac{\epsilon^T}{2}\nabla_{y,y}^2d(y,y)\epsilon + R_3(\epsilon) \\
+    & = \frac{1}{2}\epsilon^T H \epsilon + O(|\Delta u|^3) & \text{from} \: \ref{def:H}
+\end{align}
+
+\noindent Then
+\begin{align}
+     (N - 1) \mathcal{L}_{\Theta}(\theta, \theta^{-}) & = \frac{1}{\Delta u}\mathbb{E}\left[ \lambda(t_n) d \left(\mathcal{G}_{\theta}(\mathbf{x} + t_{n+1}z, t_{n+1}), \mathcal{G}_{\theta^-}(\mathbf{x} + t_nz, t_{n})\right)\right] \\
+     & = \frac{1}{\Delta u}\mathbb{E}\left[ \lambda(t_n) \frac{1}{2}\epsilon^T H \epsilon + O(|\Delta u|^3)\right] \\
+     & = \frac{1}{\Delta u}\mathbb{E}\left[ \lambda(t_n) \frac{1}{2}\epsilon^T H \epsilon \right] + \mathbb{E}\left[O(|\Delta u|^2)\right]
+\end{align}
+
+\noindent Then, taking the gradient on both sides and using the chain rule:
+\begin{align}
+     \nabla_{\theta}(N - 1) \mathcal{L}_{\Theta}(\theta, \theta^{-}) & = \nabla_{\theta}\frac{1}{\Delta u}\mathbb{E}\left[ \lambda(t_n) \frac{1}{2}\epsilon^T H \epsilon \right] + \mathbb{E}\left[O(|\Delta u|^2)\right] \\
+     & = \frac{1}{\Delta u}\mathbb{E}\left[ \lambda(t_n) \left[\nabla_{\theta} \mathcal{G}_{\theta}(\mathbf{x} + t_{n+1}z, t_{n+1})\right]^T H \epsilon \right] + \mathbb{E}\left[O(|\Delta u|^2)\right] \label{eq:continuous}
+\end{align}
+
+\noindent Then, we can rewrite $\epsilon$: 
+\begin{align}
+    \epsilon & = \mathcal{G}_{\theta}(\mathbf{x} + t_{n+1}z, t_{n+1}) - \mathcal{G}_{\theta^-}(\mathbf{x} + t_nz, t_{n}) \\
+    & = \mathcal{G}_{\theta^{-}}(\mathbf{x} + t_{n+1}z, t_{n+1}) - \mathcal{G}_{\theta^-}(\mathbf{x} + t_nz, t_{n}) & \text{because} \: \theta^{-} = stopgrad(\theta) \\
+    & = J1 \mathcal{G}_{\theta^-}(\mathbf{x} + t_nz, t_{n}) (z(t_{n+1} - t_n)) + J2 \mathcal{G}_{\theta^-}(\mathbf{x} + t_nz, t_{n})(t_{n+1} - t_n)
+\end{align}
+\noindent The latter is obtained using the 1st order Taylor Expansion, where $J1$ and $J2$ are the partial derivative of $\mathcal{G}_{\theta^-}(.\:,\: .)$ with respect to it's first and second argument, respectively. Noticing that $(t_{n+1} - t_n) = \tau^{'}(u_n)\Delta u$, we can then rewrite:
+\begin{align}
+    \epsilon  & = J1 \mathcal{G}_{\theta^-}(\mathbf{x} + t_nz, t_{n}) (z(t_{n+1} - t_n)) + J2 \mathcal{G}_{\theta^-}(\mathbf{x} + t_nz, t_{n})(t_{n+1} - t_n) \\
+    & = \tau^{'}(u_n) \Delta u \left( J1 \mathcal{G}_{\theta^-}(\mathbf{x} + t_nz, t_{n}) \frac{x_{t_n} - x}{t_n} + J2 \mathcal{G}_{\theta^-}(\mathbf{x} + t_nz, t_{n}) \right)
+\end{align}
+
+\noindent Then, plugging back into Equation~\ref{eq:continuous}:
+\begin{align}
+     & \nabla_{\theta}(N - 1) \mathcal{L}_{\Theta}(\theta, \theta^{-}) = \frac{1}{\Delta u}\mathbb{E}\left[ \lambda(t_n) \left[\nabla_{\theta} \mathcal{G}_{\theta}(\mathbf{x} + t_{n+1}z, t_{n+1})\right]^T H \epsilon \right] + \mathbb{E}\left[O(|\Delta u|^2)\right] \\
+     & = \nabla_{\theta} \mathbb{E}\left[ \lambda(t_n) \tau^{'}(u_n) \left[ \mathcal{G}_{\theta}(\mathbf{x} + t_{n+1}z, t_{n+1})\right]^T H 
+     \left(J1 \mathcal{G}_{\theta^-}(\mathbf{x} + t_nz, t_{n}) \frac{x_{t_n} - x}{t_n} + J2 \mathcal{G}_{\theta^-}(\mathbf{x} + t_nz, t_{n}) \right)\right] \\
+     & \: \: + \mathbb{E}\left[O(|\Delta u|^2)\right]
+\end{align}
+
+\noindent Taking the limits when $N \rightarrow + \infty$ (or $\Delta u \rightarrow 0$) achieves the proof :
+\begin{align}
+    & \lim_{N \rightarrow + \infty} (N - 1)\nabla_{\theta}\mathcal{L}_{\Theta}(\theta, \theta^{-}) \\
+    & = \mathbb{E} \left[ \frac{\lambda(t)}{(\tau^{-1})^{'}(t)}\mathcal{G}_{\theta}(\mathbf{x}_t, t)^T H(\mathcal{G}_{\theta^{-}}(\mathbf{x}_t, t)) \left(\frac{\delta \mathcal{G}_{\theta^{-}}(\mathbf{x}_t, t)}{\delta t} + \frac{\delta \mathcal{G}_{\theta^{-}}(x_t, t)}{\delta \mathbf{x}_t} \frac{\mathbf{x}_t - \mathbf{x}}{t} \right)\right] \\
+    & = \mathbb{E} \left[ \frac{\lambda(t)}{(\tau^{-1})^{'}(t)}\mathcal{G}_{\theta}(\mathbf{x}_t, t)^T H(\mathcal{G}_{\theta^{-}}(\mathbf{x}_t, t)) \frac{d \mathcal{G}_{\theta^{-}}(\mathbf{x}_t, t)}{dt}\right]    
+\end{align}
+
+\noindent Additionally, when $d (x,y) = \lVert x - y\rVert_2^2$, then $H(\mathcal{G}_{\theta^{-}}(\mathbf{x}_t, t))_{i, j} = 2$ $\forall i, j$ and :
+\begin{align}
+    \mathcal{L}_{\Omega}(\theta, \theta^{-}) & = 2\mathbb{E} \left[ \frac{\lambda(t)}{(\tau^{-1})^{'}(t)}\mathcal{G}_{\theta}(\mathbf{x}_t, t)^T \frac{d \mathcal{G}_{\theta^{-}}(\mathbf{x}_t, t)}{dt} \right]
+\end{align}
+
+
+
+\noindent We will not delve into the second part of the proof, since the proof is exactly similar to the proof of Theorem 6:
+\begin{align}
+ \lim_{N \rightarrow + \infty} (N - 1)\nabla_{\theta}\mathcal{L}_{\Phi}(\theta, \theta^{-}) = \lim_{N \rightarrow + \infty} (N - 1)\nabla_{\theta}\mathcal{L}_{\Theta}(\theta, \theta^{-})    
+\end{align}

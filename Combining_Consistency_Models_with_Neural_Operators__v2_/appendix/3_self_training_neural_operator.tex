@@ -1,0 +1,84 @@
+\section{Self Training Neural Operator}
+
+We need to define a loss $\mathcal{L}(\theta, \theta^{-})$ that reaches 0 when the operator forecast perfect trajectories:
+\begin{align}
+    \mathcal{L}_{\Phi} (\theta, \theta^{-}) \rightarrow 0 \: \Leftrightarrow \: \sup_{n, x} \lVert \mathcal{G}_{\theta} (\mathbf{x}, t_n) - \mathcal{G}(\mathbf{x}, t_n; \phi)\rVert_2 = O((\Delta t)^p)
+\end{align}
+
+\noindent Where : 
+\begin{align}
+\Delta t = \max_{n \in [1, N-1]} \left\{|t_{n+1} - t_n|\right\} \label{deltat:def}
+\end{align}
+\noindent And $O\left((t_{n+1} - t_n)^{p+1}\right)$, $p \geq 1$ is the uniform bound of the local error of the ODE solver called at $t_{n+1}$. \\
+
+\noindent We give proof that the loss:  \label{app:ld}
+\begin{align}
+    \mathcal{L}_{\Phi}\left(\theta, \theta; \phi \right) &= \mathbb{E}\left[ \lambda(t_n) d \left(\mathcal{G}_{\theta}(\mathbf{x}_{t_{n+1}}, t_{n+1}), \mathcal{G}_{\theta}(\widehat{\mathbf{x}}_{t_{n}}^{\phi}, t_{n}) \right)\right]
+\end{align} 
+\noindent Satisfies the property:
+\begin{align}
+    & \mathcal{L}_{\Phi}\left(\theta, \theta; \phi \right) \rightarrow 0 \\
+    \Leftrightarrow \:& \sup_{x, n} \lVert e_n \rVert_2 = O((\Delta t)^p) \label{prop:lphi}
+\end{align}
+\noindent Where $e_n = \mathcal{G}_{\theta}(\mathbf{x}_{t_n}, t_n) - \mathcal{G}(\mathbf{x}_{t_n}, t_n; \phi)$, and $O((t_{n+1} - t_n)^p)$ is the error bound of the ODE solver such that :
+\begin{align}
+    \lVert \widehat{\mathbf{x}}_{t_n}^{\phi} - \mathbf{x}_{t_n} \rVert_2 \leq O((t_{n+1} - t_n)^{p+1}) \label{O:def}
+\end{align}
+\noindent We start by:
+\begin{align}
+    e_1 &= \mathcal{G}_{\theta}(\mathbf{x}_{t_1}, t_1) - \mathcal{G}(\mathbf{x}_{t_1}, t_1; \phi) \\
+    & = x_{\epsilon} - x_{\epsilon} & \text{from} \: \ref{G:bound} \\
+    e_1 &= 0 \label{e1:zero}
+\end{align}
+
+\noindent Then, we have:
+\begin{align}
+    \mathcal{L}_{\Phi}\left(\theta; \phi \right) & = 0 \\
+    \Leftrightarrow \: \mathbb{E}\left[ \lambda(t_n) d \left(\mathcal{G}_{\theta}(\mathbf{x}_{t_{n+1}}, t_{n+1}), \mathcal{G}_{\theta}(\widehat{\mathbf{x}}_{t_{n}}^{\phi}, t_{n}) \right)\right] & = 0 \\
+    \Leftrightarrow \: d \left(\mathcal{G}_{\theta}(\mathbf{x}_{t_{n+1}}, t_{n+1}), \mathcal{G}_{\theta}(\widehat{\mathbf{x}}_{t_{n}}^{\phi}, t_{n}) \right) & = 0 & \text{since} \: \lambda(t_n) > 0 \\
+    \Leftrightarrow \: d \left(\mathcal{G}_{\theta}(\mathbf{x}_{t_{n+1}}, t_{n+1})[1:n-1], \mathcal{G}_{\theta}(\widehat{\mathbf{x}}_{t_{n}}^{\phi}, t_{n}) \right) & = 0 & \text{from} \: \ref{d:prop}  \\
+    \Leftrightarrow \: \mathcal{G}_{\theta}(\mathbf{x}_{t_{n+1}}, t_{n+1})[1:n-1] &= \mathcal{G}_{\theta}(\widehat{\mathbf{x}}_{t_{n}}^{\phi}, t_{n}) & \text{from} \: \ref{d:zero} \\
+    \Leftrightarrow \: \mathcal{G}_{\theta}(\mathbf{x}_{t_{n+1}}, t_{n+1})[1:n-1] \cup \{\widehat{\mathbf{x}}_{t_n}, t_n \} &= \mathcal{G}_{\theta}(\widehat{\mathbf{x}}_{t_{n}}^{\phi}, t_{n}) \cup \{\widehat{\mathbf{x}}_{t_n} \} \\
+    \Leftrightarrow \: \mathcal{G}_{\theta}(\mathbf{x}_{t_{n+1}}, t_{n+1}) &= \mathcal{G}_{\theta}(\widehat{\mathbf{x}}_{t_{n}}^{\phi}, t_{n}) \cup \{\widehat{\mathbf{x}}_{t_n} \}  & \text{from} \: \ref{G:def} \label{lphi:partial1}
+\end{align}
+
+\noindent Let's get back to the definition of $e_n$:
+\begin{align}
+    e_n & = \mathcal{G}_{\theta}(\mathbf{x}_{t_n}, t_{n}) - \mathcal{G}(\mathbf{x}_{t_n}, t_{n}; \phi) \label{en:def} \\
+    e_{n+1} & = \mathcal{G}_{\theta}(\mathbf{x}_{t_{n+1}}, t_{n+1}) - \mathcal{G}(\mathbf{x}_{t_{n+1}}, t_{n+1}; \phi) \\
+    & = \mathcal{G}_{\theta}(\widehat{\mathbf{x}}_{t_{n}}^{\phi}, t_{n}) \cup \{\widehat{\mathbf{x}}_{t_n} \} - \mathcal{G}(\mathbf{x}_{t_{n+1}}, t_{n+1}; \phi)  & \text{from} \: \ref{lphi:partial1} \\
+    & = \mathcal{G}_{\theta}(\widehat{\mathbf{x}}_{t_{n}}^{\phi}, t_{n}) \cup \{\widehat{\mathbf{x}}_{t_n} \} - \mathcal{G}(\mathbf{x}_{t_n}, t_{n}; \phi) \cup \{\widehat{\mathbf{x}}_{t_n}^{\phi} \}  & \text{from} \: \ref{G:trainer} \\
+    & = \mathcal{G}_{\theta}(\widehat{\mathbf{x}}_{t_{n}}^{\phi}, t_n) - \mathcal{G}(\mathbf{x}_{t_n}, t_n; \phi) + \widehat{\mathbf{x}}_{t_n}  - \widehat{\mathbf{x}}_{t_n}^{\phi} \\
+    & = \mathcal{G}_{\theta}(\widehat{\mathbf{x}}_{t_{n}}^{\phi}, t_n) - \mathcal{G}_{\theta}(\mathbf{x}_{t_n}, t_n) + \mathcal{G}_{\theta}(\mathbf{x}_{t_n}, t_n) - \mathcal{G}(\mathbf{x}_{t_n}, t_n; \phi) + \widehat{\mathbf{x}}_{t_n}  - \widehat{\mathbf{x}}_{t_n}^{\phi} \\
+    e_{n+1} & = e_n + \mathcal{G}_{\theta}(\widehat{\mathbf{x}}_{t_{n}}^{\phi}, t_n) - \mathcal{G}_{\theta}(\mathbf{x}_{t_n}, t_n) + \widehat{\mathbf{x}}_{t_n}  - \widehat{\mathbf{x}}_{t_n}^{\phi}   & \text{from} \: \ref{en:def} \label{en1:formula}
+\end{align}
+
+\noindent Let's now take the norm of Equation~\ref{en1:formula}:
+\begin{align}
+        \lVert e_{n+1} \lVert_2 & = \lVert e_n + \mathcal{G}_{\theta}(\widehat{\mathbf{x}}_{t_{n}}^{\phi}, t_n) - \mathcal{G}_{\theta}(\mathbf{x}_{t_n}, t_n) + \widehat{\mathbf{x}}_{t_n}  - \widehat{\mathbf{x}}_{t_n}^{\phi} \lVert_2 \\
+        \lVert e_{n+1} \lVert_2 & \leq \lVert e_n \rVert_2 + \lVert \mathcal{G}_{\theta}(\widehat{\mathbf{x}}_{t_{n}}^{\phi}, t_n) - \mathcal{G}_{\theta}(\mathbf{x}_{t_n}, t_n) \rVert_2 + \lVert \widehat{\mathbf{x}}_{t_n}  - \widehat{\mathbf{x}}_{t_n}^{\phi} \rVert_2 \label{en1:norm}
+\end{align}
+
+\noindent Now, we assume that $\mathcal{G}_{\theta}$ satisfies the Lipschitz condition, which is, for all pairs of data $(x, y)$, there exists $L > 0$ such that:
+\begin{align}
+    \lVert \mathcal{G}_{\theta}(x, .) - \mathcal{G}_{\theta}(y, .)\rVert_2 \leq L\lVert x - y\rVert_2 \label{L:def}
+\end{align}
+\noindent The expression of $e_{n+1}$ becomes:
+\begin{align}
+    \lVert e_{n+1} \rVert_2 & \leq \lVert e_n \rVert_2 + \lVert \mathcal{G}_{\theta}(\widehat{\mathbf{x}}_{t_{n}}^{\phi}, t_{n}) - \mathcal{G}_{\theta}(\mathbf{x}_{t_n}, t_{n}) \rVert_2 + \lVert \widehat{\mathbf{x}}_{t_n}  - \widehat{\mathbf{x}}_{t_n}^{\phi}  \rVert_2 \\
+    & \leq \lVert e_n \rVert_2 + L \lVert \widehat{\mathbf{x}}_{t_{n}}^{\phi} - \mathbf{x}_{t_n} \rVert_2 + \lVert \widehat{\mathbf{x}}_{t_n}  - \widehat{\mathbf{x}}_{t_n}^{\phi}  \rVert_2 & \text{from} \: \ref{L:def} \\
+    & = \lVert e_n \rVert_2 + (L - 1) \lVert \widehat{\mathbf{x}}_{t_{n}}^{\phi} - \mathbf{x}_{t_n} \rVert_2 \label{en1:formula2} \\
+     & \leq \lVert e_n \rVert_2 + (L - 1)O((t_{n+1} - t_n)^{p+1}) & \text{from} \: \ref{O:def} \\
+    \lVert e_{n+1} \rVert_2 & \leq \lVert e_n \rVert_2 + O((t_{n+1} - t_n)^{p+1})
+\end{align}
+
+\noindent Lastly, using Equation~(\ref{O:def}), we can find a recursive formula for $\lVert e_{n} \rVert_2$:
+\begin{align}
+    \lVert e_{n} \rVert_2 & \leq \lVert e_1 \rVert_2 + \sum_{k=1}^{n-1} O((t_{k+1} - t_k)^{p+1}) \\
+    & = \sum_{k=1}^{n-1} O((t_{k+1} - t_k)^{p+1}) & \text{from} \: \ref{e1:zero} \\
+    & = \sum_{k=1}^{n-1} O((t_{k+1} - t_k)^{p})(t_{k+1} - t_k)\\
+    & \leq O((\Delta t)^{p})\sum_{k=1}^{n-1}(t_{k+1} - t_k) & \text{from} \: \ref{deltat:def}  \\
+    & = O((\Delta t)^{p})\left(T - \epsilon \right)\\
+    \lVert e_{n} \rVert_2 & \leq O((\Delta t)^{p})\\
+\end{align}
+\noindent This gives a proof of \ref{prop:lphi}.

@@ -1,0 +1,49 @@
+% Created 2025-08-06 mer. 10:19
+% Intended LaTeX compiler: pdflatex
+\documentclass[10pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=1.5in]{geometry}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage[authoryear]{natbib}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage{mathtools}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath} 
+\usepackage{comment}
+\usepackage{amssymb}
+\usepackage{capt-of}
+\usepackage{hyperref}
+\usepackage{algpseudocode}
+\usepackage{algorithm}
+\author{Om Sanan}
+\date{\today}
+\title{Diffusion with Self-Training Neural Operator}
+
+\newcommand{\fino}{\mathrm{STNO}}
+\newcommand{\repo}{\url{https://github.com/neuraloperator/continuous-time-consistency-model}}
+\newcommand{\x}{\mathbf{x}}
+\newcommand{\G}{\mathcal{G}}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
+\input{1_introduction}
+\input{2_diffusion_models_and_neural_operators}
+\input{3_self_training_neural_operator}
+\input{4_interrogations}
+\input{5_model_implementation}
+\input{6_new_model}
+\input{7_TMD_and_PiFlow}
+\input{9999_appendix}
+
+\newpage
+\bibliography{bib}
+\bibliographystyle{plainnat}
+
+\end{document}

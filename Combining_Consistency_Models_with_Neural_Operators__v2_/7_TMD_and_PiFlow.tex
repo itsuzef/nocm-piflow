@@ -1,0 +1,158 @@
+\section{TMD and Pi-Flow Approaches}
+
+\subsection{Transition Matching Distillation}
+\cite{nie2026transitionmatchingdistillationfast} addresses current limitations of Video Diffusion Models. Since videos contain complex spatiotemporal dependencies, traditional image diffusion methods such as Consistency Models are difficult to apply directly. Instead, the authors propose a decoupled architecture that treats feature extraction and denoising separately. \\
+
+\noindent The main backbone computes a set of features $m_t = m_{\theta}(\x_t, t)$, which is then used by multiple denoising heads to compute the Inner Flow $y_s$ of the model:
+
+\begin{align*}
+    \mathbf{y} & = \x_T - \x \\
+    \x_{t_{i-1}} & = \x_{t_i} - (t_i - t_{i-1})y \\
+    \mathbf{y}_s & = (1 - s)\mathbf{y} + s\mathbf{y}_T
+\end{align*}
+
+\noindent with:
+\begin{align*}
+    \mathbf{y}_{s_{j-1}} = \mathbf{f}_{\theta}(\mathbf{y}_{s_j}, s_j, s_{j-1}, m_t)
+\end{align*}
+
+\noindent This paper essentially extends previous work on Transition Matching and Inner Flow Diffusion \cite{lipman2023flowmatchinggenerativemodeling, shaul2025transitionmatchingscalableflexible} to large-scale video generation. To my mind, TMD is primarily a video-generation-specific technique, where the authors needed to mutualize features across denoising steps in order to handle the high dimensionality of the data. Because they build upon prior papers that already employed these techniques (Transition Matching and Inner Flow) for image diffusion, it is difficult to see how we could build on this line of work while still proposing something substantially new. I therefore believe that our idea is much closer to the Pi-Flow paper discussed below.
+
+\subsection{Policy-Based Generation}
+\cite{chen2026piflowpolicybasedfewstepgeneration} builds on the following observation: most diffusion-model-based approaches aim to reduce sampling complexity by using fewer time steps. Some approaches, such as Consistency Models, even aim to sample in a single forward call. \cite{chen2026piflowpolicybasedfewstepgeneration}, however, argues that multiple denoising steps can still be acceptable if each denoising step is sufficiently fast compared to the overall sampling process. Based on this idea, they propose the following model. Instead of a traditional denoising model that aims to approximate the velocity, $G_{\theta}(\x_t, t) = v_t$, they propose estimating a policy $\pi$ that maps a sample and its timestep $(\x_t, t)$ to the velocity $v_t$.
+
+\begin{align*}
+    G_{\theta} & : \mathbb{R}^D \times \mathbb{R} \mapsto \mathcal{F} \\
+    \pi(\x_t, t) & = G_{\theta}(\x_s, s)(\x_t, t) \\
+                & = v_t
+\end{align*}
+
+\noindent Then, if $\pi(\x_t, t)$ has low computational cost, they recover the denoised state $x_0$ by integrating $\pi$ over 128 timesteps:
+\begin{align*}
+    \x_0 = x_r + \int^0_r \pi(x_t, t)\, dt
+\end{align*}
+
+\noindent In practice, based on the work of \cite{chen2025gaussianmixtureflowmatching}, they:
+\begin{itemize}
+    \item Use the denoising model to obtain a forecasted velocity $\hat{v} \in \mathbb{R}^{B \times N \times *}$ with $N$ the granularity of a predefined time grid: $[t_{src}, t_{dst}] \mapsto \{t_1 = t_{src}, \cdots t_N = t_{dst}\}$.
+    \item Generate $\hat{\x}_0 = \{\hat{\x}^{(t_1)}_0, \cdots, \hat{\x}^{(t_N)}_0\}$ where $\hat{\x}^{(t)}_0 = \x_{t_{src}} - t_{src} \hat{v}$ for all $t \in \{t_1, \cdots t_N\}$.
+    \item Then, for any $\tau \in [t_{src}, t_{dst}]$ (not necessarily on the predefined grid!), they interpolate the value of $\tilde{\x}_0$ using the nearest grid values $[\hat{\x}^{(\tau_0)}_0, \hat{\x}^{(\tau_1)}_0]$ such that $\tau_0, \tau_1 \in \{t_1, \cdots t_N\}^2$ and $\tau_0 < \tau < \tau_1$.
+    \item Lastly, the final velocity is given by $\tilde{v} = \frac{x_{\tau} - \tilde{\x}_0}{\tau}$.
+\end{itemize}
+\noindent From the \href{https://github.com/Lakonik/piFlow/blob/422954182a10f27eb05458bb5a43f1518817cf70/lakonlab/models/diffusions/piflow_policies/dx.py#L4}{code}, here is the algorithm used for interpolation:
+
+\begin{align*}
+    \tau & = (N - 1) \frac{t - t_{dst}}{t_{dst} - t_{src}} \\
+    \tau_0 & = floor(\tau) \\
+    \tau_1 & = \tau_0 + 1 \\
+    \tilde{\x}_0 & = (t_1 - \tau)\hat{\x}^{(\tau_1)}_0 + (\tau - t_0)\hat{\x}^{(\tau_0)}_0
+\end{align*}
+
+\noindent A variant of this consists of having the diffusion model forecast the parameters of a Gaussian Mixture Model $A \in \mathbb{R}^{K}$, $\mu \in \mathbb{R}^{K \times C}$ and $s \in \mathbb{R}^{K}$, where $A$ is the log coefficient, $\mu$ is the model means, and $s$ the log standard deviations. $K$ is the number of mixture components and $L \times C = D$ is a division of the feature space into $C$ sequences of size $L$. In other words, $G_{\theta}$ does not directly predict a function $\pi$, but instead predicts the parameters of a Gaussian Mixture Model. We propose to build on this idea by replacing the model $G_{\theta}$ with a Neural Operator in Section~\ref{NO}. Indeed, Neural Operators are exactly what is needed here: a mapping from a function $(\x_t, t)$ to a policy $\pi$.
+
+The advantages are as follows: 1) here, $\pi$ is truly functional; 2) it offers greater flexibility, since it is not restricted to a fixed parametric model; and 3) Neural Operators can better capture relationships in the data even at lower granularity. This means that we can predict policies on a coarse time grid and then evaluate them on a much finer time grid during denoising. However, we still need to find an effective way to represent the policies $\pi$ so that 1) they are easy for the Neural Operator to learn, 2) they are very fast to evaluate, and 3) they can effectively approximate $v_t$.
+
+\subsection{Latent Embedding of the Path}
+
+We consider building a model that outputs a latent embedding of the trajectory as: $m_t = B(\x_t, t)$. Then, we would use a separate decoder that takes the embedding $m_t$ as input along with a query point $s$ and outputs the state at that time: $\x_s = P(m_t, t, s)$. Formally:
+\begin{align*}
+    & B_{\phi} : \mathbb{R}^{D} \times \mathbb{R} \mapsto \mathcal{M} \\
+    & B_{\phi}(\x_t, t) = m_t
+\end{align*}
+
+\noindent with $m_t$ a latent embedding of the trajectory from $t \mapsto 0$. Then, the decoder takes this embedding:
+
+\begin{align*}
+    & P_{\theta} : \mathcal{M} \times \mathbb{R} \times \mathbb{R} \mapsto \mathbb{R}^D \\
+    & P_{\theta}(m_t, t, s) = \x_s
+\end{align*}
+
+\noindent There are two design choices for $m_t \in \mathcal{M}$: either functional, $\mathcal{M} = \mathcal{F}$, or data, $\mathcal{M} = \mathbb{R}^K$.
+
+\subsubsection{Functional embedding}
+In this case, $m_t \in \mathcal{F}$ itself is a function used to recover a state $q_s$ from a query point $s$.
+\begin{align*}
+    & m_t : \mathbb{R}^D \times \mathbb{R} \times \mathbb{R} \mapsto \mathbb{R}^K \\
+    & m_t(s, t) = q_{s}
+\end{align*}
+
+\noindent In this set-up, $q_{s}$ could either be another latent space to feed into the decoder:
+\begin{align*}
+    P_{\theta}(m_t, t, s) & = P_{\theta}(m_t(t, s)) \\
+                          & = P_{\theta}(q_s) \\
+                          & = \x_s
+\end{align*}
+
+\noindent or directly be the queried state: $q_{s} = \x_s$
+\begin{align*}
+    P_{\theta}(m_t, t, s) & = m_t(t, s) \\
+                          & = q_s \\
+                          & = \x_s
+\end{align*}
+
+\subsubsection{Data embedding}
+In this case, $m_t \in \mathbb{R}^K$ is a data representation of the trajectory. Then, one has to train
+\begin{align*}
+    P_{\theta}(m_t, t, s) & = x_s
+\end{align*}
+
+\noindent Note some interesting particular cases: if $m_t = \x_s$, then $P_{\theta}$ does nothing and we have a traditional diffusion model, or a consistency model if $s = 0$. If $m_t = \{\x_{\tau}\}_{\tau \mapsto s:t}$, then we have a CNO model!
+
+\subsubsection{Discussion}
+
+We have to find the correct mathematical model to represent the embedded trajectory function $m_t$. Representing a continuous function as a set of fixed-size outputs of a trainable network $B_{\phi}$ is challenging. Some methods address this problem: Neural Operators and Pi-Flow diffusion. \\
+
+\noindent I think the difference with Pi-Flow is that the output function can only decode one timestep at a time; it does not explicitly embed the entire trajectory. They rely on traditional methods for obtaining a given state $s$: $\x_s = x_r + \int^s_r \pi(x_t, t)\, dt$. \\
+
+\noindent Typically, $B_{\phi}$ and $P_{\theta}$ are Neural Operators. The difficulty then lies in training them. While we could think of a traditional loss for $P_{\theta}$: $\mathcal{L}_{\theta}(\x_s, \hat{\x_s})$ using samples from a teacher model $\hat{\x_s}$, the loss for $B_{\phi}$ is less trivial since we cannot have ``ground truth'' embeddings for the trajectory.
+
+\noindent Also, the benefits of this two-step approach remain unclear to me. If we successfully train $B_{\phi}$ to output a representation of the trajectory, then why can we not train it to directly output the trajectory? Or maybe it is a question of representing the continuous function in a contracted form that we are missing. Additional reading would be necessary.
+
+\subsection{Summarizing Pi-Flow Ideas}
+
+Let's unify the notation between \cite{chen2026piflowpolicybasedfewstepgeneration} and our documents:
+
+\begin{align*}
+    G_{\theta} & : \mathbb{R}^D \times \mathbb{R} \mapsto \mathcal{F} \\
+    G_{\theta}(\x_s, s) & = \Pi \\
+    \Psi_{\Pi}(\x_t, t) &= v_t
+\end{align*}
+
+\noindent \textbf{Vanilla Pi-Flow}
+\begin{align*}
+    \Psi_{\Pi}(\x_t, t) &= GMM_{\Pi}(\x_t, t) \\
+    \Pi &= \mbox{GMM coefficients}
+\end{align*}
+
+\noindent \textbf{Idea 1: sin/cos Fourier parametrization} \\
+
+\noindent This set-up slightly varies since we would be predicting $\Psi_{\Pi}(\x_t, t) = x_t$.
+\begin{align*}  
+    \Psi_{\Pi}(t, \xi) &= \phi_0(t)\x_{start}(\xi) + \phi_1(t)\x_{stop}(\xi) + \sum_{m = 1}^M a_m(\xi)\sin(m\pi t) + b_m(\xi)\left(\cos(m\pi t) - 1\right) \label{eq:psi} \\
+    \Pi & = \{a_m(\xi), b_m(\xi)\}_{m = 1:M}
+\end{align*}
+
+\noindent Then, we have to derive Eq~\ref{eq:psi} to recover the velocity:
+\begin{align*}
+    v_t &= \frac{\partial \x_t}{\partial t} = \frac{\partial \Psi_{\Pi}(t, \xi)}{\partial t} \\
+    & = \frac{\partial \phi_0(t)}{\partial t}\x_{start}(\xi) + \frac{\partial \phi_1(t)}{\partial t}\x_{stop}(\xi) + m\pi\sum_{m = 1}^M a_m(\xi)\cos(m\pi t) - b_m(\xi)\sin(m\pi t) \\
+\end{align*}
+
+\noindent \textbf{PDE parameters}
+
+\begin{align*}
+    \Psi_{\Pi}(\x_t, t) &= F_{\Pi}(\x, \nabla \x, \nabla^2\x, t, \xi) = v_t\\
+    F_{\Pi}(\x, \nabla \x, \nabla^2\x, t, \xi) & = a_{\Pi}(\xi)\x + b_{\Pi}(\xi)\nabla\x + c_{\Pi}(\xi)\nabla^2\x + d_\Pi(\xi) t\\
+    \Pi &= \{a_{\Pi}, b_{\Pi}, c_{\Pi}, d_{\Pi} \}
+\end{align*}
+
+\noindent \textbf{Neural Operator}
+Here, we want to replace $G_{\theta}$ with a Neural Operator.
+\begin{align*}
+    G_{\theta}(\x_t, t) & = \mathcal{N}_{\theta}\left(f(\x_t, t)\right) \\
+    & = \Psi_{\Pi}(\x_t, t)
+\end{align*}
+
+\noindent Where $f : \mathbb{R}^{D} \times \mathbb{R} \mapsto \mathcal{F}$ is a functional representation of the input data. Then, we can train $\mathcal{N}_{\theta}$ so that $\Pi$ is either Vanilla PiFlow, PDE Parameters, or Neural Operator. \\
+
+\noindent \textbf{Course of action} I would suggest already starting by replacing the GMM with either the sin/cos parametrization or the PDE parameters (or both). We would get much quicker results and can already see if we can improve performance over vanilla PiFlow. Then, we reframe the problem as a Neural Operator and test it across the three distinct methods: PiFlow, SinCos, and PDE Parameters. Having tested with and without a Neural Operator on all three methods allows for a better understanding of what affects performance (the Neural Operator or the policy?).

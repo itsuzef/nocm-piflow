@@ -4,6 +4,12 @@ personal-docs/
 # PDFs (binary, large — generate from source)
 *.pdf
 
+# Artifacts and images
+artifacts/
+*.png
+*.jpg
+*.jpeg
+
 # Paper source archives
 papers/*/source.tar.gz
 

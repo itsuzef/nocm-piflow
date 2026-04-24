@@ -95,35 +95,46 @@ out_c_general = posterior_general(
     x_t_vp, x_s_vp, gm_means, gm_vars, gm_logweights)
 
 
-def brute_force_mean_1d(alpha_t_val, sigma_t_val, mu_k_vals, var_k_val, logw_k_vals,
-                         x_t_val, n_grid=20000, std_range=10):
+def brute_force_mean_1d(alpha_t_val, sigma_t_val, alpha_s_val, sigma_s_val,
+                         mu_k_vals, var_k_val, logw_k_vals,
+                         x_t_val, x_s_val, n_grid=20000, std_range=12):
     """
-    Exact 1D brute force for K-component iso-Gaussian prior, single channel.
-    The GM logweight update is a scalar per component (channel sum collapses to 1 term).
-    Grid centered adaptively on the likelihood peak.
+    Exact 1D brute force for K-component iso-Gaussian GM.
+
+    The formula computes p(x0 | x_t) by importance-reweighting the GM prior
+    p(x0 | x_s) with the ratio p(x_t|x0) / p(x_s|x0):
+
+        log p(x0 | x_t) ∝ log p(x_t|x0) - log p(x_s|x0) + log p(x0|x_s)
+
+    This is the posterior from the joint log:
+        -(1/(2*var_k) + zeta/2)*x0^2 + (mu_k/var_k + nu)*x0 + const
+
+    which matches the analytic formula exactly (Gaussian × ratio = Gaussian).
     """
     K = len(mu_k_vals)
-    # Center grid on weighted mix of likelihood peak and prior mean
-    like_peak   = float(x_t_val) / float(alpha_t_val)
-    prior_mean  = sum(math.exp(float(logw_k_vals[k])) * float(mu_k_vals[k]) for k in range(K))
-    # Normalise weights
-    log_sum = math.log(sum(math.exp(float(logw_k_vals[k])) for k in range(K)))
-    prior_mean /= math.exp(log_sum)
-    center = 0.5 * (like_peak + prior_mean)
-    half_range = std_range * (float(var_k_val)**0.5 + float(sigma_t_val) / float(alpha_t_val))
+    at, st = float(alpha_t_val), float(sigma_t_val)
+    as_, ss = float(alpha_s_val), float(sigma_s_val)
+    xt, xs = float(x_t_val), float(x_s_val)
+    vk = float(var_k_val)
+
+    # Center grid on the analytic posterior mean for numerical stability
+    # (posterior mean of first component under uniform weights)
+    nu   = at*xt/st**2 - as_*xs/ss**2
+    zeta = at**2/st**2 - as_**2/ss**2
+    center = (float(mu_k_vals[0]) + vk*nu) / (vk*zeta + 1)
+    half_range = std_range * (vk**0.5 + st/max(at, 1e-8))
     grid = torch.linspace(center - half_range, center + half_range, n_grid)
 
-    # log p(x0 | x_s) — GM prior, evaluated at each grid point
-    log_prior = torch.stack([
-        float(logw_k_vals[k])
-        - 0.5 * (grid - float(mu_k_vals[k]))**2 / float(var_k_val)
+    # log p(x0|x_s): GM prior (logsumexp over K components)
+    log_gm = torch.stack([
+        float(logw_k_vals[k]) - 0.5*(grid - float(mu_k_vals[k]))**2 / vk
         for k in range(K)
     ]).logsumexp(dim=0)
 
-    # log p(x_t | x0) — Gaussian likelihood
-    log_like = -0.5 * (float(x_t_val) - float(alpha_t_val) * grid)**2 / float(sigma_t_val)**2
+    # log p(x_t|x0) - log p(x_s|x0)  — the ratio term
+    log_ratio = (-0.5*(xt - at*grid)**2/st**2) - (-0.5*(xs - as_*grid)**2/ss**2)
 
-    log_post = log_prior + log_like
+    log_post = log_gm + log_ratio
     log_post = log_post - log_post.logsumexp(dim=0)
     weights  = log_post.exp()
     return float((weights * grid).sum())
@@ -153,7 +164,8 @@ w_post     = torch.softmax(logw_post, dim=0)
 mean_analytic = float(sum(float(w_post[k]) * means_post[k] for k in range(K)))
 
 # Brute-force 1D
-mean_brute = brute_force_mean_1d(at, st, mu_k_1d, var_k_1d, logw_1d, x_t_vp[b, c])
+mean_brute = brute_force_mean_1d(at, st, float(alpha_s_trig[b,0]), float(sigma_s_trig[b,0]),
+                                  mu_k_1d, var_k_1d, logw_1d, x_t_vp[b, c], x_s_vp[b, c])
 
 diff_1d = abs(mean_analytic - mean_brute)
 print(f'\n[S6c 1D exact test] analytic={mean_analytic:.6f}  brute={mean_brute:.6f}  |diff|={diff_1d:.2e}')

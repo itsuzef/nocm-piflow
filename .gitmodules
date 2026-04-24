@@ -9,4 +9,5 @@
 	url = https://github.com/neuraloperator/neuraloperator.git
 [submodule "repos/piFlow"]
 	path = repos/piFlow
-	url = https://github.com/Lakonik/piFlow.git
+	url = https://github.com/itsuzef/piFlow.git
+	branch = feature/posterior-mean-general-jit

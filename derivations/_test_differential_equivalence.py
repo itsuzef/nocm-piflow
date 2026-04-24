@@ -21,18 +21,21 @@ import importlib.util
 import torch
 
 
-def _load_production_function():
-    """Load `gmflow_posterior_mean_jit` directly from the source file
-    without triggering the piFlow package __init__ (which requires mmcv).
+def _load_production_functions():
+    """Load `gmflow_posterior_mean_jit` and `gmflow_posterior_mean_jit_general`
+    directly from the production source file without triggering the piFlow
+    package __init__ (which requires mmcv).
 
-    Strategy: extract the function source (verbatim) into a temp module,
-    then import it. `@torch.jit.script` requires the function to live in a
-    real importable module so it can re-read the source via inspect/linecache.
+    Strategy: extract each `@torch.jit.script` function source (verbatim) into
+    a temp module, then import it. `@torch.jit.script` requires the function
+    to live in a real importable module so it can re-read the source via
+    inspect/linecache.
 
     This guarantees we are testing against the *actual* production code,
-    not a transcribed copy.
+    not a transcribed copy. Each function's SHA-256 is printed for the audit
+    trail.
     """
-    import tempfile, importlib.util, hashlib
+    import tempfile, importlib.util, hashlib, re
 
     here = os.path.dirname(os.path.abspath(__file__))
     src_path = os.path.normpath(os.path.join(
@@ -42,19 +45,30 @@ def _load_production_function():
 
     with open(src_path) as f:
         text = f.read()
-    start = text.index('@torch.jit.script\ndef gmflow_posterior_mean_jit(')
-    end = text.index('\n\n\nclass ', start)
-    fn_src = text[start:end] + '\n'
 
-    # SHA256 of the extracted source so the audit trail records exactly
-    # what was tested.
-    sha = hashlib.sha256(fn_src.encode()).hexdigest()
+    def _extract(fn_name):
+        marker = f'@torch.jit.script\ndef {fn_name}('
+        start = text.index(marker)
+        # Find next blank-line boundary (top-level definition end)
+        m = re.search(r'\n\n\n(?=@torch\.jit\.script|class |def )', text[start:])
+        if m is None:
+            raise RuntimeError(f'Could not find end of {fn_name}')
+        end = start + m.start() + 1
+        return text[start:end] + '\n'
+
+    fn_src_jit = _extract('gmflow_posterior_mean_jit')
+    fn_src_gen = _extract('gmflow_posterior_mean_jit_general')
+
+    sha_jit = hashlib.sha256(fn_src_jit.encode()).hexdigest()
+    sha_gen = hashlib.sha256(fn_src_gen.encode()).hexdigest()
 
     tmp = tempfile.NamedTemporaryFile(
         mode='w', suffix='_piflow_extracted.py', delete=False)
     try:
         tmp.write('import torch\n\n')
-        tmp.write(fn_src)
+        tmp.write(fn_src_jit)
+        tmp.write('\n\n')
+        tmp.write(fn_src_gen)
         tmp.flush()
         tmp_path = tmp.name
     finally:
@@ -66,45 +80,14 @@ def _load_production_function():
     spec.loader.exec_module(mod)
 
     print(f'[setup] Production source: {src_path}')
-    print(f'[setup] Extracted bytes:   {end - start}')
-    print(f'[setup] SHA-256 of extracted function:')
-    print(f'           {sha}')
-    return mod.gmflow_posterior_mean_jit
+    print(f'[setup] gmflow_posterior_mean_jit         '
+          f'({len(fn_src_jit)} bytes) SHA-256: {sha_jit}')
+    print(f'[setup] gmflow_posterior_mean_jit_general '
+          f'({len(fn_src_gen)} bytes) SHA-256: {sha_gen}')
+    return mod.gmflow_posterior_mean_jit, mod.gmflow_posterior_mean_jit_general
 
 
-gmflow_posterior_mean_jit = _load_production_function()
-
-
-@torch.jit.script
-def gmflow_posterior_mean_jit_general(
-        alpha_t_src, sigma_t_src, alpha_t, sigma_t, x_t_src, x_t,
-        gm_means, gm_vars, gm_logweights,
-        eps: float, gm_dim: int = -4, channel_dim: int = -3):
-    """Schedule-agnostic posterior mean.
-
-    Identical to gmflow_posterior_mean_jit when alpha_t = 1 - sigma_t.
-    """
-    sigma_t_src = sigma_t_src.clamp(min=eps)
-    sigma_t = sigma_t.clamp(min=eps)
-
-    aos_src = alpha_t_src / sigma_t_src
-    aos_t = alpha_t / sigma_t
-
-    zeta = aos_t.square() - aos_src.square()
-    # Mirror production operator order (two divides, not one square+divide)
-    # so that linear-schedule outputs are bit-exact, not just within epsilon.
-    nu = aos_t * x_t / sigma_t - aos_src * x_t_src / sigma_t_src
-
-    nu = nu.unsqueeze(gm_dim)
-    zeta = zeta.unsqueeze(gm_dim)
-    denom = (gm_vars * zeta + 1).clamp(min=eps)
-
-    out_means = (gm_vars * nu + gm_means) / denom
-    logweights_delta = (gm_means * (nu - 0.5 * zeta * gm_means)).sum(
-        dim=channel_dim, keepdim=True) / denom
-    out_weights = (gm_logweights + logweights_delta).softmax(dim=gm_dim)
-
-    return (out_means * out_weights).sum(dim=gm_dim)
+gmflow_posterior_mean_jit, gmflow_posterior_mean_jit_general = _load_production_functions()
 
 
 def make_test_batch(B, K, C, H, W, dtype, device, seed):

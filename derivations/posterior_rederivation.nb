@@ -113,10 +113,10 @@ Cell[BoxData[{
       "exp", 
       RowBox[{"(", 
        RowBox[{
-        RowBox[{
-         RowBox[{
-          RowBox[{"-", "\[Zeta]"}], "/", "2"}], "\[CenterDot]", "x0\.b2"}], "+", 
-        RowBox[{"v", "\[CenterDot]", "x0"}]}], ")"}]}], ":", 
+      RowBox[{
+       RowBox[{
+         RowBox[{"-", "\[Zeta]"}], "/", "2"}], "\[CenterDot]", "x0\.b2"}], "+", 
+        RowBox[{"\[Nu]", "\[CenterDot]", "x0"}]}], ")"}]}], ":", 
      RowBox[{"log", " ", "q", 
       RowBox[{"(", "x0", ")"}]}]}], "=", 
     RowBox[{
@@ -129,7 +129,7 @@ Cell[BoxData[{
         RowBox[{"2", "vk"}], ")"}]}]}], "-", 
      RowBox[{
       RowBox[{"\[Zeta]", "/", "2"}], "\[CenterDot]", "x0\.b2"}], "+", 
-     RowBox[{"v", "\[CenterDot]", "x0"}]}]}], "*)"}]}], "\[IndentingNewLine]", 
+     RowBox[{"\[Nu]", "\[CenterDot]", "x0"}]}]}], "*)"}]}], "\[IndentingNewLine]", 
  RowBox[{
   RowBox[{"ClearAll", "[", "x0", "]"}], ";"}], "\n", 
  RowBox[{
@@ -145,7 +145,7 @@ Cell[BoxData[{
     RowBox[{
      RowBox[{"\[Zeta]", "/", "2"}], "*", 
      RowBox[{"x0", "^", "2"}]}], "+", 
-    RowBox[{"v", "*", "x0"}]}]}], ";"}], "\n", 
+    RowBox[{"\[Nu]", "*", "x0"}]}]}], ";"}], "\n", 
  RowBox[{
   RowBox[{
    RowBox[{"logQ", "=", 
@@ -171,7 +171,7 @@ Cell[BoxData[{
   RowBox[{"(*", " ", 
    RowBox[{"=", 
     RowBox[{
-     RowBox[{"\[Mu]k", "/", "vk"}], "+", "v"}]}], "*)"}]}], "\n", 
+     RowBox[{"\[Mu]k", "/", "vk"}], "+", "\[Nu]"}]}], "*)"}]}], "\n", 
  RowBox[{
   RowBox[{
    RowBox[{"Const0", "=", 
@@ -232,13 +232,13 @@ Cell[BoxData[{
  RowBox[{
   RowBox[{
    RowBox[{"Print", "[", 
-    RowBox[{"\"\<Matches vk\[CenterDot]v\.b2/(2\[CenterDot]dk)? (0=yes): \>\"",
+    RowBox[{"\"\<Matches vk\[CenterDot]\[Nu]\.b2/(2\[CenterDot]dk)? (0=yes): \>\"",
       ",", 
      RowBox[{"FullSimplify", "[", 
       RowBox[{"missingTerm", "-", 
        RowBox[{"vk", "*", 
         RowBox[{
-         RowBox[{"v", "^", "2"}], "/", 
+         RowBox[{"\[Nu]", "^", "2"}], "/", 
          RowBox[{"(", 
           RowBox[{"2", " ", "dk"}], ")"}]}]}]}], "]"}]}], "]"}], ";"}], 
   "\[IndentingNewLine]", "\[IndentingNewLine]", 

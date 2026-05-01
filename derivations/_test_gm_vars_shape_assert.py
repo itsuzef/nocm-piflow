@@ -130,7 +130,7 @@ def _expect_raises(label, callable_fn):
     """Run callable_fn and verify it raises. Match anything assertion-like."""
     try:
         callable_fn()
-    except (RuntimeError, AssertionError) as e:
+    except (RuntimeError, AssertionError, torch.jit.Error) as e:
         msg = str(e)
         ok = (
             'gm_vars' in msg

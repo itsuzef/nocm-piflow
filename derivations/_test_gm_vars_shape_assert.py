@@ -119,7 +119,7 @@ def _call_general(jit_general, d, has_zeta_max, eps=1e-6):
             alpha_t_src, d['sigma_t_src'], alpha_t, d['sigma_t'],
             d['x_t_src'], d['x_t'],
             d['gm_means'], d['gm_vars'], d['gm_logweights'],
-            float('inf'), eps)
+            eps, float('inf'))
     return jit_general(
         alpha_t_src, d['sigma_t_src'], alpha_t, d['sigma_t'],
         d['x_t_src'], d['x_t'],
@@ -127,22 +127,20 @@ def _call_general(jit_general, d, has_zeta_max, eps=1e-6):
 
 
 def _expect_raises(label, callable_fn):
-    """Run callable_fn and verify it raises. Match anything assertion-like."""
+    """Run callable_fn and verify it raises with our explicit C2 assert message."""
     try:
         callable_fn()
     except (RuntimeError, AssertionError, torch.jit.Error) as e:
         msg = str(e)
-        ok = (
-            'gm_vars' in msg
-            or 'shape' in msg.lower()
-            or 'assert' in msg.lower()
-            or 'size' in msg.lower()
-        )
+        # Require the explicit 'gm_vars' string from our torch._assert message.
+        # Accepting 'size'/'shape'/'assert' alone would allow incidental
+        # TorchScript broadcast errors to produce a false PASS.
+        ok = 'gm_vars' in msg
         if ok:
             print(f'  [{label}] PASS — raised: {type(e).__name__}: {msg[:100]}')
             return True
-        print(f'  [{label}] FAIL — raised but message does not look like the C2 '
-              f'assert: {type(e).__name__}: {msg[:200]}')
+        print(f'  [{label}] FAIL — raised but message does not contain "gm_vars" '
+              f'(got {type(e).__name__}: {msg[:200]})')
         return False
     print(f'  [{label}] FAIL — no exception raised. C2 assertion is missing or '
           f'admits the malformed input.')

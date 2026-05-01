@@ -117,7 +117,7 @@ def _call(jit_fn, has_zeta_max, alpha_s, sigma_s, alpha_t, sigma_t, batch, eps):
             alpha_s, sigma_s, alpha_t, sigma_t,
             batch['x_t_src'], batch['x_t'],
             batch['gm_means'], batch['gm_vars'], batch['gm_logweights'],
-            float('inf'), eps)
+            eps, float('inf'))
     return jit_fn(
         alpha_s, sigma_s, alpha_t, sigma_t,
         batch['x_t_src'], batch['x_t'],

@@ -116,7 +116,7 @@ def _call_general(jit_fn, has_zeta_max, *,
     if has_zeta_max:
         return jit_fn(
             alpha_t_src, sigma_t_src, alpha_t, sigma_t, x_t_src, x_t,
-            gm_means, gm_vars, gm_logweights, float('inf'), eps)
+            gm_means, gm_vars, gm_logweights, eps, float('inf'))
     return jit_fn(
         alpha_t_src, sigma_t_src, alpha_t, sigma_t, x_t_src, x_t,
         gm_means, gm_vars, gm_logweights, eps)

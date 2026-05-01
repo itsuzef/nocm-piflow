@@ -264,9 +264,9 @@ These do not block Phase 2 but should be resolved before Phase 4 starts.
 | `_test_differential_equivalence.py` | V3 driver (bit-exactness). |
 | `_test_vp_stability.py` | Test 7 (currently exercises a test-only function; folds into V5 / production after C1). |
 | `_test_wrapper_dispatch.py` | V4 driver (wrapper dispatch + source audit). |
-| `_test_production_vp_finite.py` | **Not yet written.** V5 driver. To be added before Phase 2 PR. |
-| `_test_gm_vars_shape_assert.py` | **Not yet written.** Phase 2 work item C2. |
-| `_test_vp_var1_boundary.py` | **Not yet written.** Phase 4 gate (f). |
+| `_test_production_vp_finite.py` | V5 driver. **Written 2026-04-26.** Currently passes against the unclamped production function (general's empirical claim re-verified at SHA `388cdcb5…`). Forward-compatible with C1 via `zeta_max=inf` plumbing. |
+| `_test_gm_vars_shape_assert.py` | C2 driver. **Written 2026-04-26.** Currently *expected to FAIL* — happy path passes, malformed-shape paths produce no error because the runtime assertion is not yet in production. C2 closes when this script exits 0. |
+| `_test_vp_var1_boundary.py` | Phase 4 gate (f) driver. **Written 2026-04-26.** Hard assertions pass at the current SHA. Records the boundary baseline (`var_k=1`, `t→1`): output stays finite but grows to `\|out\| max ≈ 7.4e6` at `t=0.99999`, capped by `denom.clamp(min=eps)`. Follow-up: the `var_k > 1` regime also produces large outputs (negative `denom` snaps to `+eps`); not in gate (f) scope but worth a separate hazard note. |
 | `03_rollout_plan.md` | This document. |
 | `experiments/2026-04-24-five-reviewers/SYNTHESIS.md` | Five-reviewer synthesis; the source of every `[VERIFY FIRST]` flag below the math layer. |
 

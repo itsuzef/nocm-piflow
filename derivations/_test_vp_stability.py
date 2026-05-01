@@ -1,5 +1,5 @@
 """
-Test 5: Float32 stability sweep under VP/trig schedule.
+Test 5: Float32 stability sweep under VP/trig schedule (production function).
 
 Sweeps t in (0, 1) with realistic image-shape tensors. Verifies that:
   1. No NaN or Inf appears in the output
@@ -7,44 +7,65 @@ Sweeps t in (0, 1) with realistic image-shape tensors. Verifies that:
   3. With the analytic ZETA_MAX clamp, behaviour is bounded all the way
      to t = 1e-3 (well below any practical sampling step)
 
-This validates that the schedule-agnostic code is safe to ship for VP
-sampling in float32.
+This validates that the schedule-agnostic production code is safe to ship
+for VP sampling in float32. Exercises the production
+`gmflow_posterior_mean_jit_general` (post-C1) via the same regex/importlib
+loading strategy as the other test scripts.  Pre-C1 the function had no
+zeta_max parameter and could produce large outputs at extreme t; post-C1 the
+clamp is always active at the wrapper-supplied value.
 """
+import hashlib
+import importlib.util
 import math
+import os
+import re
 import sys
+import tempfile
 
 import torch
 
 
-@torch.jit.script
-def gmflow_posterior_mean_general(
-        alpha_t_src, sigma_t_src, alpha_t, sigma_t, x_t_src, x_t,
-        gm_means, gm_vars, gm_logweights,
-        zeta_max: float, eps: float,
-        gm_dim: int = -4, channel_dim: int = -3):
-    """Schedule-agnostic posterior mean with analytic zeta clamp."""
-    sigma_t_src = sigma_t_src.clamp(min=eps)
-    sigma_t = sigma_t.clamp(min=eps)
+def _extract_function_source(text, fn_name):
+    marker = f'@torch.jit.script\ndef {fn_name}('
+    start = text.index(marker)
+    m = re.search(r'\n\n\n(?=@torch\.jit\.script|class |def )', text[start:])
+    if m is None:
+        raise RuntimeError(f'Could not find end of {fn_name}')
+    return text[start:start + m.start() + 1] + '\n'
 
-    aos_src = alpha_t_src / sigma_t_src
-    aos_t = alpha_t / sigma_t
 
-    zeta = aos_t.square() - aos_src.square()
-    nu = aos_t * x_t / sigma_t - aos_src * x_t_src / sigma_t_src
+def _load_production_general():
+    here = os.path.dirname(os.path.abspath(__file__))
+    src_path = os.path.normpath(os.path.join(
+        here, '..', 'repos', 'piFlow', 'lakonlab', 'models', 'diffusions', 'gmflow.py'))
+    if not os.path.exists(src_path):
+        raise FileNotFoundError(f'Production source not found: {src_path}')
 
-    # Analytic zeta clamp prevents overflow in (gm_vars * zeta + 1) for float32
-    zeta = zeta.clamp(min=-zeta_max, max=zeta_max)
+    with open(src_path) as f:
+        text = f.read()
 
-    nu = nu.unsqueeze(gm_dim)
-    zeta = zeta.unsqueeze(gm_dim)
-    denom = (gm_vars * zeta + 1).clamp(min=eps)
+    fn_src = _extract_function_source(text, 'gmflow_posterior_mean_jit_general')
+    sha = hashlib.sha256(fn_src.encode()).hexdigest()
+    sig = re.search(
+        r'def gmflow_posterior_mean_jit_general\(([\s\S]*?)\):', fn_src).group(1)
+    has_zeta_max = 'zeta_max' in sig
 
-    out_means = (gm_vars * nu + gm_means) / denom
-    logweights_delta = (gm_means * (nu - 0.5 * zeta * gm_means)).sum(
-        dim=channel_dim, keepdim=True) / denom
-    out_weights = (gm_logweights + logweights_delta).softmax(dim=gm_dim)
+    tmp = tempfile.NamedTemporaryFile(
+        mode='w', suffix='_piflow_stability_extracted.py', delete=False)
+    try:
+        tmp.write('import torch\n\n')
+        tmp.write(fn_src)
+        tmp.flush()
+        tmp_path = tmp.name
+    finally:
+        tmp.close()
 
-    return (out_means * out_weights).sum(dim=gm_dim)
+    spec = importlib.util.spec_from_file_location('piflow_stability_extracted', tmp_path)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules['piflow_stability_extracted'] = mod
+    spec.loader.exec_module(mod)
+
+    return mod.gmflow_posterior_mean_jit_general, has_zeta_max, src_path, sha, fn_src
 
 
 def make_batch(B, K, C, H, W, dtype, seed):
@@ -73,19 +94,28 @@ def main():
     max_var_assumed = 10.0
     zeta_max = torch.finfo(dtype).max / max_var_assumed
 
+    jit_fn, has_zeta_max, src_path, sha, fn_src = _load_production_general()
+
     print('=' * 78)
-    print('TEST 5 — Float32 stability sweep under VP schedule')
+    print('TEST 5 — Float32 stability sweep under VP schedule (production JIT)')
     print('=' * 78)
+    print(f'source            : {src_path}')
+    print(f'SHA-256           : {sha}')
+    print(f'zeta_max in sig   : {has_zeta_max}')
     print(f'dtype             = {dtype}')
     print(f'eps               = {eps}')
     print(f'assumed max var_k = {max_var_assumed}')
     print(f'analytic ZETA_MAX = {zeta_max:.3e}')
     print()
 
+    if not has_zeta_max:
+        print('ERROR: production function has no zeta_max parameter.')
+        print('C1 has not been applied. Fold requires C1 to be shipped first.')
+        return 1
+
     B, K, C, H, W = 2, 4, 16, 16, 16
     batch = make_batch(B, K, C, H, W, dtype, seed=0)
 
-    # Sweep target t (always less than s, the source); fix s = 0.9 (noisy source)
     s = 0.9
     alpha_s, sigma_s = vp_alphasigma(s, dtype)
 
@@ -98,15 +128,15 @@ def main():
     all_ok = True
     for t in t_values:
         alpha_t, sigma_t = vp_alphasigma(t, dtype)
-        out = gmflow_posterior_mean_general(
+        out = jit_fn(
             alpha_s, sigma_s, alpha_t, sigma_t,
             batch['x_t_src'], batch['x_t'],
             batch['gm_means'], batch['gm_vars'], batch['gm_logweights'],
-            zeta_max, eps)
+            eps, zeta_max)
         finite = torch.isfinite(out).all().item()
         max_out = out.abs().max().item()
         mean_out = out.abs().mean().item()
-        ok = finite and max_out < 1e6  # arbitrary sanity bound
+        ok = finite and max_out < 1e6
         all_ok &= ok
         print(f'{t:<10.0e} {sigma_t.item():<12.4e} {alpha_t.item():<12.4e} '
               f'{max_out:<14.3e} {mean_out:<14.3e} {str(finite):<8s} '
@@ -114,15 +144,14 @@ def main():
 
     print()
 
-    # Also test with VERY tiny t to exercise the ZETA_MAX clamp path
     print('--- Edge stress: t -> 0 (forces zeta clamp to fire) ---')
     for t in [1e-10, 1e-15, 1e-20]:
         alpha_t, sigma_t = vp_alphasigma(t, dtype)
-        out = gmflow_posterior_mean_general(
+        out = jit_fn(
             alpha_s, sigma_s, alpha_t, sigma_t,
             batch['x_t_src'], batch['x_t'],
             batch['gm_means'], batch['gm_vars'], batch['gm_logweights'],
-            zeta_max, eps)
+            eps, zeta_max)
         finite = torch.isfinite(out).all().item()
         max_out = out.abs().max().item()
         ok = finite
@@ -137,9 +166,8 @@ def main():
         print('VP schedule is float32-safe across full SNR range with the analytic')
         print(f'ZETA_MAX clamp ({zeta_max:.3e}) and the existing eps clamps on denom.')
         return 0
-    else:
-        print('!!! AT LEAST ONE CHECK FAILED !!!')
-        return 1
+    print('!!! AT LEAST ONE CHECK FAILED !!!')
+    return 1
 
 
 if __name__ == '__main__':

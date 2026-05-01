@@ -111,10 +111,11 @@ def _reference_dispatch(mod, d, alpha_t_src=None, alpha_t=None, eps=1e-6):
             alpha_t_src = 1 - sigma_t_src
         if alpha_t is None:
             alpha_t = 1 - sigma_t
+        _zeta_max = float(torch.finfo(d['gm_vars'].dtype).max) / 10.0
         return mod.gmflow_posterior_mean_jit_general(
             alpha_t_src, sigma_t_src, alpha_t, sigma_t,
             d['x_t_src'], d['x_t'],
-            d['gm_means'], d['gm_vars'], d['gm_logweights'], eps)
+            d['gm_means'], d['gm_vars'], d['gm_logweights'], eps, _zeta_max)
     return mod.gmflow_posterior_mean_jit(
         sigma_t_src, sigma_t, d['x_t_src'], d['x_t'],
         d['gm_means'], d['gm_vars'], d['gm_logweights'], eps)

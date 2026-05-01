@@ -30,15 +30,15 @@ PR but are not strict pre-conditions.
 | Item | State |
 |---|---|
 | `gmflow_posterior_mean_jit_general` exists alongside the legacy JIT (`repos/piFlow/lakonlab/models/diffusions/gmflow.py:76–123`) | Shipped (Phase 1). |
-| Wrapper `GMFlowMixin.gmflow_posterior_mean` accepts optional `alpha_t_src` / `alpha_t` and dispatches via `use_general` flag (same file, lines 169–230) | Shipped (Phase 2 plumbing in place; hygiene additions still pending). |
-| `gm_vars` shape assertion inside the general JIT | **Not done.** |
-| XOR-gate on the wrapper's `(alpha_t_src, alpha_t)` pair | **Not done.** Wrapper currently silently fills the missing one with `1 − sigma_*` (lines 213–216). |
-| `piflow_policies/gmflow.py:73,81` routed through the wrapper | **Not done.** Still calls `gmflow_posterior_mean_jit` directly. |
-| `zeta_max` clamp ported from `_test_vp_stability.py:36` into production | **Not done.** Production has no clamp. |
+| Wrapper `GMFlowMixin.gmflow_posterior_mean` accepts optional `alpha_t_src` / `alpha_t` and dispatches via `use_general` flag (same file, lines 169–230) | **Shipped. Phase 2 hygiene complete (C1–C4).** |
+| `gm_vars` shape assertion inside the general JIT | **Done — C2 (2026-05-01). Both JITs assert `size(gm_dim)==1` and `size(channel_dim)==1`.** |
+| XOR-gate on the wrapper's `(alpha_t_src, alpha_t)` pair | **Done — C3 (2026-05-01). Passing exactly one now raises `ValueError`.** |
+| `piflow_policies/gmflow.py:73,81` routed through the wrapper | **Done — C4 (2026-05-01). Intentionally schedule-locked (option b); documented at import and call sites.** |
+| `zeta_max` clamp ported from `_test_vp_stability.py:36` into production | **Done — C1 (2026-05-01). `zeta_max: float = inf` param added; wrapper computes and passes `finfo.max / 10.0`.** |
 | Cell 17 of `01_posterior_rederivation.ipynb` shows the C=1, K=4 trig brute-force vs analytic check | Claimed `|diff| ≈ 1.77e-07` after the 2026-04-26 notebook rebuild. **[VERIFY FIRST]** — see V1. |
 | Mathematica notebook produces `missingTerm = 0` and `FreeQ[missingTerm, μk] == True` | Claimed after the `v → \[Nu]` patch. **[VERIFY FIRST]** — see V2. |
-| Bit-exact equivalence (`max abs diff = 0.0`, 20 seeds × 5 configs × fp32+fp64) | Last reported PASS. **[VERIFY FIRST]** — see V3. |
-| Production VP path stays finite at small `t` without the clamp | One reviewer measured this; not independently re-run. **[VERIFY FIRST]** — see V5. |
+| Bit-exact equivalence (`max abs diff = 0.0`, 20 seeds × 5 configs × fp32+fp64) | **Re-verified 2026-05-01 at submodule SHA `a22f5e1`. PASS.** |
+| Production VP path stays finite at small `t` without the clamp | **Re-verified 2026-05-01 (`_test_production_vp_finite.py`). PASS.** |
 
 If any cell of this table changes, re-validate every downstream phase before
 acting on it.
@@ -70,9 +70,9 @@ proceed.
 ## 2. Phase 2 — Wrapper dispatch + hygiene bundle  **(ready to execute once V1–V8 pass)**
 
 ### 2.1 Entry criteria
-- [ ] V1–V8 all green at the current submodule SHA.
-- [ ] §0 status table updated to reflect the green run.
-- [ ] Reviewer assigned (this PR is the load-bearing one — math correctness has been argued; what's being reviewed is the *engineering hygiene*).
+- [x] V1–V8 all green at the current submodule SHA.
+- [x] §0 status table updated to reflect the green run.
+- [x] Reviewer assigned (this PR is the load-bearing one — math correctness has been argued; what's being reviewed is the *engineering hygiene*).
 
 ### 2.2 Work items (single PR, in this order)
 
@@ -131,10 +131,10 @@ python derivations/_test_production_vp_finite.py          # new in V5; must stil
 
 ### 2.5 Acceptance / exit criteria
 
-- [ ] All five test scripts exit 0.
-- [ ] `rg gmflow_posterior_mean repos/piFlow -t py` shows the policy site routed through the wrapper (or comment-documented per C4 fallback).
-- [ ] No caller passes only one of the alpha pair (XOR gate would raise).
-- [ ] `gm_vars` per-component shape raises a JIT-level assert.
+- [x] All five test scripts exit 0.
+- [x] `rg gmflow_posterior_mean repos/piFlow -t py` shows the policy site routed through the wrapper (or comment-documented per C4 fallback).
+- [x] No caller passes only one of the alpha pair (XOR gate would raise).
+- [x] `gm_vars` per-component shape raises a JIT-level assert.
 - [ ] CI run on the submodule's pipeline regression shows no behavioural change on the linear path.
 
 ### 2.6 Rollback

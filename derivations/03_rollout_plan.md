@@ -135,7 +135,7 @@ python derivations/_test_production_vp_finite.py          # new in V5; must stil
 - [x] `rg gmflow_posterior_mean repos/piFlow -t py` shows the policy site routed through the wrapper (or comment-documented per C4 fallback).
 - [x] No caller passes only one of the alpha pair (XOR gate would raise).
 - [x] `gm_vars` per-component shape raises a JIT-level assert.
-- [ ] CI run on the submodule's pipeline regression shows no behavioural change on the linear path.
+- [ ] CI run on the submodule's pipeline regression shows no behavioural change on the linear path. **Harness written (`_test_gate_g_checkpoint.py`); run pending on research server.**
 
 ### 2.6 Rollback
 
@@ -191,11 +191,23 @@ in prod.
   - Setup: VP schedule, `t ∈ {0.999, 1 − 1e-3, 1 − 1e-5}`, `var_k ∈ {0.99, 1.00, 1.01}`.
   - Assertion: output finite for `var_k ≠ 1`; documented behaviour (clamp / NaN / explicit error) at `var_k = 1` exactly.
   - **[VERIFY FIRST]** the analytic divergence at `var_k = 1` (`(√2·var_k·x_s − μ_k)/(var_k − 1)`) is reproducible by SymPy + Mathematica before writing the test. Both confirmed it once; re-confirm at the rebuild SHA.
-- [ ] **Gate (g)** — Real-checkpoint linear-schedule equivalence run. **Not yet executed.** Spec:
+- [ ] **Gate (g)** — Real-checkpoint linear-schedule equivalence run. **Harness written (`derivations/_test_gate_g_checkpoint.py`); run pending on research server.**
   - Pick a checkpoint that exercises the GMFlow posterior path (the research path in `pipeline_gmdit.py` is the natural candidate).
   - Run a fixed-seed sampling job at the previous git SHA → record outputs to disk.
   - Run the same job at the post-Phase-2 SHA → assert `max abs diff = 0.0` against the saved outputs.
   - Synthetic-tensor blind spot (caveat C6 from the old doc): real outputs may have extreme means or near-degenerate weights that synthetic `randn` doesn't exercise. This is the only way to find out.
+  - **Commands** (run from `nocm-piflow/` on research server with mmcv/mmgen installed):
+    ```bash
+    git -C repos/piFlow checkout 6190862   # pre-Phase-2 SHA
+    python derivations/_test_gate_g_checkpoint.py --record \
+        --checkpoint huggingface://Lakonik/pi-Flow-ImageNet/gmdit_k32_imagenet_piid_1step/diffusion_pytorch_model.safetensors \
+        --output derivations/_gate_g_baseline.pt
+
+    git -C repos/piFlow checkout a22f5e1   # post-Phase-2 SHA (C4)
+    python derivations/_test_gate_g_checkpoint.py --verify \
+        --checkpoint huggingface://Lakonik/pi-Flow-ImageNet/gmdit_k32_imagenet_piid_1step/diffusion_pytorch_model.safetensors \
+        --baseline derivations/_gate_g_baseline.pt
+    ```
 
 ### 4.2 Per-call-site rollout (once entry criteria pass)
 
@@ -267,6 +279,7 @@ These do not block Phase 2 but should be resolved before Phase 4 starts.
 | `_test_production_vp_finite.py` | V5 driver. **Written 2026-04-26.** Currently passes against the unclamped production function (general's empirical claim re-verified at SHA `388cdcb5…`). Forward-compatible with C1 via `zeta_max=inf` plumbing. |
 | `_test_gm_vars_shape_assert.py` | C2 driver. **Written 2026-04-26.** Currently *expected to FAIL* — happy path passes, malformed-shape paths produce no error because the runtime assertion is not yet in production. C2 closes when this script exits 0. |
 | `_test_vp_var1_boundary.py` | Phase 4 gate (f) driver. **Written 2026-04-26.** Hard assertions pass at the current SHA. Records the boundary baseline (`var_k=1`, `t→1`): output stays finite but grows to `\|out\| max ≈ 7.4e6` at `t=0.99999`, capped by `denom.clamp(min=eps)`. Follow-up: the `var_k > 1` regime also produces large outputs (negative `denom` snaps to `+eps`); not in gate (f) scope but worth a separate hazard note. |
+| `_test_gate_g_checkpoint.py` | Gate (g) harness. **Written 2026-05-01. Run pending on research server** (requires mmcv/mmgen + `Lakonik/pi-Flow-ImageNet` checkpoint). Record baseline at submodule SHA `6190862`; verify at `a22f5e1`. See §4.1 gate (g) for exact commands. |
 | `03_rollout_plan.md` | This document. |
 | `experiments/2026-04-24-five-reviewers/SYNTHESIS.md` | Five-reviewer synthesis; the source of every `[VERIFY FIRST]` flag below the math layer. |
 

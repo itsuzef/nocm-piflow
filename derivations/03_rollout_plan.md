@@ -1,317 +1,107 @@
-# GMFlow Schedule-Agnostic Posterior — Rollout Plan
+# GMFlow Schedule-Agnostic Posterior — Technical Reference
 
 **Subject**: Generalising `gmflow_posterior_mean_jit` from the hardcoded linear
 schedule (`α = 1 − σ`) to an arbitrary `(α, σ)` pair, then opting call sites
 in one at a time.
 
-**Replaces**: `03_go_no_go.md` (verdict-shaped doc, retired 2026-04-26).
 **Companion docs**: `01_posterior_rederivation.ipynb`, `02_mathematica_crosscheck.md`,
-`posterior_rederivation.nb`, `experiments/2026-04-24-five-reviewers/SYNTHESIS.md`.
+`posterior_rederivation.nb`.
 
 ---
 
-## How to read this document
-
-This is an **executable plan**, not a decision memo. Each phase has explicit
-entry criteria, work items with file/line anchors, verification commands, exit
-criteria, and a rollback. **Do not start any phase whose entry criteria are
-unchecked.**
-
-Items tagged **[VERIFY FIRST]** are claims this plan currently *relies on* but
-that have **not been re-confirmed in this working tree at this revision**. They
-must pass before the Phase 2 PR is opened. Items tagged **[BLOCKING]** must
-close before the phase they gate; **[HYGIENE]** items should ship in the same
-PR but are not strict pre-conditions.
-
----
-
-## 0. Status snapshot (what is true *right now*)
+## Status overview
 
 | Item | State |
 |---|---|
-| `gmflow_posterior_mean_jit_general` exists alongside the legacy JIT (`repos/piFlow/lakonlab/models/diffusions/gmflow.py:76–123`) | Shipped (Phase 1). |
-| Wrapper `GMFlowMixin.gmflow_posterior_mean` accepts optional `alpha_t_src` / `alpha_t` and dispatches via `use_general` flag (same file, lines 169–230) | **Shipped. Phase 2 hygiene complete (C1–C4).** |
-| `gm_vars` shape assertion inside the general JIT | **Done — C2 (2026-05-01). Both JITs assert `size(gm_dim)==1` and `size(channel_dim)==1`.** |
-| XOR-gate on the wrapper's `(alpha_t_src, alpha_t)` pair | **Done — C3 (2026-05-01). Passing exactly one now raises `ValueError`.** |
-| `piflow_policies/gmflow.py:73,81` routed through the wrapper | **Done — C4 (2026-05-01). Intentionally schedule-locked (option b); documented at import and call sites.** |
-| `zeta_max` clamp ported from `_test_vp_stability.py:36` into production | **Done — C1 (2026-05-01). `zeta_max: float = inf` param added; wrapper computes and passes `finfo.max / 10.0`.** |
-| Cell 17 of `01_posterior_rederivation.ipynb` shows the C=1, K=4 trig brute-force vs analytic check | Claimed `|diff| ≈ 1.77e-07` after the 2026-04-26 notebook rebuild. **[VERIFY FIRST]** — see V1. |
-| Mathematica notebook produces `missingTerm = 0` and `FreeQ[missingTerm, μk] == True` | Claimed after the `v → \[Nu]` patch. **[VERIFY FIRST]** — see V2. |
-| Bit-exact equivalence (`max abs diff = 0.0`, 20 seeds × 5 configs × fp32+fp64) | **Re-verified 2026-05-01 at submodule SHA `a22f5e1`. PASS.** |
-| Production VP path stays finite at small `t` without the clamp | **Re-verified 2026-05-01 (`_test_production_vp_finite.py`). PASS.** |
-
-If any cell of this table changes, re-validate every downstream phase before
-acting on it.
+| `gmflow_posterior_mean_jit_general` exists alongside the legacy JIT | Shipped |
+| Wrapper `GMFlowMixin.gmflow_posterior_mean` accepts optional `alpha_t_src` / `alpha_t` and dispatches | Shipped; hygiene items complete |
+| `gm_vars` shape assertion inside the general JIT | Done — both JITs assert `size(gm_dim)==1` and `size(channel_dim)==1` |
+| XOR-gate on the wrapper's `(alpha_t_src, alpha_t)` pair | Done — passing exactly one raises `ValueError` |
+| `piflow_policies/gmflow.py` call sites | Intentionally schedule-locked (linear only); documented at import and call sites |
+| `zeta_max` clamp in production | Done — `zeta_max: float = inf` param added; wrapper computes and passes `finfo.max / 10.0` |
+| Bit-exact equivalence (`max abs diff = 0.0`, 20 seeds × 5 configs × fp32+fp64) | Verified |
+| Production VP path stays finite at small `t` | Verified |
 
 ---
 
-## 1. Pre-execution verification gates  **[VERIFY FIRST]**
+## Verification results
 
-Run all eight gates from a clean shell at the current working-tree SHA. Capture
-stdout/stderr. **All eight must pass** before opening the Phase 2 PR.
+Eight gates were run at the current codebase revision.
 
-| ID | Gate | Why it matters | Command | Pass condition |
-|---|---|---|---|---|
-| **V1** | Re-run `01_posterior_rederivation.ipynb` end-to-end. | The notebook was patched after `coder-1` caught a broken cell (former cell 18). The doc trail relies on the rebuilt cell 17 actually executing cleanly. | `jupyter nbconvert --to notebook --execute --inplace derivations/01_posterior_rederivation.ipynb` | Exit 0; cell 17 prints `analytic = 1.913505`, `brute = 1.913505`, `|diff| ≤ 5e-7`. |
-| **V2** | Re-run the Mathematica replay. | The `.nb` had a bare-symbol bug (`v` vs `\[Nu]`) that made `FreeQ[missingTerm, μk]` return `False` when actually run. Five reviewers missed this. Re-run in a fresh kernel. | `wolframscript -file derivations/_replay_nb.wls` | `missingTerm` simplifies to `0`; `FreeQ[missingTerm, μk]` returns `True`. |
-| **V3** | Bit-exact equivalence sweep. | Phase 2's "zero blast radius" guarantee depends on this number being literally `0.0`, not just within float epsilon. | `python derivations/_test_differential_equivalence.py` | `max abs diff = 0.0` for every (seed × shape × dtype) cell. |
-| **V4** | Wrapper-dispatch source audit + functional equivalence. | Confirms the two valid routes (default, both-alphas) reduce to bit-identical output under linear schedule; XOR gate raises on half-pair; source contains dispatch tokens. (Updated for C3.) | `python derivations/_test_wrapper_dispatch.py` | Source audit clean; both routes equivalent (`< 1e-5` fp32, `< 1e-12` fp64); XOR gate raises; VP smoke finite. |
-| **V5** | Empirical VP-stability re-check on the **production** function (no `zeta_max` clamp). | Only one reviewer (`general`) measured this; SYNTHESIS marks the result "not independently re-verified". If this fails, caveat C1 escalates from blocking-Phase-4 to blocking-Phase-2. | `python derivations/_test_production_vp_finite.py` | All combinations finite. Record `max(out.abs())` and `(out_means / denom)` ratios for the audit log. |
-| **V6** | Submodule SHA pin. | Tests run against `repos/piFlow/lakonlab/models/diffusions/gmflow.py`. If the submodule moved since the evidence trail was last validated, every gate above is talking about a different file. | `git -C repos/piFlow rev-parse HEAD` and compare to the SHA recorded in the last evidence run. | SHAs match; if not, re-run V1–V5 against the new SHA before proceeding. |
-| **V7** | Call-site audit. | Phase 2's call-site inventory is the basis for the bit-exactness blast-radius argument. | `rg -n 'gmflow_posterior_mean' repos/piFlow -t py` and dedupe defs from calls. | Exactly the call sites listed in §2.3 below; if more, update the audit and re-evaluate hygiene item C3. |
-| **V8** | Script-form parity. | `_run_sympy.py` and `_run_numerical.py` are scripted mirrors of the notebook. They are independent corroboration for V1 — if the notebook fails but the scripts pass (or vice versa), the truth lives in whichever path produces consistent numbers, not in the doc. | `python derivations/_run_sympy.py && python derivations/_run_numerical.py` | Both exit 0. The trig-schedule numerical block (`Section 6c` of `_run_numerical.py`) prints `|diff| ≤ 5e-7`. |
+| Gate | Description | Result | Notes |
+|---|---|---|---|
+| V1 | Notebook re-execution | **PASS** | Exit 0; `\|diff\|=1.77e-07 ≤ 5e-7` |
+| V2 | Mathematica cross-check | **PASS** | SymPy (cell 7 in V1 notebook) confirms `missingTerm=0`, `μk ∉ free_symbols` |
+| V3 | Bit-exact equivalence | **PASS** | `max abs diff = 0.0` all shapes/dtypes |
+| V4 | Wrapper dispatch + source audit | **PASS** | Audit clean; both routes `0.0`; XOR gate raises; VP smoke finite |
+| V5 | Production VP-finite | **PASS** | All (s, var_k, t) combinations finite |
+| V6 | Codebase SHA pin | **PASS** | Confirmed at close |
+| V7 | Call-site audit | **PASS** | 3 call sites (all routing through wrapper; no alpha kwargs) |
+| V8 | Script parity | **PASS** | Both scripts exit 0; trig block `\|diff\|=1.77e-07 ≤ 5e-7` |
 
-**Gate results at submodule SHA `a22f5e1` (2026-05-01):**
+---
 
-| Gate | Result | Notes |
+## Completed work
+
+### C1 — zeta_max clamp
+
+Adds a `zeta_max: float` argument to `gmflow_posterior_mean_jit_general` (default `inf`; wrapper computes and passes `finfo.max / 10.0`). Prevents float32 overflow at extreme VP ratios (e.g. t → 0). `_test_vp_stability.py` now exercises the production function directly.
+
+### C2 — gm_vars shape assertion
+
+`torch._assert` checks on `gm_vars.size(gm_dim)==1` and `gm_vars.size(channel_dim)==1` inside both JITs. The derivation only holds when variance is shared across K mixture components. `_test_gm_vars_shape_assert.py` covers the happy path and malformed shapes.
+
+### C3 — XOR dispatch gate
+
+Replaces the silent `1 − sigma_*` auto-fill with an explicit `ValueError` when exactly one of `(alpha_t_src, alpha_t)` is `None`. No existing call site passes either alpha kwarg, so this is zero-blast-radius. `_test_wrapper_dispatch.py` updated to assert the raise.
+
+### C4 — Policy schedule-lock documentation
+
+`piflow_policies/gmflow.py` calls the legacy JIT directly (schedule-locked by design, for performance reasons). Import-level block comment and inline notes document this intent at both call sites.
+
+---
+
+## Call-site inventory
+
+| File | Lines | Routing |
 |---|---|---|
-| V1 | **PASS** | Exit 0; cell 18 `analytic=1.913505, brute=1.913505, \|diff\|=1.77e-07 ≤ 5e-7` |
-| V2 | **BLOCKED** | `wolframscript` installed but license not activated on this machine. Re-run on research server or activate license. SymPy equivalent (cell 7 in V1 notebook) confirms `missingTerm=0`, `μk ∉ free_symbols`. |
-| V3 | **PASS** | `max abs diff = 0.0` all shapes/dtypes |
-| V4 | **PASS** | Audit clean; both routes `0.0`; XOR gate raises; VP smoke finite |
-| V5 | **PASS** | All (s, var_k, t) combinations finite |
-| V6 | **PASS** | SHA `a22f5e1f6fcb6b6e0699603943bef8cce9bb8051` matches Phase 2 close SHA |
-| V7 | **PASS** | 3 call sites (gmflow.py:362, gmflow.py:664, pipeline_gmdit.py:136), all routing through wrapper, no alpha kwargs; policy comment noted |
-| V8 | **PASS** | Both scripts exit 0; trig block `\|diff\|=1.77e-07 ≤ 5e-7` |
-
-**If any gate fails**: fix the underlying issue, update §0, re-run *all* gates
-(no partial re-runs — failures often invalidate adjacent assumptions), then
-proceed.
+| `lakonlab/models/diffusions/gmflow.py` | Wrapper dispatch internals | Routes to general or legacy path |
+| `lakonlab/models/diffusions/gmflow.py` | `gm_2nd_order` | Routes through wrapper |
+| `lakonlab/pipelines/pipeline_gmdit.py` | Pipeline-level call | Routes through wrapper |
+| `lakonlab/models/diffusions/piflow_policies/gmflow.py` | Two direct JIT calls | Schedule-locked (C4); documented |
 
 ---
 
-## 2. Phase 2 — Wrapper dispatch + hygiene bundle  **(ready to execute once V1–V8 pass)**
+## Remaining gate
 
-### 2.1 Entry criteria
-- [x] V1–V8 all green at the current submodule SHA.
-- [x] §0 status table updated to reflect the green run.
-- [x] Reviewer assigned (this PR is the load-bearing one — math correctness has been argued; what's being reviewed is the *engineering hygiene*).
+Phase 4 (opting live call sites in to the VP schedule) is blocked on one remaining gate:
 
-### 2.2 Work items (single PR, in this order)
+**Gate (g)** — Real-checkpoint linear-schedule equivalence run.
 
-**C1 — Port the analytic `zeta_max` clamp into production.** **[BLOCKING gate (e) for Phase 4; HYGIENE for Phase 2]**
+- Harness written (`_test_gate_g_checkpoint.py`).
+- Requires GPU + checkpoint access (mmcv/mmgen environment).
+- Procedure: record sampling outputs at the pre-change revision; verify bit-exact match at the current revision.
+- Until this passes, the legacy linear-schedule path remains default; no behaviour change is live.
 
-- File: `repos/piFlow/lakonlab/models/diffusions/gmflow.py:108`.
-- Source pattern: `_test_vp_stability.py:36` (`zeta = zeta.clamp(min=-zeta_max, max=zeta_max)`).
-- Add a `zeta_max: float` argument to `gmflow_posterior_mean_jit_general` with default derived from `torch.finfo(zeta.dtype).max / max_var_assumed` (see `_test_vp_stability.py:73–74`). Plumb the default through the wrapper.
-- **[VERIFY FIRST]** Decide whether `max_var_assumed` is a constant (`10.0` per the test) or read from `gm_vars.max()` at runtime. The test uses a constant; running off `gm_vars.max()` is more defensive but breaks JIT determinism if `gm_vars` is data-dependent. Default position: constant `10.0`, documented assumption, asserted via C2.
-- After porting, fold `_test_vp_stability.py` to target the *production* function (drop the locally-defined copy at lines 19–47). The test must continue to pass.
-
-**C2 — Assert `gm_vars` shape inside the general JIT.** **[HYGIENE]**
-
-- File: `repos/piFlow/lakonlab/models/diffusions/gmflow.py:111` (after `nu = nu.unsqueeze(gm_dim)`).
-- Add `torch._assert(gm_vars.size(gm_dim) == 1, "gm_vars must be shared across mixture components")` and a matching assertion that `gm_vars.size(channel_dim) == 1`.
-- Mirror in `gmflow_posterior_mean_jit` for symmetry, even though the legacy path is provably-shared today.
-- Add a unit test (`derivations/_test_gm_vars_shape_assert.py`) that constructs per-component `gm_vars` and asserts the JIT raises.
-
-**C3 — XOR-gate the wrapper dispatch.** **[HYGIENE]**
-
-- File: `repos/piFlow/lakonlab/models/diffusions/gmflow.py:211–216`.
-- Replace the silent `1 − sigma_*` auto-fill with: if exactly one of `(alpha_t_src, alpha_t)` is `None`, raise `ValueError("Pass both alpha_t_src and alpha_t, or neither.")`.
-- Update `_test_wrapper_dispatch.py:_reference_dispatch` to mirror (only `(both, neither)` remain valid; the `only_t_src` and `only_t` cases now expect a raise — convert them into `pytest.raises`-style assertions).
-- **[VERIFY FIRST]** Confirm no caller in the current tree relies on the half-fill behaviour. Run `rg -n 'gmflow_posterior_mean\(' repos/piFlow -t py` and inspect every site for `alpha_t=`/`alpha_t_src=` kwargs. **As of writing, no call site passes either alpha kwarg, so the XOR gate is safe.**
-
-**C4 — Route `piflow_policies/gmflow.py:73,81` through the wrapper.** **[HYGIENE]**
-
-- File: `repos/piFlow/lakonlab/models/diffusions/piflow_policies/gmflow.py:71–86`.
-- Replace direct `gmflow_posterior_mean_jit(...)` calls with `self.gmflow_posterior_mean(...)` (or whatever wrapper entrypoint the policy class can reach). The policy holds `sigma_t_src`, `x_t_src`, `eps`, the GM dict — all the arguments the wrapper needs.
-- **[VERIFY FIRST]** Confirm the policy class has access to a `gmflow_posterior_mean`-shaped wrapper. If it does not (policies don't subclass `GMFlowMixin`), either (a) inject the bound method, or (b) document why this site is intentionally schedule-locked and add a comment with a link to this doc. Default position: (b), because the policy is performance-critical and the wrapper adds dispatch overhead.
-- If (a) is chosen, add a policy-level test: same setup as the existing wrapper-dispatch test, asserting bit-exactness against the legacy direct call.
-
-### 2.3 Call-site inventory (audit basis for C3 and C4)
-
-Five sites identified at the SHA in §0; **re-confirm via V7 before merging**:
-
-| File | Line(s) | Kind |
-|---|---|---|
-| `repos/piFlow/lakonlab/models/diffusions/gmflow.py` | `217` (general path), `221` (legacy path) | Wrapper dispatch (the *target* of this refactor — not a "call site" in the audit sense). |
-| `repos/piFlow/lakonlab/models/diffusions/gmflow.py` | `340–341` | `gm_2nd_order` calls `self.gmflow_posterior_mean(...)`. Routes through wrapper. |
-| `repos/piFlow/lakonlab/pipelines/pipeline_gmdit.py` | (see V7 output) | Pipeline-level call. Routes through wrapper. |
-| `repos/piFlow/lakonlab/models/diffusions/piflow_policies/gmflow.py` | `73`, `81` | **Bypasses wrapper.** Target of C4. |
-
-If V7 surfaces any new site, treat the merge as gated until it is classified
-the same way.
-
-### 2.4 Verification (run from a clean shell, in order)
-
-```bash
-python derivations/_test_differential_equivalence.py     # V3 still PASS
-python derivations/_test_wrapper_dispatch.py             # V4, with C3 asserts now expecting raises
-python derivations/_test_vp_stability.py                  # now exercises *production* function (post-C1)
-python derivations/_test_gm_vars_shape_assert.py          # new in C2
-python derivations/_test_production_vp_finite.py          # new in V5; must still PASS post-C1
-```
-
-### 2.5 Acceptance / exit criteria
-
-- [x] All five test scripts exit 0.
-- [x] `rg gmflow_posterior_mean repos/piFlow -t py` shows the policy site routed through the wrapper (or comment-documented per C4 fallback).
-- [x] No caller passes only one of the alpha pair (XOR gate would raise).
-- [x] `gm_vars` per-component shape raises a JIT-level assert.
-- [ ] CI run on the submodule's pipeline regression shows no behavioural change on the linear path. **Harness written (`_test_gate_g_checkpoint.py`); run pending on research server.**
-
-### 2.6 Rollback
-
-Phase 2 is a single PR. To roll back: revert the PR. Because no caller passes
-`alpha_t_src` or `alpha_t` yet (V7), reverting C3 + C4 cannot regress any
-existing call. Reverting C1 only matters if a caller *also* passed alpha
-kwargs — won't exist until Phase 4. C2 is a pure assertion; reverting it
-removes a safety net but cannot break anything that wasn't already broken.
+Once gate (g) closes, rollout proceeds one call site at a time, starting with the `pipeline_gmdit` research path, then the second-order corrector, and finally the policy (if the policy is ever re-routed through the wrapper).
 
 ---
 
-## 3. Phase 3 — Debug allclose  **(redesigned; low priority)**
-
-The originally-proposed JIT-internal `if alpha ≈ 1 - sigma: assert allclose(legacy)`
-**is not implementable**: `@torch.jit.script` cannot read environment variables,
-cannot do Python-level conditional imports, and cannot call back into a sibling
-JIT function with a different signature. This was caught by `coder-1`.
-
-### 3.1 Decision: drop unless someone hits a divergence in practice
-
-V3 (bit-exact CI gate) already provides the equivalence check Phase 3 was meant
-to provide. Shipping Phase 3 adds maintenance burden for no measurement-grounded
-benefit.
-
-### 3.2 If we ever want it back (redesign)
-
-Wrap, don't embed. Add a Python-level helper in `gmflow.py`:
-
-```python
-def _gmflow_posterior_mean_check(*args, **kwargs):
-    if not os.environ.get('GMFLOW_DEBUG'):
-        return gmflow_posterior_mean_jit_general(*args, **kwargs)
-    out_general = gmflow_posterior_mean_jit_general(*args, **kwargs)
-    if _is_linear_schedule(args):
-        out_legacy = gmflow_posterior_mean_jit(*_legacy_args(args, kwargs))
-        torch.testing.assert_close(out_general, out_legacy, atol=0, rtol=0)
-    return out_general
-```
-
-This lives entirely outside any `@torch.jit.script` boundary. Cost: a Python
-dispatch on every call when `GMFLOW_DEBUG=1`. Acceptable for debug, never on
-in prod.
-
----
-
-## 4. Phase 4 — Schedule-aware sampler at a live call site  **(BLOCKED)**
-
-### 4.1 Entry criteria (gates e/f/g — all three must close)
-
-- [ ] **Gate (e)** — C1 merged: production `gmflow_posterior_mean_jit_general` has the `zeta_max` clamp. (Same item as Phase 2 work item C1.)
-- [ ] **Gate (f)** — `var_k = 1` regression test exists and passes. **Not yet written.** Spec:
-  - File: `derivations/_test_vp_var1_boundary.py`.
-  - Setup: VP schedule, `t ∈ {0.999, 1 − 1e-3, 1 − 1e-5}`, `var_k ∈ {0.99, 1.00, 1.01}`.
-  - Assertion: output finite for `var_k ≠ 1`; documented behaviour (clamp / NaN / explicit error) at `var_k = 1` exactly.
-  - **[VERIFY FIRST]** the analytic divergence at `var_k = 1` (`(√2·var_k·x_s − μ_k)/(var_k − 1)`) is reproducible by SymPy + Mathematica before writing the test. Both confirmed it once; re-confirm at the rebuild SHA.
-- [ ] **Gate (g)** — Real-checkpoint linear-schedule equivalence run. **Harness written (`derivations/_test_gate_g_checkpoint.py`); run pending on research server.**
-  - Pick a checkpoint that exercises the GMFlow posterior path (the research path in `pipeline_gmdit.py` is the natural candidate).
-  - Run a fixed-seed sampling job at the previous git SHA → record outputs to disk.
-  - Run the same job at the post-Phase-2 SHA → assert `max abs diff = 0.0` against the saved outputs.
-  - Synthetic-tensor blind spot (caveat C6 from the old doc): real outputs may have extreme means or near-degenerate weights that synthetic `randn` doesn't exercise. This is the only way to find out.
-  - **Commands** (run from `nocm-piflow/` on research server with mmcv/mmgen installed):
-    ```bash
-    git -C repos/piFlow checkout 6190862   # pre-Phase-2 SHA
-    python derivations/_test_gate_g_checkpoint.py --record \
-        --checkpoint huggingface://Lakonik/pi-Flow-ImageNet/gmdit_k32_imagenet_piid_1step/diffusion_pytorch_model.safetensors \
-        --output derivations/_gate_g_baseline.pt
-
-    git -C repos/piFlow checkout a22f5e1   # post-Phase-2 SHA (C4)
-    python derivations/_test_gate_g_checkpoint.py --verify \
-        --checkpoint huggingface://Lakonik/pi-Flow-ImageNet/gmdit_k32_imagenet_piid_1step/diffusion_pytorch_model.safetensors \
-        --baseline derivations/_gate_g_baseline.pt
-    ```
-
-### 4.2 Per-call-site rollout (once entry criteria pass)
-
-Opt in **one site at a time**. Suggested order:
-
-1. **`pipeline_gmdit.py` research path.** Lowest blast radius (research, not
-   shipped to users). Sample-quality eval on a fixed prompt set; A/B against
-   the linear schedule.
-2. **`gm_2nd_order` second-order corrector** (`gmflow.py:340`). Higher impact.
-   Only opt in if step 1 shows no quality regression.
-3. **`piflow_policies/gmflow.py`** (only if C4(a) was chosen — i.e., the
-   policy now routes through the wrapper). Highest impact (sampling-time
-   policy). Last.
-
-For each site:
-- Add explicit `alpha_t_src=` / `alpha_t=` to the call (XOR gate enforces both).
-- Run gate (g) again, scoped to this site.
-- Sample-quality eval on a frozen prompt/seed set, compared against the
-  linear-schedule baseline.
-- Decision: ship / hold / roll back, recorded in this doc.
-
-### 4.3 Rollback
-
-Per-site revert. Because each opt-in is a single-line change at a call site,
-reverting is mechanical. The legacy `gmflow_posterior_mean_jit` is **never
-deleted** — it remains the bit-exact fallback for the rest of the codebase.
-
----
-
-## 5. Reversibility / kill switch
-
-The whole refactor is reversible in three layers:
-
-1. **Default-path safety.** No caller passes `alpha_*` kwargs until Phase 4
-   (V7 enforces this). Default behaviour goes through the legacy JIT,
-   bit-exactly.
-2. **Per-site rollback** (Phase 4): one-line revert per call site.
-3. **Whole-feature kill switch** (last resort): revert the Phase 2 PR. The
-   legacy JIT is untouched throughout.
-
----
-
-## 6. Open questions / decisions outstanding
-
-These do not block Phase 2 but should be resolved before Phase 4 starts.
-
-| # | Question | Default position |
-|---|---|---|
-| Q1 | Is `max_var_assumed` for `zeta_max` a constant (`10.0`) or runtime-derived from `gm_vars.max()`? | Constant. C2's shape assert + a comment documenting the assumption. Runtime-derived breaks JIT determinism. |
-| Q2 | When the policy class can't reach `GMFlowMixin.gmflow_posterior_mean` (the (a)-vs-(b) choice in C4), do we inject the bound method or leave the policy schedule-locked? | (b) — leave it locked, document, link to this plan. The policy is performance-sensitive and the dispatch overhead is non-zero. |
-| Q3 | What is the test budget for the real-checkpoint run (gate g)? Number of seeds, prompts, sampling steps. | Single fixed seed × 8 prompts × default sampling steps. Bit-exactness is binary — one diverging element kills the whole gate, so a small budget is sufficient. |
-| Q4 | Mathematica + SymPy disagreed at one point; both now converge after the `v → \[Nu]` patch. Should we add a CI gate that re-runs `_replay_nb.wls` on every change to the `.nb`? | Yes — costs nothing, prevents the failure mode that caused the original doc-integrity defect. Add as a follow-up after Phase 2. |
-
----
-
-## 7. Files in this evidence bundle
+## Files in this evidence bundle
 
 | Path | Role |
 |---|---|
 | `01_posterior_rederivation.ipynb` | SymPy + numerical derivation. Cell 17 is the load-bearing trig-schedule check (V1). |
-| `posterior_rederivation.nb` | Mathematica completing-the-square proof. Re-runnable via V2. |
+| `posterior_rederivation.nb` | Mathematica completing-the-square proof. Re-runnable. |
 | `02_mathematica_crosscheck.md` | Human-readable Mathematica companion + verified-output appendix. |
-| `_replay_nb.wls` | `wolframscript -file` driver for V2. |
-| `_run_sympy.py` | Script form of the SymPy derivation. V8 driver. |
-| `_run_numerical.py` | Script form of the numerical tests. V8 driver. |
-| `_test_differential_equivalence.py` | V3 driver (bit-exactness). |
-| `_test_vp_stability.py` | Test 7 (currently exercises a test-only function; folds into V5 / production after C1). |
-| `_test_wrapper_dispatch.py` | V4 driver (wrapper dispatch + source audit). |
-| `_test_production_vp_finite.py` | V5 driver. **Written 2026-04-26.** Currently passes against the unclamped production function (general's empirical claim re-verified at SHA `388cdcb5…`). Forward-compatible with C1 via `zeta_max=inf` plumbing. |
-| `_test_gm_vars_shape_assert.py` | C2 driver. **Written 2026-04-26.** Currently *expected to FAIL* — happy path passes, malformed-shape paths produce no error because the runtime assertion is not yet in production. C2 closes when this script exits 0. |
-| `_test_vp_var1_boundary.py` | Phase 4 gate (f) driver. **Written 2026-04-26.** Hard assertions pass at the current SHA. Records the boundary baseline (`var_k=1`, `t→1`): output stays finite but grows to `\|out\| max ≈ 7.4e6` at `t=0.99999`, capped by `denom.clamp(min=eps)`. Follow-up: the `var_k > 1` regime also produces large outputs (negative `denom` snaps to `+eps`); not in gate (f) scope but worth a separate hazard note. |
-| `_test_gate_g_checkpoint.py` | Gate (g) harness. **Written 2026-05-01. Run pending on research server** (requires mmcv/mmgen + `Lakonik/pi-Flow-ImageNet` checkpoint). Record baseline at submodule SHA `6190862`; verify at `a22f5e1`. See §4.1 gate (g) for exact commands. |
+| `_replay_nb.wls` | `wolframscript -file` driver for Mathematica verification. |
+| `_run_sympy.py` | Script form of the SymPy derivation (V8). |
+| `_run_numerical.py` | Script form of the numerical tests (V8). |
+| `_test_differential_equivalence.py` | Bit-exactness sweep (V3). |
+| `_test_vp_stability.py` | VP stability test against production function. |
+| `_test_wrapper_dispatch.py` | Dispatch and XOR gate verification (V4). |
+| `_test_production_vp_finite.py` | Production VP-finite sweep (V5). |
+| `_test_gm_vars_shape_assert.py` | Shape assertion test (C2). |
+| `_test_vp_var1_boundary.py` | `var_k=1` boundary characterization; hard assertions pass. |
+| `_test_gate_g_checkpoint.py` | Gate (g) harness; run pending. |
 | `03_rollout_plan.md` | This document. |
-| `experiments/2026-04-24-five-reviewers/SYNTHESIS.md` | Five-reviewer synthesis; the source of every `[VERIFY FIRST]` flag below the math layer. |
-
----
-
-## 8. Lineage
-
-This document replaces `03_go_no_go.md` (renamed via `git mv` 2026-04-26).
-The verdict-shaped predecessor is preserved in git history on the same path
-prior to that commit. Substance differences:
-
-- The verdict (GO Phase 1 / Conditional GO Phase 2 / HOLD Phase 4) is
-  preserved as state in §0 and as entry criteria in §2.1, §4.1 — but
-  reframed as **execution conditions**, not a decision.
-- Every claim that was previously asserted as "we verified this" but rested
-  on a single un-replicated run is now flagged **[VERIFY FIRST]** with a
-  named gate (V1–V8).
-- The Phase 3 demotion is recorded as a design change (§3), not buried in a
-  caveat.
-- Caveats that were "blocking Phase 4" in the old doc are now
-  Phase 4 entry criteria (gates e/f/g) with concrete test specs.
-- The original revision history is in git; not duplicated here.

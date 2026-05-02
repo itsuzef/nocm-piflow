@@ -63,12 +63,6 @@ Print["Matches vk·ν²/(2·dk)? (must be 0): ",
 Print["Free of μk (k-independent)?:        ", FreeQ[missingTerm, μk]];
 ```
 
-> **Historical note**: an earlier version of `posterior_rederivation.nb`
-> (pre-2026-04-26) used a bare symbol `v` instead of `ν` in `logQ`. With that
-> typo the FreeQ check returned `False` and the entire k-independence claim
-> failed when run. The notebook was unevaluated at the time, so the bug went
-> unnoticed across five reviewer reports. The fix is a one-symbol substitution.
-
 ---
 
 ## Section 3 — Linear schedule reduction (α = 1 − σ)
@@ -204,6 +198,4 @@ denom (var * zeta + 1):    4.053e+10  isinf=False
 PASS: clamp prevents overflow
 ```
 
-The `1.77e-07` figure is the source of the `1.79e-07` claim in
-`03_go_no_go.md` (Test 3): trig-schedule analytic formula vs 1D brute-force,
-C=1, K=4. The two values match to grid quadrature precision.
+The `1.77e-07` figure corresponds to the trig-schedule analytic formula vs 1D brute-force (C=1, K=4). The two values match to grid quadrature precision.

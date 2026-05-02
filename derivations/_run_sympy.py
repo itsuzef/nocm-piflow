@@ -19,6 +19,25 @@ print('denom_k    :', simplify(denom_k))
 print('out_mean_k :', simplify(out_mean_k))
 print('logw_delta :', simplify(logweight_delta_k))
 
+# Section 3b: completing-the-square — the load-bearing claim.
+# logQ(x0) = -(x0 - mu_k)^2/(2 var_k) - zeta/2 * x0^2 + nu * x0
+# Full log-normalizer minus the truncated DeltaLogW must equal var_k*nu^2/(2*dk),
+# i.e. be free of mu_k. That is what makes the missing term cancel under softmax
+# when var_k is shared across mixture components.
+x0 = symbols('x0', real=True)
+logQ = -(x0 - mu_k)**2 / (2 * var_k) - zeta/2 * x0**2 + nu * x0
+logQ = expand(logQ)
+A = logQ.coeff(x0, 2)
+B = logQ.coeff(x0, 1)
+C0 = logQ.coeff(x0, 0)
+logZ_full   = simplify(-B**2/(4*A) + C0)
+missingTerm = simplify(logZ_full - logweight_delta_k)
+match_diff  = simplify(missingTerm - var_k * nu**2 / (2 * denom_k))
+
+print('\n=== S3b: completing-the-square (k-independence) ===')
+print('missing - var_k*nu^2/(2*dk)  (must be 0):', match_diff)
+print('mu_k in missing.free_symbols (must be False):', mu_k in missingTerm.free_symbols)
+
 # Section 4: linear reduction
 ls = {alpha_t: 1 - sigma_t, alpha_s: 1 - sigma_s}
 zeta_lin = simplify(zeta.subs(ls))

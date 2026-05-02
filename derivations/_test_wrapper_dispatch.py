@@ -1,25 +1,20 @@
 """
-Phase 2 — wrapper dispatch equivalence.
+Phase 2 — wrapper dispatch equivalence (post-C3).
 
-`GMFlowMixin.gmflow_posterior_mean` grew two optional kwargs in Phase 2:
-`alpha_t_src` and `alpha_t`. When neither is provided, the method must
-still call the legacy `gmflow_posterior_mean_jit` exactly as before
-(zero-blast-radius guarantee from the go/no-go doc). When either is
-provided, the missing member auto-fills as `1 - sigma_*` and the call
-routes to `gmflow_posterior_mean_jit_general`.
+`GMFlowMixin.gmflow_posterior_mean` accepts two optional kwargs:
+`alpha_t_src` and `alpha_t`. Valid combinations:
+  - neither provided  → legacy `gmflow_posterior_mean_jit` (bit-exact)
+  - both provided     → `gmflow_posterior_mean_jit_general`
+  - exactly one       → raises ValueError (XOR gate, added in C3)
 
 This test proves:
   (A) Source audit — the real `gmflow_posterior_mean` method body contains
-      the expected dispatch tokens. Guards against the wrapper being
-      rewritten in a way that silently bypasses the dispatch.
-  (B) Functional equivalence — a reference dispatch that mirrors the real
-      wrapper produces bit-exact outputs across four opt-in patterns whose
-      semantics all reduce to the linear schedule:
-        - default (no alpha kwargs)
-        - both alphas explicit, set to `1 - sigma_*`
-        - only `alpha_t_src` explicit (alpha_t auto-fills)
-        - only `alpha_t` explicit (alpha_t_src auto-fills)
-  (C) VP smoke — passing `alpha = cos(pi*t/2)`, `sigma = sin(pi*t/2)`
+      the expected dispatch tokens including the C3 XOR-gate raise.
+  (B) Functional equivalence — both valid routes (default, both-alphas) are
+      bit-exact when alphas are set to the linear-schedule values `1 - sigma`.
+  (C) XOR gate — passing only `alpha_t_src` or only `alpha_t` raises
+      ValueError with an informative message.
+  (D) VP smoke — passing `alpha = cos(pi*t/2)`, `sigma = sin(pi*t/2)`
       runs without error and produces finite, bounded output.
 
 We cannot `import lakonlab...` directly (mmcv / mmgen missing in this env).
@@ -93,12 +88,14 @@ def _audit_method_body(body):
         'use_general = alpha_t_src is not None or alpha_t is not None',
         'gmflow_posterior_mean_jit_general',
         'gmflow_posterior_mean_jit',
+        'raise ValueError',
+        'or neither',
     ]
     return [t for t in expected if t not in body]
 
 
 def _reference_dispatch(mod, d, alpha_t_src=None, alpha_t=None, eps=1e-6):
-    """Mirror the dispatch block of the real wrapper.
+    """Mirror the dispatch block of the real wrapper (post-C3 XOR gate).
 
     Keep this in lockstep with gmflow.py::GMFlowMixin.gmflow_posterior_mean.
     The source audit (_audit_method_body) catches token-level drift.
@@ -107,14 +104,15 @@ def _reference_dispatch(mod, d, alpha_t_src=None, alpha_t=None, eps=1e-6):
     sigma_t = d['sigma_t']
     use_general = alpha_t_src is not None or alpha_t is not None
     if use_general:
-        if alpha_t_src is None:
-            alpha_t_src = 1 - sigma_t_src
-        if alpha_t is None:
-            alpha_t = 1 - sigma_t
+        if alpha_t_src is None or alpha_t is None:
+            raise ValueError(
+                "Pass both alpha_t_src and alpha_t, or neither. "
+                "Passing only one is ambiguous and was never safe.")
+        _zeta_max = float(torch.finfo(d['gm_vars'].dtype).max) / 10.0
         return mod.gmflow_posterior_mean_jit_general(
             alpha_t_src, sigma_t_src, alpha_t, sigma_t,
             d['x_t_src'], d['x_t'],
-            d['gm_means'], d['gm_vars'], d['gm_logweights'], eps)
+            d['gm_means'], d['gm_vars'], d['gm_logweights'], eps, _zeta_max)
     return mod.gmflow_posterior_mean_jit(
         sigma_t_src, sigma_t, d['x_t_src'], d['x_t'],
         d['gm_means'], d['gm_vars'], d['gm_logweights'], eps)
@@ -139,7 +137,7 @@ def _make_batch(B, K, C, H, W, dtype, seed):
 
 
 def test_linear_equivalence_across_opt_in_patterns(mod):
-    """All four routes must produce identical outputs under linear schedule."""
+    """Both valid routes must produce identical outputs under linear schedule."""
     configs = [
         (2, 4,  3,  8,  8, torch.float32, 1e-5),
         (2, 8, 16, 16, 16, torch.float32, 1e-5),
@@ -157,21 +155,45 @@ def test_linear_equivalence_across_opt_in_patterns(mod):
             a_src = 1 - d['sigma_t_src']
             a_t = 1 - d['sigma_t']
             out_default = _reference_dispatch(mod, d)
-            variants = [
-                _reference_dispatch(mod, d, alpha_t_src=a_src, alpha_t=a_t),
-                _reference_dispatch(mod, d, alpha_t_src=a_src),
-                _reference_dispatch(mod, d, alpha_t=a_t),
-            ]
-            for v in variants:
-                diff = (out_default - v).abs().max().item()
-                if diff > max_abs:
-                    max_abs = diff
+            out_both = _reference_dispatch(mod, d, alpha_t_src=a_src, alpha_t=a_t)
+            diff = (out_default - out_both).abs().max().item()
+            if diff > max_abs:
+                max_abs = diff
         ok = max_abs < tol
         all_pass &= ok
         shape_str = f'(B={B}, K={K}, C={C}, H={H}, W={W})'
         dtype_str = str(dtype).replace('torch.', '')
         print(f'{shape_str:<28s} {dtype_str:<10s} {max_abs:<14.3e} '
               f'{"PASS" if ok else "FAIL"}')
+    return all_pass
+
+
+def test_xor_gate(mod):
+    """Passing exactly one alpha kwarg must raise ValueError."""
+    d = _make_batch(2, 4, 8, 8, 8, torch.float32, seed=42)
+    a_src = 1 - d['sigma_t_src']
+    a_t = 1 - d['sigma_t']
+    all_pass = True
+    for label, kwargs in [
+        ('only alpha_t_src', dict(alpha_t_src=a_src)),
+        ('only alpha_t',     dict(alpha_t=a_t)),
+    ]:
+        try:
+            _reference_dispatch(mod, d, **kwargs)
+            print(f'  [{label}] FAIL — no ValueError raised')
+            all_pass = False
+        except ValueError as e:
+            msg = str(e)
+            if 'or neither' in msg:
+                print(f'  [{label}] PASS — raised ValueError: {msg[:80]}')
+            else:
+                print(f'  [{label}] FAIL — raised ValueError but message '
+                      f'missing expected text: {msg[:120]}')
+                all_pass = False
+        except Exception as e:
+            print(f'  [{label}] FAIL — wrong exception type '
+                  f'{type(e).__name__}: {str(e)[:80]}')
+            all_pass = False
     return all_pass
 
 
@@ -232,11 +254,15 @@ def main():
     t1 = test_linear_equivalence_across_opt_in_patterns(mod)
 
     print()
-    print('--- test 2: VP smoke test ---')
-    t2 = test_vp_smoke(mod)
+    print('--- test 2: XOR gate — exactly one alpha kwarg must raise ---')
+    t2 = test_xor_gate(mod)
 
     print()
-    if t1 and t2:
+    print('--- test 3: VP smoke test ---')
+    t3 = test_vp_smoke(mod)
+
+    print()
+    if t1 and t2 and t3:
         print('=== ALL PASS ===')
         return 0
     print('!!! FAIL !!!')

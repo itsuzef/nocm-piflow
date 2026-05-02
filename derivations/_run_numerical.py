@@ -88,7 +88,7 @@ sigma_s_trig = torch.sin(math.pi * s_val / 2)
 
 x0_true = torch.randn(B, C)
 x_t_vp  = alpha_t_trig * x0_true + sigma_t_trig * torch.randn(B, C)  # (B, C)
-x_s_vp  = alpha_s_trig * x0_true + sigma_s_trig * torch.randn(B, C)
+x_s_vp  = alpha_s_trig * x0_true + sigma_s_trig* torch.randn(B, C)
 
 out_c_general = posterior_general(
     alpha_t_trig, sigma_t_trig, alpha_s_trig, sigma_s_trig,

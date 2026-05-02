@@ -17,7 +17,7 @@ in one at a time.
 | Wrapper `GMFlowMixin.gmflow_posterior_mean` accepts optional `alpha_t_src` / `alpha_t` and dispatches | Shipped; hygiene items complete |
 | `gm_vars` shape assertion inside the general JIT | Done — both JITs assert `size(gm_dim)==1` and `size(channel_dim)==1` |
 | XOR-gate on the wrapper's `(alpha_t_src, alpha_t)` pair | Done — passing exactly one raises `ValueError` |
-| `piflow_policies/gmflow.py` call sites | Intentionally schedule-locked (linear only); documented at import and call sites |
+| `piflow_policies/gmflow.py` | Intentionally schedule-locked (linear only) on three surfaces — see "VP completeness" below |
 | `zeta_max` clamp in production | Done — `zeta_max: float = inf` param added; wrapper computes and passes `finfo.max / 10.0` |
 | Bit-exact equivalence (`max abs diff = 0.0`, 20 seeds × 5 configs × fp32+fp64) | Verified |
 | Production VP path stays finite at small `t` | Verified |
@@ -69,6 +69,46 @@ Replaces the silent `1 − sigma_*` auto-fill with an explicit `ValueError` when
 | `lakonlab/models/diffusions/gmflow.py` | `gm_2nd_order` | Routes through wrapper |
 | `lakonlab/pipelines/pipeline_gmdit.py` | Pipeline-level call | Routes through wrapper |
 | `lakonlab/models/diffusions/piflow_policies/gmflow.py` | Two direct JIT calls | Schedule-locked (C4); documented |
+
+---
+
+## VP completeness — outstanding surface area
+
+The schedule-agnostic posterior is one slice of what an end-to-end VP-capable
+pipeline needs. A separate audit traced the `u → x_0` conversion and adjacent
+variance-rescaling sites and confirmed that **the rest of the codebase is
+still linear-schedule-only**. None of these are live bugs today (the
+`(alpha_t_src, alpha_t)` kwargs added to the wrapper do not propagate beyond
+it, and no in-tree config selects a non-linear sampler), but every site below
+becomes a silent miscompute the moment a non-linear `(α, σ)` reaches it.
+
+### Schedule-locked surfaces
+
+| Surface | Locations | Form today | Form needed under VP |
+|---|---|---|---|
+| `u → x_0` mean | `GaussianFlow.u_to_x_0`, `GMFlowMixin.u_to_x_0` (3 branches), `DXPolicy._u_to_x_0`, `GMFlowPolicy._u_to_x_0` (4 implementations total) | `x_0 = x_t − σ · u` — exact only when `α = 1 − σ` | needs an `α` factor; correct form to be derived alongside Phase 4 |
+| `u → x_0` variance / log-std | `GMFlowMixin.u_to_x_0` log-std branch (`logstds_x_0 = logstds + log σ`); `GMFlowPolicy._u_to_x_0` (`gm_vars = exp(2·logstds) · σ²`) | `σ²` rescaling | likely involves `(σ/α)²` or similar; needs re-derivation, not assumed |
+| Forward training process | `GaussianFlow.sample_forward_diffusion` | hardcoded `mean = 1 − σ` | requires a schedule object passed into the training loop |
+| Policy classes | `DXPolicy`, `GMFlowPolicy` (`BasePolicy.pi(x_t, σ_t) → u` has no `α`) | `(x_t, σ_t)`-only contract | `α`-aware contract or schedule-bound policy construction |
+
+### Trigger conditions for the latent bugs
+
+| Trigger | Sites lit | How it happens |
+|---|---|---|
+| **A** — test-time scheduler swap | `GaussianFlow.forward_test/forward_u`, `GMFlow.forward_test/forward_u`, `GMDiTPipeline.__call__` | A user picks a non-flow `diffusers` sampler via `test_cfg_override.sampler` (or constructs the pipeline with one). Today no in-tree config does this; not enforced at runtime. |
+| **B** — VP rollout into the policy classes | `GMFlowMixin.gmflow_posterior_mean` (`prediction_type='u'` branch); `pipeline_gmdit`; `DXPolicy`; `GMFlowPolicy` | Phase 4 opts a call site into VP. Sites #7–#9 of the audit go live. |
+
+### What Phase 4 must address
+
+Before any call site flips to a non-linear schedule:
+
+1. Decide each linear-locked surface's correct VP form (re-derive `u → x_0` mean and variance under arbitrary `(α, σ)`; do not assume the `σ²` form generalises).
+2. Either fix all four `u_to_x_0` implementations or guard them at the API boundary so a non-linear `(α, σ)` cannot reach them silently.
+3. Decide whether `BasePolicy.pi(x_t, σ_t) → u` gains an `α` argument or is replaced by an `α`-aware policy construction step.
+4. Add a runtime guard against Trigger A (e.g., assert `α + σ ≈ 1` inside `u_to_x_0` until the form is generalised).
+
+The current `gmflow_posterior_mean_jit_general` work is necessary for any of
+this but does not on its own make the pipeline VP-correct.
 
 ---
 
